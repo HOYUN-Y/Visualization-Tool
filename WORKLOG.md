@@ -94,6 +94,41 @@ Visualization Tool/
 
 ---
 
+### Session 2 — 2026-06-06
+
+**작업 내용: 차트 타입 대량 구현 (+13종)**
+
+**수정 파일:**
+- `js/vizMode.jsx` — 전체 재작성, 차트 타입 8→21종으로 확장
+- `js/icons.jsx` — 신규 아이콘 10개 추가 (bubble, waterfall, boxplot, violin, sankey, sunburst, facet, cumreturn 등)
+- `js/data.js` — KOSPI 금융 데이터셋 추가 (320행 OHLCV, 2024-2025)
+- `css/viz.css` — Show Me 그룹 스타일 + Facet Grid CSS 추가
+
+**추가된 차트 타입:**
+
+| 그룹 | 차트 | 상태 |
+|---|---|---|
+| Advanced | Bubble Chart | ✅ (3 measures + color dimension) |
+| Advanced | Waterfall | ✅ (누적 증감, 양수=주황/음수=빨강) |
+| Advanced | Funnel | ✅ |
+| Advanced | Radar | ✅ (3+ measures 권장) |
+| Advanced | Box Plot | ✅ (IQR + 이상치 scatter overlay) |
+| Advanced | Violin Plot | ✅ (KDE 커널밀도 + 중앙값/IQR overlay) |
+| Advanced | Sankey | ✅ (2 dims → flow, gradient fill) |
+| Advanced | Sunburst | ✅ (2 dims → hierarchical donut) |
+| Financial | Candlestick | ✅ (KOSPI 데이터, dataZoom) |
+| Financial | OHLC+Vol | ✅ (캔들 + 거래량 복합 2-grid) |
+| Financial | Cumulative Return | ✅ (수익률 % area chart) |
+| Special | Facet Grid | ✅ (Color dim별 Small Multiples, 2×N grid) |
+
+**기술적 이슈 및 해결:**
+- Violin KDE renderItem: category axis에서 fractional index 불가 → 픽셀 공간에서 직접 좌표 계산으로 해결
+- Show Me 패널: 단일 grid → 4개 그룹(Basic/Advanced/Financial/Special)으로 재구성
+
+**현재 총 차트 수: 21종**
+
+---
+
 ## 🔧 다음 세션 작업 계획 (Phase 2)
 
 > `HANDOFF.md` §12 "Suggested next steps" 참고

@@ -87,6 +87,39 @@
 
   const txns = buildTxns(540);
 
+  // ── Financial dataset: KOSPI-style stock (252 trading days, 2024) ──────────
+  function buildStock() {
+    const rs = rng(20240102);
+    const rows2 = [];
+    let price = 2680;
+    // generate ~252 weekdays from 2024-01-02
+    let y = 2024, m = 1, d = 2;
+    function nextDay() { d++; const dm=[0,31,29,31,30,31,30,31,31,30,31,30,31]; if(d>dm[m]){d=1;m++;if(m>12){m=1;y++;}} }
+    function dow() { // Zeller-ish simplified for 2024 weekday (Mon=1..Sun=7 in JS: 0=Sun)
+      return new Date(y, m-1, d).getDay();
+    }
+    let cumRet = 0;
+    for (let i = 0; i < 320; i++) {
+      while (dow() === 0 || dow() === 6) nextDay();
+      const date = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const drift = 0.00015;
+      const vol = 0.012;
+      const ret = drift + (rs() - 0.5) * vol * 2.5;
+      const open = round(price, 2);
+      const closeP = round(open * (1 + ret), 2);
+      const high = round(Math.max(open, closeP) * (1 + rs() * 0.008), 2);
+      const low  = round(Math.min(open, closeP) * (1 - rs() * 0.008), 2);
+      const volume = Math.round(4e6 + rs() * 8e6);
+      cumRet += ret;
+      rows2.push({ date, open, high, low, close: closeP, volume, return_pct: round(ret * 100, 3), cum_return_pct: round(cumRet * 100, 2) });
+      price = closeP;
+      nextDay();
+      if (y > 2024 && m >= 7) break; // stop ~mid 2025
+    }
+    return rows2;
+  }
+  const stock = buildStock();
+
   // monthly price index (aggregate, time series dataset)
   function buildMonthly() {
     const m = {};
@@ -154,6 +187,24 @@
         COL("avg_price_per_m2", "avg_price_per_m2", "float", "measure", { unit: "만원/m²", agg: "avg" }),
         COL("txn_count", "txn_count", "integer", "measure", { agg: "sum" }),
         COL("index", "index", "float", "measure", { agg: "avg" }),
+      ],
+    },
+    {
+      id: "kospi_stock",
+      name: "KOSPI_Stock_2024.csv",
+      short: "KOSPI_Stock",
+      icon: "trend",
+      source: "Simulated",
+      rows: stock,
+      columns: [
+        COL("date",           "date",           "datetime", "dimension"),
+        COL("open",           "open",           "float",    "measure", { agg: "avg" }),
+        COL("high",           "high",           "float",    "measure", { agg: "max" }),
+        COL("low",            "low",            "float",    "measure", { agg: "min" }),
+        COL("close",          "close",          "float",    "measure", { agg: "avg" }),
+        COL("volume",         "volume",         "integer",  "measure", { agg: "sum" }),
+        COL("return_pct",     "return_pct",     "float",    "measure", { unit: "%", agg: "avg" }),
+        COL("cum_return_pct", "cum_return_pct", "float",    "measure", { unit: "%", agg: "avg" }),
       ],
     },
     {
