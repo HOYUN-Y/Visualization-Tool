@@ -1,0 +1,20 @@
+/* NØDE/Insight — ML Studio styles */
+.ml-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; flex-shrink: 0; }
+.ml-metric { background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; }
+.mm-val { font-size: 22px; font-weight: 600; color: var(--accent-hi); line-height: 1.1; }
+.mm-lbl { font-size: var(--fs-10); color: var(--tx-lo); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+
+.ml-chartwrap { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 12px 12px; }
+.ml-charttitle { font-size: var(--fs-11); font-weight: 600; color: var(--tx-mid); margin-bottom: 6px; }
+.ml-importance { flex-shrink: 0; padding: 4px 12px 14px; }
+.imp-row { display: flex; align-items: center; gap: 8px; height: 22px; }
+.imp-name { flex: 0 0 30%; font-size: var(--fs-12); color: var(--tx-hi); }
+.imp-bar { flex: 1; height: 10px; background: var(--bg-2); border-radius: 2px; overflow: hidden; }
+.imp-bar span { display: block; height: 100%; background: var(--meas-color); border-radius: 2px; }
+.imp-v { flex: 0 0 auto; font-size: var(--fs-11); color: var(--tx-mid); }
+
+.mlpanel { padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+.ml-feats { display: flex; flex-direction: column; gap: 1px; max-height: 180px; overflow: auto; }
+.ml-feat { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 6px; border-radius: var(--r-sm);
+  font-size: var(--fs-12); color: var(--tx-hi); cursor: pointer; }
+.ml-feat:hover { background: var(--bg-hover); }

@@ -1,0 +1,33 @@
+/* NØDE — AI Assistant drawer */
+.aidrawer { position: fixed; top: var(--topbar-h); right: 0; bottom: 24px; width: 348px; z-index: 70;
+  background: var(--bg-1); border-left: 1px solid var(--line-strong); box-shadow: var(--shadow-pop);
+  display: flex; flex-direction: column; }
+.ai-head { display: flex; align-items: center; gap: 9px; padding: 10px 10px 10px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.ai-spark { width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-hi);
+  display: flex; align-items: center; justify-content: center; }
+.ai-title { font-size: var(--fs-13); font-weight: 600; color: var(--tx-hi); }
+.ai-sub { font-size: var(--fs-10); color: var(--tx-faint); }
+
+.ai-body { flex: 1; min-height: 0; overflow: auto; padding: 12px; }
+.ai-section-h { font-size: var(--fs-10); font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--tx-faint); margin-bottom: 8px; }
+.insight { display: flex; gap: 9px; padding: 9px 10px; margin-bottom: 7px; border-radius: var(--r-md);
+  background: var(--bg-2); border: 1px solid var(--line); }
+.insight-ic { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; background: var(--accent-soft);
+  color: var(--accent-hi); display: flex; align-items: center; justify-content: center; }
+.insight-tx { font-size: var(--fs-12); color: var(--tx-mid); line-height: 1.5; }
+.insight-tx b { color: var(--tx-hi); font-weight: 600; }
+
+.ai-msg { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
+.ai-msg.user { justify-content: flex-end; }
+.ai-bubble { font-size: var(--fs-12); line-height: 1.5; padding: 8px 11px; border-radius: 10px; max-width: 86%; }
+.ai-msg.user .ai-bubble { background: var(--accent); color: #1a0f06; font-weight: 500; border-bottom-right-radius: 3px; }
+.ai-msg.ai .ai-bubble { background: var(--bg-2); border: 1px solid var(--line); color: var(--tx-mid); border-bottom-left-radius: 3px; }
+.ai-msg.ai .ai-bubble b { color: var(--tx-hi); }
+
+.ai-suggest { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 12px; border-top: 1px solid var(--line); flex-shrink: 0; }
+.ai-chip { font-size: var(--fs-11); padding: 4px 9px; border-radius: 12px; background: var(--bg-2);
+  border: 1px solid var(--line); color: var(--tx-mid); }
+.ai-chip:hover { color: var(--accent-hi); border-color: var(--accent-line); }
+.ai-input { display: flex; gap: 6px; padding: 0 12px 12px; flex-shrink: 0; }
+.ai-input .btn.primary { height: 26px; padding: 0 9px; }

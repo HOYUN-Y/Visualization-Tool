@@ -1,0 +1,67 @@
+/* NØDE — Tweaks panel + variation overrides */
+
+.tweaks { position: fixed; right: 14px; bottom: 34px; width: 268px; z-index: 80;
+  background: var(--bg-1); border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop); overflow: hidden; font-family: var(--font-ui); }
+.tweaks-head { display: flex; align-items: center; gap: 7px; height: 36px; padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--line); font-size: var(--fs-12); font-weight: 600; color: var(--tx-hi); }
+.tweaks-head svg { color: var(--accent); }
+.tweaks-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 9px; max-height: 70vh; overflow: auto; }
+.tweaks-foot { padding: 8px 12px; border-top: 1px solid var(--line); font-size: var(--fs-10); color: var(--tx-faint); }
+.tw-sect { font-size: var(--fs-10); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--tx-faint); margin-top: 4px; }
+.tw-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tw-label { font-size: var(--fs-11); color: var(--tx-mid); }
+.tw-swatches { display: flex; gap: 6px; }
+.tw-sw { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); cursor: pointer; }
+.tw-sw.on { border-color: var(--tx-hi); box-shadow: 0 0 0 2px var(--bg-1), 0 0 0 3px currentColor; }
+
+/* ---- sidebar compact ---- */
+[data-sidebar="compact"] { --rail-w: 44px; }
+[data-sidebar="compact"] .rail-item { height: 38px; }
+[data-sidebar="compact"] .rail-item .lbl { display: none; }
+
+/* ---- density cozy ---- */
+[data-density="cozy"] { --row-h: 32px; --tab-h: 38px; --panel-pad: 12px; --topbar-h: 48px; }
+[data-density="cozy"] body, [data-density="cozy"] { font-size: var(--fs-13); }
+[data-density="cozy"] .field { height: 30px; }
+[data-density="cozy"] .ds-row { height: 31px; }
+
+/* ---- tone: warm ---- */
+[data-theme="dark"][data-tone="warm"] {
+  --bg-0: oklch(0.205 0.008 64); --bg-1: oklch(0.24 0.009 64); --bg-2: oklch(0.28 0.010 64); --bg-3: oklch(0.325 0.011 64);
+  --tx-hi: oklch(0.93 0.006 64); --tx-mid: oklch(0.72 0.007 64); --tx-lo: oklch(0.56 0.007 64); --tx-faint: oklch(0.45 0.006 64);
+  --line: oklch(1 0 0 / 0.085); --line-2: oklch(1 0 0 / 0.05);
+}
+[data-theme="light"][data-tone="warm"] {
+  --bg-0: oklch(0.955 0.008 78); --bg-1: oklch(0.995 0.004 78); --bg-2: oklch(0.975 0.006 78); --bg-3: oklch(0.93 0.008 78);
+  --tx-hi: oklch(0.26 0.012 64); --tx-mid: oklch(0.45 0.01 64);
+}
+
+/* ---- tone: contrast ---- */
+[data-theme="dark"][data-tone="contrast"] {
+  --bg-0: oklch(0.155 0.008 250); --bg-1: oklch(0.195 0.008 250); --bg-2: oklch(0.245 0.009 250); --bg-3: oklch(0.30 0.01 250);
+  --line: oklch(1 0 0 / 0.13); --line-2: oklch(1 0 0 / 0.08); --line-strong: oklch(1 0 0 / 0.22);
+  --tx-hi: oklch(0.97 0.003 250);
+}
+[data-theme="light"][data-tone="contrast"] {
+  --bg-0: oklch(0.98 0.002 250); --bg-1: oklch(1 0 0); --bg-2: oklch(0.965 0.003 250);
+  --line: oklch(0 0 0 / 0.16); --line-strong: oklch(0 0 0 / 0.28); --tx-hi: oklch(0.16 0.01 250);
+}
+
+/* ---- accent variants ---- */
+[data-accent="blue"] { --accent: oklch(0.66 0.16 250); --accent-hi: oklch(0.74 0.14 250);
+  --accent-soft: oklch(0.66 0.16 250 / 0.18); --accent-line: oklch(0.66 0.16 250 / 0.55); --cat-1: oklch(0.66 0.16 250); }
+[data-accent="teal"] { --accent: oklch(0.68 0.12 180); --accent-hi: oklch(0.76 0.11 180);
+  --accent-soft: oklch(0.68 0.12 180 / 0.18); --accent-line: oklch(0.68 0.12 180 / 0.55); --cat-1: oklch(0.68 0.12 180); }
+[data-accent="violet"] { --accent: oklch(0.64 0.17 300); --accent-hi: oklch(0.72 0.15 300);
+  --accent-soft: oklch(0.64 0.17 300 / 0.18); --accent-line: oklch(0.64 0.17 300 / 0.55); --cat-1: oklch(0.64 0.17 300); }
+[data-theme="light"][data-accent="blue"] { --accent: oklch(0.55 0.19 252); --accent-hi: oklch(0.48 0.2 252); }
+[data-theme="light"][data-accent="teal"] { --accent: oklch(0.56 0.13 182); --accent-hi: oklch(0.49 0.13 182); }
+[data-theme="light"][data-accent="violet"] { --accent: oklch(0.54 0.19 300); --accent-hi: oklch(0.47 0.2 300); }
+/* primary button text stays readable on non-orange accents */
+[data-accent="blue"] .btn.primary, [data-accent="teal"] .btn.primary, [data-accent="violet"] .btn.primary,
+[data-accent="blue"] .seg button.on, [data-accent="teal"] .seg button.on, [data-accent="violet"] .seg button.on,
+[data-accent="blue"] .pl-step.cur .pl-ic, [data-accent="teal"] .pl-step.cur .pl-ic, [data-accent="violet"] .pl-step.cur .pl-ic,
+[data-accent="blue"] .tw-sw, [data-accent="teal"] .checkbox.on, [data-accent="violet"] .checkbox.on { color: #fff; }
+[data-accent="blue"] .btn.primary, [data-accent="teal"] .btn.primary, [data-accent="violet"] .btn.primary { color: #fff; }

@@ -1,0 +1,116 @@
+/* NØDE — dense data grid */
+.gridwrap { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--bg-0); }
+
+.gridtoolbar {
+  display: flex; align-items: center; gap: 8px;
+  height: 34px; padding: 0 10px; flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.gridtoolbar .search { flex: 1 1 120px; max-width: 240px; min-width: 90px; }
+.gridtoolbar .spacer { flex: 1; }
+.gridtoolbar .meta { font-size: var(--fs-11); color: var(--tx-lo); font-family: var(--font-mono); }
+.pager { display: flex; align-items: center; gap: 2px; }
+.pager .iconbtn { width: 24px; height: 24px; }
+.pager .iconbtn svg { width: 14px; height: 14px; }
+
+.gridscroll { flex: 1; min-height: 0; overflow: auto; position: relative; }
+
+table.grid {
+  border-collapse: separate; border-spacing: 0;
+  font-size: var(--fs-12); width: max-content; min-width: 100%;
+}
+table.grid thead th {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-strong);
+  border-right: 1px solid var(--line-2);
+  text-align: left; font-weight: 600; color: var(--tx-mid);
+  padding: 0; height: 30px; white-space: nowrap;
+  user-select: none;
+}
+table.grid thead th .th-inner {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 9px; height: 30px; cursor: pointer;
+}
+table.grid thead th .th-inner:hover { background: var(--bg-hover); }
+table.grid thead th.sel { background: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent); }
+.th-name { overflow: hidden; text-overflow: ellipsis; }
+.th-type { font-size: 8.5px; font-weight: 700; letter-spacing: 0.04em; padding: 1px 4px; border-radius: 3px; flex-shrink: 0; }
+.th-type.t-str { color: var(--dim-color); background: var(--dim-soft); }
+.th-type.t-num { color: var(--meas-color); background: var(--meas-soft); }
+.th-type.t-date { color: var(--cat-4); background: oklch(0.68 0.14 300 / 0.16); }
+.th-type.t-cat { color: var(--accent-hi); background: var(--accent-soft); }
+.th-sort { color: var(--accent); margin-left: auto; display: inline-flex; }
+.th-sort svg { width: 12px; height: 12px; }
+.th-menu { opacity: 0; color: var(--tx-lo); display: inline-flex; }
+table.grid thead th:hover .th-menu { opacity: 1; }
+.th-menu:hover { color: var(--tx-hi); }
+
+/* row number / index col */
+.col-idx { position: sticky; left: 0; z-index: 2; background: var(--bg-1);
+  color: var(--tx-faint); text-align: right; font-family: var(--font-mono);
+  font-size: var(--fs-10); padding: 0 8px 0 6px; border-right: 1px solid var(--line);
+  width: 46px; min-width: 46px; }
+thead .col-idx { z-index: 4; }
+
+table.grid tbody td {
+  padding: 0 9px; height: var(--row-h);
+  border-bottom: 1px solid var(--line-2);
+  border-right: 1px solid var(--line-2);
+  white-space: nowrap; color: var(--tx-hi);
+  max-width: 280px; overflow: hidden; text-overflow: ellipsis;
+}
+table.grid tbody tr:hover td { background: var(--bg-hover); }
+table.grid tbody td.num { text-align: right; font-family: var(--font-mono); font-feature-settings: "tnum" 1; color: var(--tx-hi); }
+table.grid tbody td.sel { background: var(--accent-soft); }
+table.grid tbody tr:hover td.sel { background: color-mix(in oklch, var(--accent-soft), var(--bg-hover)); }
+.cell-null { color: var(--tx-faint); font-style: italic; font-family: var(--font-mono); font-size: var(--fs-11); }
+.cell-cat { display: inline-flex; align-items: center; gap: 5px; }
+.cell-cat::before { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--swatch, var(--tx-faint)); flex-shrink: 0; }
+
+/* frozen data column */
+td.frozen, th.frozen { position: sticky; z-index: 2; background: var(--bg-1); border-right: 1px solid var(--line-strong); }
+thead th.frozen { z-index: 4; }
+table.grid tbody tr:hover td.frozen { background: var(--bg-2); }
+
+/* in-cell mini bar for numeric distribution */
+.databar { position: relative; }
+.databar .fill { position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  height: 14px; background: var(--meas-soft); border-radius: 2px; z-index: 0; }
+.databar .val { position: relative; z-index: 1; }
+
+/* column menu popover */
+.popover {
+  position: fixed; z-index: 90; background: var(--bg-2);
+  border: 1px solid var(--line-strong); border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop); padding: 4px; min-width: 168px;
+}
+.popover .pi {
+  display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 9px;
+  border-radius: var(--r-sm); font-size: var(--fs-12); color: var(--tx-hi); cursor: pointer;
+}
+.popover .pi:hover { background: var(--bg-hover); }
+.popover .pi svg { width: 14px; height: 14px; color: var(--tx-mid); }
+.popover .sep { height: 1px; background: var(--line); margin: 4px 2px; }
+.popover .pi.danger { color: var(--neg); }
+.popover .ph { font-size: var(--fs-10); text-transform: uppercase; letter-spacing: 0.07em; color: var(--tx-faint); padding: 6px 9px 3px; }
+
+/* filter popover */
+.filterpop { position: fixed; z-index: 90; background: var(--bg-2); border: 1px solid var(--line-strong);
+  border-radius: var(--r-md); box-shadow: var(--shadow-pop); width: 230px; padding: 8px; }
+.filterpop .fp-list { max-height: 220px; overflow: auto; margin: 6px 0; }
+.fp-opt { display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 6px; border-radius: 3px; font-size: var(--fs-12); cursor: pointer; }
+.fp-opt:hover { background: var(--bg-hover); }
+.fp-opt .cnt { margin-left: auto; font-size: var(--fs-10); color: var(--tx-faint); font-family: var(--font-mono); }
+.checkbox { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--line-strong); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.checkbox.on { background: var(--accent); border-color: var(--accent); color: #1a0f06; }
+.checkbox svg { width: 11px; height: 11px; }
+
+/* active filter chips bar */
+.filterchips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fchip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 4px 0 8px;
+  background: var(--accent-soft); border: 1px solid var(--accent-line); border-radius: var(--r-sm);
+  font-size: var(--fs-11); color: var(--tx-hi); }
+.fchip .x { display: inline-flex; cursor: pointer; color: var(--tx-mid); }
+.fchip .x:hover { color: var(--tx-hi); }

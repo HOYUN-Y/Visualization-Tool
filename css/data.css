@@ -1,0 +1,69 @@
+/* NØDE — Data mode (explorer / profiling / column profile) */
+
+/* dataset rows */
+.ds-row { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 6px;
+  border-radius: var(--r-sm); margin: 0 6px; cursor: pointer; color: var(--tx-hi); }
+.ds-row:hover { background: var(--bg-hover); }
+.ds-row.on { background: var(--accent-soft); }
+.ds-row.on .ds-name { color: var(--accent-hi); font-weight: 600; }
+.ds-row .caret { display: inline-flex; color: var(--tx-lo); padding: 2px; }
+.ds-row .ds-name { flex: 1; font-size: var(--fs-12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-row .ds-meta { font-size: var(--fs-10); color: var(--tx-faint); }
+.ds-row svg { color: var(--tx-mid); flex-shrink: 0; }
+.ds-row.on svg { color: var(--accent-hi); }
+
+.ds-fields { padding: 2px 0 6px 16px; margin: 0 6px; border-left: 1px solid var(--line-2); }
+.fgroup { margin-bottom: 2px; }
+.fgroup-h { font-size: var(--fs-10); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--tx-faint); padding: 5px 8px 3px; display: flex; gap: 5px; }
+.fgroup-h .mono { color: var(--tx-faint); }
+.field.fsel { background: var(--accent-soft); }
+
+/* profiling grid */
+.profgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
+.profcard { background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 10px; cursor: pointer; transition: border-color .12s, transform .08s; }
+.profcard:hover { border-color: var(--line-strong); }
+.profcard.sel { border-color: var(--accent-line); box-shadow: inset 0 0 0 1px var(--accent-line); }
+.pc-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.pc-name { font-size: var(--fs-12); font-weight: 600; color: var(--tx-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-stats { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px; font-size: var(--fs-10); color: var(--tx-lo); }
+.pc-stats b { color: var(--tx-hi); font-weight: 600; font-family: var(--font-mono); }
+.pc-stats .miss b { color: var(--warn); }
+.pc-stats .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+/* mini histogram (div bars) */
+.minihist { display: flex; align-items: flex-end; gap: 1px; width: 100%; }
+.minihist span { flex: 1; border-radius: 1px 1px 0 0; opacity: 0.85; min-width: 0; }
+
+/* column profile (right) */
+.colprofile { padding: 12px 12px 28px; }
+.cp-head { display: flex; align-items: center; gap: 8px; }
+.cp-name { font-size: var(--fs-16); font-weight: 600; color: var(--tx-hi); overflow: hidden; text-overflow: ellipsis; }
+.cp-sub { font-size: var(--fs-11); color: var(--tx-lo); margin-top: 3px; font-family: var(--font-mono); }
+.cp-section { margin-top: 16px; }
+.cp-title { font-size: var(--fs-10); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--tx-faint); margin-bottom: 8px; }
+.kv { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--line-2); }
+.kv .k { font-size: var(--fs-12); color: var(--tx-mid); }
+.kv .v { font-size: var(--fs-12); color: var(--tx-hi); }
+.kv .v.acc { color: var(--warn); }
+
+.fullhist { display: flex; align-items: flex-end; gap: 2px; height: 78px; padding: 6px; background: var(--bg-0);
+  border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 8px; }
+.fh-bar { flex: 1; background: var(--meas-color); border-radius: 1px 1px 0 0; opacity: 0.8; min-height: 2px; }
+.fh-bar:hover { opacity: 1; }
+
+.boxplot { position: relative; height: 26px; margin: 4px 4px 0; }
+.boxplot .bp-line { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--line-strong); }
+.boxplot .bp-box { position: absolute; top: 50%; transform: translateY(-50%); height: 16px;
+  background: var(--meas-soft); border: 1px solid var(--meas-color); border-radius: 2px; }
+.boxplot .bp-med { position: absolute; top: 50%; transform: translateY(-50%); width: 2px; height: 16px; background: var(--meas-color); }
+
+.topvals { display: flex; flex-direction: column; gap: 5px; }
+.tv-row { display: flex; align-items: center; gap: 8px; font-size: var(--fs-12); }
+.tv-name { flex: 0 0 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tx-hi); }
+.tv-bar { flex: 1; height: 12px; background: var(--bg-2); border-radius: 2px; overflow: hidden; }
+.tv-bar span { display: block; height: 100%; border-radius: 2px; }
+.tv-cnt { flex: 0 0 auto; color: var(--tx-lo); font-size: var(--fs-11); }
+.ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

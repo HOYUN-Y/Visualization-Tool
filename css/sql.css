@@ -1,0 +1,30 @@
+/* NØDE/Insight — SQL Workspace styles */
+.sql-editor { display: flex; min-height: 150px; height: 34%; flex-shrink: 0; background: var(--bg-0);
+  border-bottom: 1px solid var(--line); overflow: hidden; }
+.sql-gutter { padding: 10px 8px 10px 12px; text-align: right; color: var(--tx-faint); font-family: var(--font-mono);
+  font-size: var(--fs-12); line-height: 1.55; user-select: none; background: var(--bg-1); border-right: 1px solid var(--line-2); }
+.sql-ta { flex: 1; border: none; outline: none; resize: none; background: var(--bg-0); color: var(--tx-hi);
+  padding: 10px 12px; font-size: var(--fs-12); line-height: 1.55; tab-size: 2; }
+.sql-ta::selection { background: var(--accent-soft); }
+
+.sql-resbar { display: flex; align-items: center; height: 30px; padding: 0 12px; flex-shrink: 0;
+  background: var(--bg-1); border-bottom: 1px solid var(--line); font-size: var(--fs-11); color: var(--tx-lo); }
+.sql-err { display: inline-flex; align-items: center; gap: 6px; color: var(--neg); }
+.sql-results { flex: 1; min-height: 0; }
+
+.sqlpanel { padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+.sql-examples { display: flex; flex-direction: column; gap: 4px; }
+.sql-ex { display: flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: var(--r-sm);
+  background: var(--bg-2); border: 1px solid var(--line); color: var(--tx-hi); font-size: var(--fs-12); text-align: left; }
+.sql-ex:hover { border-color: var(--accent-line); color: var(--accent-hi); }
+.sql-ex svg { color: var(--tx-mid); }
+.sql-ex:hover svg { color: var(--accent); }
+
+.sql-table { margin-bottom: 8px; }
+.sql-table-h { display: flex; align-items: center; gap: 6px; font-size: var(--fs-12); color: var(--tx-hi); }
+.sql-table-h svg { color: var(--accent); }
+.sql-tn { margin-left: auto; color: var(--tx-faint); font-size: var(--fs-10); }
+.sql-cols { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; padding-left: 19px; }
+.sql-col { font-size: var(--fs-10); padding: 1px 6px; border-radius: 3px; background: var(--bg-2); border: 1px solid var(--line-2); color: var(--tx-lo); cursor: default; }
+.sql-col:hover { color: var(--tx-hi); border-color: var(--line); }
+.sqlpanel code { font-family: var(--font-mono); font-size: var(--fs-10); color: var(--accent-hi); background: var(--accent-soft); padding: 0 4px; border-radius: 3px; }

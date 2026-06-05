@@ -1,0 +1,71 @@
+/* NØDE — icon set (simple line icons). Usage: <Icon name="table" /> */
+(function () {
+  const P = {
+    // mode rail
+    data: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+    clean: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
+    visualize: '<path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/>',
+    dashboard: '<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>',
+    sql: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+    stats: '<path d="M3 3v18h18"/><path d="M7 14l3-3 3 2 5-6"/><circle cx="7" cy="14" r="1.4"/><circle cx="10" cy="11" r="1.4"/><circle cx="13" cy="13" r="1.4"/><circle cx="18" cy="7" r="1.4"/>',
+    ml: '<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.2 7.2l7.6 3.6M8.2 16.8l7.6-3.6"/>',
+    ai: '<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M18 16l.7 1.8L20.5 18l-1.8.7L18 20.5l-.7-1.8L15.5 18l1.8-.7z"/>',
+    // ui
+    table: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+    trend: '<path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v5h-5"/>',
+    map: '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
+    moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+    sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+    filter: '<path d="M3 4h18l-7 8v6l-4 2v-8z"/>',
+    sort: '<path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 5v15"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    x: '<path d="M18 6L6 18M6 6l12 12"/>',
+    chevR: '<path d="M9 6l6 6-6 6"/>',
+    chevD: '<path d="M6 9l6 6 6-6"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+    undo: '<path d="M3 7v6h6M3 13a9 9 0 1 0 3-7.7L3 8"/>',
+    redo: '<path d="M21 7v6h-6M21 13a9 9 0 1 1-3-7.7L21 8"/>',
+    eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M9.9 4.2A10 10 0 0 1 12 4c6 0 10 8 10 8a18 18 0 0 1-2.3 3.3M6.6 6.6A18 18 0 0 0 2 12s4 8 10 8a10 10 0 0 0 4-.8"/><path d="M2 2l20 20"/>',
+    pin: '<path d="M9 3h6l-1 6 4 3v2H6v-2l4-3z"/><path d="M12 14v7"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    kpi: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 2 4-6"/>',
+    text: '<path d="M4 7V5h16v2M9 19h6M12 5v14"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/>',
+    save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+    bar: '<rect x="4" y="11" width="4" height="9"/><rect x="10" y="6" width="4" height="14"/><rect x="16" y="14" width="4" height="6"/>',
+    line: '<path d="M3 17l6-6 4 4 8-8"/>',
+    area: '<path d="M3 17l6-6 4 4 8-8v10H3z"/>',
+    pie: '<path d="M12 3v9l8 4A9 9 0 1 0 12 3z"/><path d="M12 3a9 9 0 0 1 8 13"/>',
+    scatter: '<circle cx="6" cy="16" r="1.6"/><circle cx="10" cy="9" r="1.6"/><circle cx="14" cy="13" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="9" cy="18" r="1.6"/>',
+    heatmap: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>',
+    treemap: '<rect x="3" y="3" width="11" height="11"/><rect x="14" y="3" width="7" height="6"/><rect x="14" y="9" width="7" height="5"/><rect x="3" y="14" width="7" height="7"/><rect x="10" y="14" width="11" height="7"/>',
+    funnel: '<path d="M3 4h18l-6 8v6l-6 2v-8z"/>',
+    radar: '<path d="M12 2l9 7-3.5 11h-11L3 9z"/><path d="M12 2v20M3 9h18"/>',
+    candle: '<path d="M6 4v4M6 16v4M6 8h0M18 7v3M18 17v3"/><rect x="4" y="8" width="4" height="8"/><rect x="16" y="10" width="4" height="7"/>',
+    dots: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+    db: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h0"/>',
+    check: '<path d="M20 6L9 17l-5-5"/>',
+    duplicate: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+    move: '<path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>',
+    play: '<path d="M6 4l14 8-14 8z"/>',
+    columns: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/>',
+    layers: '<path d="M12 2l9 5-9 5-9-5z"/><path d="M3 12l9 5 9-5M3 17l9 5 9-5"/>',
+    bolt: '<path d="M13 2L3 14h7l-1 8 10-12h-7z"/>',
+    book: '<path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 19H6a2 2 0 0 0-2 2"/>',
+  };
+  function Icon({ name, size, style, className }) {
+    const d = P[name] || P.dots;
+    return React.createElement("svg", {
+      width: size || 16, height: size || 16, viewBox: "0 0 24 24",
+      fill: "none", stroke: "currentColor", strokeWidth: 1.7,
+      strokeLinecap: "round", strokeLinejoin: "round",
+      style, className, dangerouslySetInnerHTML: { __html: d },
+    });
+  }
+  window.Icon = Icon;
+})();

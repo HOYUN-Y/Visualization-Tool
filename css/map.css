@@ -1,0 +1,15 @@
+/* NØDE/Insight — Map mode styles */
+.map-note { display: flex; align-items: center; gap: 7px; padding: 6px 12px; flex-shrink: 0;
+  background: var(--bg-2); border-bottom: 1px solid var(--line); font-size: var(--fs-11); color: var(--tx-lo); }
+.map-note svg { color: var(--warn); }
+
+.mappanel { padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+.maprank { display: flex; flex-direction: column; gap: 2px; }
+.mr-row { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 6px; border-radius: var(--r-sm); cursor: pointer; }
+.mr-row:hover { background: var(--bg-hover); }
+.mr-row.sel { background: var(--accent-soft); }
+.mr-rank { flex: 0 0 18px; text-align: right; color: var(--tx-faint); font-size: var(--fs-10); }
+.mr-name { flex: 0 0 30%; font-size: var(--fs-12); color: var(--tx-hi); }
+.mr-bar { flex: 1; height: 9px; background: var(--bg-2); border-radius: 2px; overflow: hidden; }
+.mr-bar span { display: block; height: 100%; background: var(--accent); opacity: 0.8; border-radius: 2px; }
+.mr-val { flex: 0 0 auto; font-size: var(--fs-11); color: var(--tx-mid); }

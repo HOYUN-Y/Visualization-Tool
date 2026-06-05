@@ -1,0 +1,131 @@
+/* ============================================================
+   NØDE Analytics Workbench — Design Tokens
+   High-density data tool. Dark default + Light. Orange accent.
+   ============================================================ */
+
+:root {
+  /* Type */
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale (compact) */
+  --fs-9: 9px;
+  --fs-10: 10px;
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-19: 19px;
+  --fs-24: 24px;
+  --fs-32: 32px;
+
+  /* Radius */
+  --r-xs: 3px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 9px;
+
+  /* Density metrics */
+  --row-h: 28px;
+  --topbar-h: 44px;
+  --rail-w: 52px;
+  --panel-pad: 10px;
+  --tab-h: 34px;
+
+  /* Accent (orange) — shared across themes, tuned per theme below */
+  --accent: oklch(0.67 0.19 45);
+  --accent-hi: oklch(0.74 0.17 50);
+  --accent-soft: oklch(0.67 0.19 45 / 0.16);
+  --accent-line: oklch(0.67 0.19 45 / 0.5);
+
+  /* Semantic roles for field tokens */
+  --dim-color: oklch(0.62 0.12 230);   /* dimensions = cool blue */
+  --dim-soft: oklch(0.62 0.12 230 / 0.16);
+  --meas-color: oklch(0.62 0.13 155);  /* measures = green */
+  --meas-soft: oklch(0.62 0.13 155 / 0.16);
+
+  /* Status */
+  --pos: oklch(0.68 0.14 150);
+  --neg: oklch(0.64 0.18 25);
+  --warn: oklch(0.74 0.15 75);
+}
+
+/* ---------------- DARK (default) ---------------- */
+:root, [data-theme="dark"] {
+  --bg-0: oklch(0.20 0.008 250);   /* app backdrop */
+  --bg-1: oklch(0.235 0.008 250);  /* panels */
+  --bg-2: oklch(0.275 0.009 250);  /* raised / inputs */
+  --bg-3: oklch(0.32 0.010 250);   /* hover / chips */
+  --bg-hover: oklch(1 0 0 / 0.045);
+  --bg-active: var(--accent-soft);
+
+  --line: oklch(1 0 0 / 0.09);
+  --line-2: oklch(1 0 0 / 0.055);
+  --line-strong: oklch(1 0 0 / 0.16);
+
+  --tx-hi: oklch(0.93 0.004 250);
+  --tx-mid: oklch(0.72 0.006 250);
+  --tx-lo: oklch(0.56 0.006 250);
+  --tx-faint: oklch(0.44 0.006 250);
+
+  --accent: oklch(0.72 0.17 48);
+  --accent-hi: oklch(0.80 0.14 55);
+  --accent-soft: oklch(0.72 0.17 48 / 0.18);
+  --accent-line: oklch(0.72 0.17 48 / 0.55);
+
+  --grid-line: oklch(1 0 0 / 0.06);
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-2: 0 6px 22px -6px oklch(0 0 0 / 0.6);
+  --shadow-pop: 0 12px 38px -8px oklch(0 0 0 / 0.7);
+
+  color-scheme: dark;
+}
+
+/* ---------------- LIGHT ---------------- */
+[data-theme="light"] {
+  --bg-0: oklch(0.955 0.003 250);
+  --bg-1: oklch(0.995 0.001 250);
+  --bg-2: oklch(0.975 0.003 250);
+  --bg-3: oklch(0.935 0.004 250);
+  --bg-hover: oklch(0 0 0 / 0.035);
+  --bg-active: var(--accent-soft);
+
+  --line: oklch(0 0 0 / 0.11);
+  --line-2: oklch(0 0 0 / 0.06);
+  --line-strong: oklch(0 0 0 / 0.2);
+
+  --tx-hi: oklch(0.24 0.01 250);
+  --tx-mid: oklch(0.44 0.01 250);
+  --tx-lo: oklch(0.58 0.008 250);
+  --tx-faint: oklch(0.68 0.006 250);
+
+  --accent: oklch(0.60 0.20 42);
+  --accent-hi: oklch(0.54 0.21 40);
+  --accent-soft: oklch(0.60 0.20 42 / 0.13);
+  --accent-line: oklch(0.60 0.20 42 / 0.45);
+
+  --dim-color: oklch(0.50 0.14 245);
+  --dim-soft: oklch(0.50 0.14 245 / 0.12);
+  --meas-color: oklch(0.50 0.13 160);
+  --meas-soft: oklch(0.50 0.13 160 / 0.12);
+
+  --grid-line: oklch(0 0 0 / 0.07);
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.08);
+  --shadow-2: 0 8px 24px -8px oklch(0 0 0 / 0.18);
+  --shadow-pop: 0 14px 40px -10px oklch(0 0 0 / 0.24);
+
+  color-scheme: light;
+}
+
+/* Categorical chart palette — office-appropriate, consistent chroma */
+:root {
+  --cat-1: oklch(0.72 0.17 48);   /* orange (anchor) */
+  --cat-2: oklch(0.64 0.12 235);  /* blue */
+  --cat-3: oklch(0.66 0.12 165);  /* teal-green */
+  --cat-4: oklch(0.68 0.14 300);  /* violet */
+  --cat-5: oklch(0.74 0.13 95);   /* gold */
+  --cat-6: oklch(0.64 0.13 20);   /* coral red */
+  --cat-7: oklch(0.62 0.10 200);  /* steel cyan */
+  --cat-8: oklch(0.60 0.09 130);  /* moss */
+}
