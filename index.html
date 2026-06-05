@@ -20,9 +20,314 @@
 <link rel="stylesheet" href="css/stats.css" />
 <link rel="stylesheet" href="css/tweaks.css" />
 <link rel="stylesheet" href="css/ai.css" />
+
+<!-- ═══════════════════════════════════════════════
+     Loading Screen Styles (inline — no external dep)
+     ═══════════════════════════════════════════════ -->
+<style>
+#node-loader {
+  position: fixed; inset: 0; z-index: 99999;
+  background: #0d0d0d;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+#node-loader.hiding { opacity: 0; pointer-events: none; }
+
+/* ── Animated ring ── */
+.nl-ring {
+  position: relative;
+  width: 88px; height: 88px;
+  margin-bottom: 32px;
+}
+.nl-ring svg { position: absolute; inset: 0; }
+.nl-ring-track { stroke: rgba(255,255,255,0.07); fill: none; }
+.nl-ring-fill {
+  stroke: #e8611a; fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 226; stroke-dashoffset: 226;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Pulse glow on the ring center */
+.nl-ring-center {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.nl-logo-symbol {
+  font-size: 28px; font-weight: 700; letter-spacing: -1px;
+  color: #fff;
+  animation: nl-pulse 2s ease-in-out infinite;
+}
+@keyframes nl-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+
+/* ── Brand block ── */
+.nl-brand { text-align: center; margin-bottom: 36px; }
+.nl-name {
+  font-size: 22px; font-weight: 700; letter-spacing: 0.08em;
+  color: #fff; margin-bottom: 4px;
+}
+.nl-sub {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.18em;
+  text-transform: uppercase; color: rgba(255,255,255,0.35);
+}
+
+/* ── Check list ── */
+.nl-checks {
+  display: flex; flex-direction: column; gap: 10px;
+  min-width: 220px; margin-bottom: 32px;
+}
+.nl-check {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: rgba(255,255,255,0.35);
+  transition: color 0.3s;
+}
+.nl-check.done { color: rgba(255,255,255,0.75); }
+.nl-check.failed { color: #e05c5c; }
+
+.nl-dot {
+  width: 16px; height: 16px; flex-shrink: 0;
+  border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.15);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s;
+  position: relative;
+}
+/* Spinning ring while pending */
+.nl-dot::after {
+  content: "";
+  position: absolute; inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: #e8611a;
+  animation: nl-spin 0.8s linear infinite;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.nl-check.waiting .nl-dot::after { opacity: 1; }
+.nl-check.done .nl-dot {
+  background: #e8611a; border-color: #e8611a;
+}
+.nl-check.done .nl-dot::after { display: none; }
+/* Checkmark SVG inside dot */
+.nl-dot-check {
+  opacity: 0; transform: scale(0);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.nl-check.done .nl-dot-check { opacity: 1; transform: scale(1); }
+.nl-check.failed .nl-dot { border-color: #e05c5c; }
+
+@keyframes nl-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Progress bar ── */
+.nl-bar-wrap {
+  width: 220px; height: 2px;
+  background: rgba(255,255,255,0.08); border-radius: 2px;
+  overflow: hidden;
+}
+.nl-bar-fill {
+  height: 100%; width: 0; border-radius: 2px;
+  background: linear-gradient(90deg, #e8611a, #f0904a);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px #e8611a88;
+}
+
+/* ── Status text ── */
+.nl-status {
+  margin-top: 14px;
+  font-size: 10px; letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.2);
+  min-height: 14px;
+}
+
+/* ── Version tag ── */
+.nl-version {
+  position: absolute; bottom: 24px;
+  font-size: 10px; color: rgba(255,255,255,0.12);
+  letter-spacing: 0.08em;
+  font-family: "IBM Plex Mono", monospace;
+}
+</style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════════════
+     Loading Screen
+     ═══════════════════════════════════════════════ -->
+<div id="node-loader">
+  <!-- Animated ring -->
+  <div class="nl-ring">
+    <svg viewBox="0 0 88 88" width="88" height="88">
+      <circle class="nl-ring-track" cx="44" cy="44" r="36" stroke-width="3"/>
+      <circle class="nl-ring-fill"  id="nl-ring-fill" cx="44" cy="44" r="36" stroke-width="3"/>
+    </svg>
+    <div class="nl-ring-center">
+      <span class="nl-logo-symbol">Ø</span>
+    </div>
+  </div>
+
+  <!-- Brand -->
+  <div class="nl-brand">
+    <div class="nl-name">NØDE Analytics</div>
+    <div class="nl-sub">Local-First Business Intelligence</div>
+  </div>
+
+  <!-- Check list -->
+  <div class="nl-checks">
+    <div class="nl-check waiting" id="nlc-react">
+      <span class="nl-dot">
+        <svg class="nl-dot-check" width="9" height="9" viewBox="0 0 10 10" fill="none">
+          <path d="M1.5 5l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      React 18 + Babel
+    </div>
+    <div class="nl-check waiting" id="nlc-echarts">
+      <span class="nl-dot">
+        <svg class="nl-dot-check" width="9" height="9" viewBox="0 0 10 10" fill="none">
+          <path d="M1.5 5l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      ECharts 5 (차트 엔진)
+    </div>
+    <div class="nl-check waiting" id="nlc-data">
+      <span class="nl-dot">
+        <svg class="nl-dot-check" width="9" height="9" viewBox="0 0 10 10" fill="none">
+          <path d="M1.5 5l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      데이터 엔진 초기화
+    </div>
+    <div class="nl-check waiting" id="nlc-app">
+      <span class="nl-dot">
+        <svg class="nl-dot-check" width="9" height="9" viewBox="0 0 10 10" fill="none">
+          <path d="M1.5 5l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      앱 렌더링 완료
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="nl-bar-wrap">
+    <div class="nl-bar-fill" id="nl-bar-fill"></div>
+  </div>
+  <div class="nl-status" id="nl-status">의존성 확인 중…</div>
+
+  <div class="nl-version">v2.0 · Node Analytics Workbench</div>
+</div>
+
+<!-- App root (hidden until loader dismisses) -->
 <div id="root"></div>
+
+<!-- ═══════════════════════════════════════════════
+     Loading Screen Controller
+     (runs immediately, before CDN scripts finish)
+     ═══════════════════════════════════════════════ -->
+<script>
+(function () {
+  var STEPS = [
+    { id: "nlc-react",   check: function() { return !!(window.React && window.ReactDOM && window.Babel); }, label: "React + Babel 로드 완료" },
+    { id: "nlc-echarts", check: function() { return !!window.echarts; },                                   label: "ECharts 로드 완료" },
+    { id: "nlc-data",    check: function() { return !!(window.NODE && window.NODE.datasets && window.Store); }, label: "데이터 엔진 준비됨" },
+    { id: "nlc-app",     check: function() { var r = document.getElementById("root"); return !!(r && r.children.length > 0); }, label: "앱 시작됨" },
+  ];
+  var TOTAL = STEPS.length;
+  var completed = 0;
+  var timers = [];
+
+  function pct() { return Math.round((completed / TOTAL) * 100); }
+
+  function setRingProgress(p) {
+    var circle = document.getElementById("nl-ring-fill");
+    if (!circle) return;
+    var circumference = 226;
+    circle.style.strokeDashoffset = circumference - (p / 100) * circumference;
+  }
+
+  function setBar(p) {
+    var bar = document.getElementById("nl-bar-fill");
+    if (bar) bar.style.width = p + "%";
+    setRingProgress(p);
+  }
+
+  function setStatus(msg) {
+    var el = document.getElementById("nl-status");
+    if (el) el.textContent = msg;
+  }
+
+  function markDone(id, label) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("waiting");
+    el.classList.add("done");
+    completed++;
+    setBar(pct());
+    setStatus(label);
+    if (completed >= TOTAL) {
+      setTimeout(dismiss, 380);
+    }
+  }
+
+  function markFailed(id, msg) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("waiting");
+    el.classList.add("failed");
+    setStatus("⚠ " + msg);
+  }
+
+  function pollStep(step, index, attempt) {
+    attempt = attempt || 0;
+    var MAX_WAIT = index < 2 ? 8000 : 12000; // CDN 최대 8초, 앱 최대 12초
+    var INTERVAL = 60;
+
+    if (step.check()) {
+      markDone(step.id, step.label);
+      return;
+    }
+    if (attempt * INTERVAL > MAX_WAIT) {
+      markFailed(step.id, step.id.replace("nlc-", "") + " 로드 실패 (오프라인 확인)");
+      // Still count as "done" so loader doesn't hang forever
+      completed++;
+      setBar(pct());
+      if (completed >= TOTAL) setTimeout(dismiss, 600);
+      return;
+    }
+    var t = setTimeout(function() { pollStep(step, index, attempt + 1); }, INTERVAL);
+    timers.push(t);
+  }
+
+  function dismiss() {
+    // Clear all pending timers
+    timers.forEach(function(t) { clearTimeout(t); });
+    var loader = document.getElementById("node-loader");
+    if (!loader) return;
+    loader.classList.add("hiding");
+    setTimeout(function() {
+      if (loader.parentNode) loader.parentNode.removeChild(loader);
+    }, 580);
+  }
+
+  // Poll each step with a small stagger so checks feel sequential
+  STEPS.forEach(function(step, i) {
+    setTimeout(function() { pollStep(step, i); }, i * 120);
+  });
+
+  // Hard-cap: remove loader after 15 seconds no matter what
+  setTimeout(function() {
+    var loader = document.getElementById("node-loader");
+    if (loader && !loader.classList.contains("hiding")) dismiss();
+  }, 15000);
+})();
+</script>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
