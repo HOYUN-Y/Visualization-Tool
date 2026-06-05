@@ -1,0 +1,374 @@
+# NØDE Analytics Workbench — Claude Code 개발 지시서
+
+## 프로젝트 개요
+
+**프로젝트명**: NØDE Analytics Workbench  
+**부제**: Local-First Business Intelligence & Data Analytics Platform  
+**목표**: Tableau의 시각화 + Power BI의 대시보드 + JMP의 통계 + Orange의 분석 흐름 + ChatGPT의 자연어 인터페이스를 하나의 로컬 웹 애플리케이션으로 통합한 "개인용 데이터 분석 플랫폼"
+
+단순 차트 생성기가 아니라 실제 데이터 분석가가 사용할 수 있는 수준의 완성도를 목표로 한다.  
+배포를 전제로 하지 않으며, 사용자는 자신의 PC에서 로컬 실행한다.
+
+---
+
+## 기술 스택
+
+### Frontend
+- Next.js + React + TypeScript
+- TailwindCSS + shadcn/ui
+- 상태관리: Zustand
+- 차트: Apache ECharts, Plotly.js
+- 테이블: TanStack Table
+- 레이아웃: dnd-kit
+
+### Backend
+- FastAPI
+- 데이터 엔진: DuckDB, Pandas, Polars
+- DB: SQLite (프로젝트 메타데이터 저장용)
+- ML: scikit-learn, statsmodels
+- AI: OpenAI API / Ollama / LM Studio (선택적 연결)
+
+---
+
+## 핵심 UX 철학
+
+분석가의 사고 흐름에 맞게 모든 화면을 설계한다:
+
+데이터 업로드 → 데이터 이해 → 문제 발견 → 차트 생성 → 인사이트 도출
+
+
+---
+
+## 메인 레이아웃
+
+┌──────────┬───────────────────────┬──────────┐ │ │ │ │ │ Data │ Workspace │ Insight │ │ Explorer │ (중앙 캔버스) │ Panel │ │ │ │ │ └──────────┴───────────────────────┴──────────┘
+
+
+- **좌측**: Data Explorer (데이터셋 목록, 컬럼 탐색)
+- **중앙**: Workspace (분석 작업 공간)
+- **우측**: Properties / Insight Panel
+
+---
+
+## 데이터 입력 (보수적 조직 환경 최적화)
+
+### 지원 포맷 (우선순위 순)
+1. CSV ← 핵심
+2. XLSX ← 핵심
+3. JSON
+4. Parquet
+5. (추후) PostgreSQL, MySQL, MSSQL 연결
+
+### 업로드 시 자동 분석
+- 컬럼 수 / 행 수 / 메모리 사용량
+- 결측치 수 및 비율
+- 자동 타입 추론: String, Integer, Float, Category, Boolean, Datetime
+
+### 파일 병합 UI ⭐ (핵심 기능)
+보수적 조직에서 가장 빈번한 작업인 "여러 엑셀 파일 합치기"를 GUI로 해결
+
+- **Union (세로 합치기)**: Sales_2024.xlsx + Sales_2025.xlsx → 위아래 합치기
+- **Join (가로 합치기)**: Sales.xlsx + Customer.xlsx → 공통 키 기준 병합
+- 조인 타입 선택: Inner / Left / Right / Full Outer
+- 키 컬럼 매핑 UI 제공
+
+---
+
+## Data Explorer (좌측 패널)
+
+업로드된 데이터셋 목록 표시 (예: Sales.csv, Customer.xlsx)
+
+데이터셋 클릭 시:
+- 컬럼 목록 표시 (타입 아이콘 포함)
+- 각 컬럼을 드래그해서 Workspace로 끌어다 놓기 가능
+- **Smart Column Relationship Detector**: 컬럼 간 관계 자동 감지
+  - "이 두 컬럼은 강한 양의 상관관계입니다"
+  - "이 컬럼은 저 컬럼의 외래키처럼 보입니다"
+  - 분석 시작점 힌트 제공
+
+---
+
+## Data Preview
+
+Excel 수준의 데이터 뷰어
+
+- 검색 / 정렬 / 필터
+- 페이지 이동 (가상 스크롤)
+- 컬럼 숨김 / 컬럼 고정
+- 셀 클릭 시 상세 값 표시
+
+---
+
+## Data Profiling
+
+데이터셋 선택 시 자동 생성
+
+**숫자형 컬럼**: 평균, 중앙값, 표준편차, 분산, 최솟값, 최댓값, 분포 히스토그램  
+**범주형 컬럼**: 고유값 개수, 최빈값, 분포 막대그래프  
+**날짜형 컬럼**: 시작일, 종료일, 기간, 시계열 분포  
+**시각 프로파일링**: 히스토그램, 박스플롯, 분포 그래프 자동 생성
+
+---
+
+## Data Cleaning Studio
+
+Tableau보다 강력한 데이터 정제 기능
+
+- 결측치 처리: 제거 / 평균 대체 / 중앙값 대체 / 최빈값 대체 / 사용자 지정값
+- 중복 제거
+- 문자열 치환 (정규식 지원)
+- 컬럼명 변경
+- 타입 변경 (String → Datetime 등)
+- 날짜 변환 및 파싱
+- 이상치 제거 (IQR 기반 / Z-score 기반)
+- **Excel식 계산 컬럼** ⭐: `= [매출] - [비용]` 수식으로 파생변수 생성 (SQL 불필요)
+
+모든 작업 히스토리 기록, Undo / Redo 지원  
+**Versioned Snapshots**: 특정 시점의 데이터+설정 전체를 체크포인트로 저장, 비교 가능
+
+---
+
+## SQL Workspace (고급 모드)
+
+> **설계 방침**: 기본 UI에서는 숨김. 설정에서 "고급 모드 활성화" 시 노출.  
+> 보수적 조직의 일반 사용자는 파일 병합 UI + 계산 컬럼으로 해결,  
+> 파워유저가 필요할 때 꺼내 쓰는 탈출구로 유지.
+
+- DuckDB 기반 SQL Editor
+- SELECT / GROUP BY / JOIN / WINDOW FUNCTION 실행
+- 결과를 새 데이터셋으로 저장
+- **Natural Language to SQL** ⭐: "서울에서 2024년에 100만원 이상 구매한 고객 수" → DuckDB SQL 자동 변환 실행
+
+---
+
+## Pivot Table Builder
+
+Excel Pivot Table 수준
+
+- 행 / 열 / 값 / 필터 드래그 앤 드롭
+- 자동 집계: Sum, Avg, Count, Median, Min, Max
+- 결과를 차트로 즉시 변환 가능
+
+---
+
+## Visualization Builder
+
+Tableau 스타일의 Dimension / Measure 개념 사용
+
+- **Dimension**: 지역, 상품명, 날짜, 고객명 (범주, 축)
+- **Measure**: 매출, 수량, 이익 (수치, 집계 대상)
+
+### Chart Recommendation Engine ⭐
+선택한 데이터 타입 조합을 분석해 최적 차트 자동 추천
+- 숫자+범주 → Bar Chart 권장
+- 날짜+숫자 → Line Chart 권장
+- 숫자+숫자 → Scatter Plot 권장
+- "이 데이터엔 Bar보다 Violin Plot이 적합합니다" 형태의 설명 제공
+
+### 지원 차트
+
+**기본**: Bar, Line, Area, Pie, Scatter  
+**고급**: Treemap, Heatmap, Bubble Chart, Waterfall, Funnel, Radar, Box Plot, Violin Plot, Sankey, Sunburst  
+**지도**: 대한민국 지도, 세계 지도 (Choropleth, Bubble Map)  
+**금융**: 캔들차트, 거래량 차트, 누적수익률 차트
+
+### Small Multiples / Facet Grid ⭐
+동일한 차트를 범주별로 격자 배치 (R ggplot의 facet_wrap 개념)  
+지역별, 연도별 패턴 비교에 활용
+
+### Annotation Layer ⭐
+차트 위에 직접 텍스트 주석, 화살표, 기준선 추가  
+발표용 차트 제작에 필수
+
+---
+
+## Dashboard Builder
+
+### 핵심 흐름
+
+차트 생성 → 캔버스 배치 → 대시보드 구성
+
+
+### 캔버스 기능
+- Drag / Resize / Move / Duplicate / Delete
+- 위젯 타입: Chart, KPI, Table, Text, Image
+
+### Cross Filtering (Tableau 핵심 기능 구현)
+
+서울 클릭 → 매출 차트 변경 → 고객 차트 변경 → 상품 차트 변경
+
+대시보드 내 차트 간 실시간 필터 연동
+
+### KPI Builder
+- 기본 제공: 총매출, 평균매출, 고객수, 주문수, 성장률
+- 사용자 정의 KPI: 이익률, ROE, 재구매율 등 수식으로 정의
+
+---
+
+## Statistical Analysis Studio
+
+JMP 스타일
+
+- **기술통계**: 평균, 중앙값, 표준편차, 왜도, 첨도
+- **상관분석**: Pearson, Spearman (상관행렬 히트맵 자동 생성)
+- **가설검정**: T-Test, ANOVA, Chi-Square
+- **회귀분석**: Linear Regression (계수, p-value, R² 표시)
+- **자동 해석 생성**: 분석 결과를 자연어로 설명
+
+### Time Series Decomposition ⭐
+- STL Decomposition: 트렌드 / 계절성 / 잔차 자동 분리
+- Prophet 기반 예측
+- 금융/부동산 시계열 데이터에 특히 유용
+
+### Cohort Analysis Builder ⭐
+- 고객 리텐션, 이탈, LTV 코호트 테이블 자동 생성
+- 마케팅/커머스 도메인 지원
+
+---
+
+## Machine Learning Studio
+
+AutoML 스타일, 코드 없이 실행
+
+- **회귀**: Linear, Random Forest, XGBoost, LightGBM
+- **분류**: Logistic, Random Forest, XGBoost
+- **군집**: KMeans, DBSCAN, GMM
+
+결과 시각화:
+- Feature Importance
+- Confusion Matrix
+- ROC Curve
+
+### What-If Analysis ⭐
+슬라이더로 입력 변수를 조정하면 모델 예측값이 실시간으로 변경  
+"매출이 10% 오르면 이익은?" 형태의 인터랙티브 시뮬레이션
+
+---
+
+## Analysis Pipeline Builder ⭐ (핵심 차별화 기능)
+
+Orange Data Mining의 노드 기반 워크플로우를 시각적으로 구성
+
+[CSV 로드] → [결측치 제거] → [정규화] → [KMeans] → [시각화]
+
+
+- 파이프라인을 저장하고 새 데이터에 재적용 가능
+- 반복 분석 자동화
+- 각 노드의 입출력 데이터를 중간에서 확인 가능
+
+### Data Lineage Tracker
+컬럼의 출처와 변환 이력을 시각적으로 추적  
+"이 컬럼은 어디서, 어떤 변환을 거쳐 만들어졌는가"
+
+---
+
+## AI Analytics Assistant
+
+### 자연어 명령
+- "지역별 매출을 보여줘" → 차트 자동 생성
+- "매출 상위 10개 상품 분석" → Bar Chart 생성
+- "매출 감소 원인 분석" → AI 인사이트 생성
+- "이 데이터에서 특이점을 찾아줘" → 이상치 분석
+
+### Insight Engine
+자동 인사이트 생성 예시:
+- "서울 지역이 전체 매출의 42%를 차지합니다."
+- "2025년 3분기 매출이 급증했습니다."
+- "상위 10% 고객이 전체 매출의 58%를 차지합니다."
+
+### Auto Narrative Report ⭐
+대시보드 기반으로 분기 요약 리포트 자동 문서화  
+차트 + 텍스트 해석 조합 → PDF 출력
+
+### AI 백엔드 (선택적 연결)
+- OpenAI API
+- Ollama (로컬 LLM)
+- LM Studio (로컬 LLM)
+
+---
+
+## 도메인 특화 모드
+
+### 금융 데이터 분석 모드
+주식 데이터 업로드 시 자동 활성화
+- 지표: 수익률, CAGR, 변동성, MDD, Sharpe Ratio
+- 차트: 캔들차트, 거래량, 누적수익률
+
+### 부동산 분석 모드
+- 거래가 분석 / 지역별 가격 비교
+- 시계열 추세 / 지도 시각화
+
+---
+
+## 프로젝트 저장 및 내보내기
+
+### 로컬 저장 (JSON 형식)
+- Dataset
+- Dashboard
+- Analysis Pipeline
+- Analysis Session (Versioned Snapshots 포함)
+
+### Export
+- PNG, PDF (차트/대시보드)
+- CSV, XLSX (데이터)
+- Auto Narrative Report (PDF)
+
+---
+
+## 사용자 수준별 UI 노출 전략
+
+| 기능 | 기본 노출 | 고급 모드 |
+|---|---|---|
+| Data Preview | ✅ | ✅ |
+| Data Cleaning | ✅ | ✅ |
+| 파일 병합 UI | ✅ | ✅ |
+| Excel식 계산 컬럼 | ✅ | ✅ |
+| Pivot Table | ✅ | ✅ |
+| Visualization Builder | ✅ | ✅ |
+| Dashboard Builder | ✅ | ✅ |
+| Statistical Analysis | ✅ | ✅ |
+| ML Studio | - | ✅ |
+| SQL Workspace | - | ✅ |
+| Analysis Pipeline Builder | - | ✅ |
+
+---
+
+## 개발 우선순위 (MVP → 확장)
+
+### Phase 1 (MVP)
+1. 파일 업로드 (CSV, XLSX) + Data Preview
+2. Data Profiling 자동 생성
+3. Data Cleaning Studio (기본 기능)
+4. Excel식 계산 컬럼
+5. 파일 병합 UI (Union / Join)
+6. Visualization Builder (기본 차트 10종)
+7. Dashboard Builder (기본 위젯)
+
+### Phase 2
+8. Chart Recommendation Engine
+9. Cross Filtering
+10. KPI Builder
+11. Statistical Analysis Studio
+12. Time Series Decomposition
+13. Small Multiples / Facet Grid
+
+### Phase 3
+14. ML Studio (AutoML)
+15. What-If Analysis
+16. Analysis Pipeline Builder
+17. AI Analytics Assistant (Natural Language to SQL 포함)
+18. Auto Narrative Report
+19. Cohort Analysis Builder
+20. 금융 / 부동산 도메인 모드
+
+---
+
+## 코드 품질 기준
+
+- TypeScript strict mode 적용
+- 컴포넌트 단위 분리 (재사용성 극대화)
+- FastAPI 엔드포인트는 기능별로 라우터 분리
+- 데이터 처리 로직은 DuckDB / Polars 우선, Pandas 보조
+- 에러 처리 및 로딩 상태 UI 필수 구현
+- 로컬 실행 기준으로 최적화 (배포 환경 고려 불필요)
+
