@@ -107,6 +107,17 @@ open http://localhost:8742
 - 샘플 데이터셋 + Data/Clean/Chart/Dashboard/Stats/ML/Map/SQL 모드
 - 다크/라이트 테마, Tweaks 패널, Ask Insight AI 드로어
 
+### ✅ Phase 1.5 — JMP 통계 강화 (완료)
+- `js/insightEngine.js` 신규: 규칙 기반 자동 해석 엔진 (`window.IE`)
+- Stats 모드 **Distribution 탭**: 히스토그램 + 수평 박스플롯 + 8개 통계 카드 (왜도/첨도 포함)
+- Stats 모드 **Analysis Builder 탭**: 컬럼 타입 자동 감지 → 회귀/ANOVA/카이제곱 중 적합한 분석 자동 선택
+- 모든 Stats 탭: **Interpretation 패널** (파란색, IE 생성 해석 문구) + **Next Step 패널** (초록색, 다음 분석 제안)
+- `statsMath.js` 왜도(skewness) / 첨도(excess kurtosis) 함수 추가
+- ML 분류 결과: **클래스별 Precision / Recall / F1** 테이블
+- ML 군집 결과: **군집별 특성 평균** 테이블 (원본 스케일)
+- ML: **Model Comparison History** 테이블 (최근 10개 실행 비교)
+- Ask Insight 드로어: `IE.profileDataset()` 자동 실행 + 마지막 분석 결과 연동
+
 ### 🔲 Phase 2 (예정)
 - 실제 파일 업로드 (CSV/XLSX 파싱)
 - localStorage 영속성
