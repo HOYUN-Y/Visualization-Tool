@@ -417,6 +417,7 @@ svg[aria-hidden="true"] { display: none; }
     <div class="sidebar-heading">참고</div>
     <a href="#shortcuts">단축키</a>
     <a href="#tips">팁 & 주의사항</a>
+    <a href="#roadmap">개발 로드맵</a>
   </div>
 </nav>
 
@@ -1501,6 +1502,89 @@ LIMIT 5</pre>
   <div style="text-align:center; color:var(--tx-faint); font-size:11px; padding:20px 0 0;">
     INSIGHT Analytics Workbench 사용자 가이드 · v2.1 · 2026-06-06<br/>
     오프라인에서도 동작하는 단일 HTML 파일.
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<section id="roadmap">
+  <h2>개발 로드맵</h2>
+  <p>INSIGHT Analytics Workbench는 단계별로 발전하고 있습니다. 현재 완료된 기능과 앞으로 추가될 기능을 확인하세요.</p>
+
+  <h3>✅ Phase 1 — 기초 완성</h3>
+  <div class="cards">
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-chart"></use></svg>8개 분석 모드</div>
+      <div class="card-body">Data · Clean · SQL · Chart · Map · Board · Stats · ML 전 모드 구현 완료.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-message"></use></svg>Ask Insight</div>
+      <div class="card-body">자연어 질의로 차트 생성, 모드 전환, 데이터 요약 가능.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-palette"></use></svg>테마 & UI</div>
+      <div class="card-body">다크/라이트 테마, Tweaks 패널, 반응형 레이아웃.</div>
+    </div>
+  </div>
+
+  <h3>✅ Phase 1.5 — 통계 & ML 강화</h3>
+  <div class="cards">
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-stats"></use></svg>Distribution 탭</div>
+      <div class="card-body">히스토그램 + 박스플롯 + 왜도/첨도 자동 해석.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-auto"></use></svg>Analysis Builder</div>
+      <div class="card-body">컬럼 유형 자동 감지 → 회귀 / ANOVA / 카이제곱 분석 자동 선택.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-ml"></use></svg>ML 결과 강화</div>
+      <div class="card-body">클래스별 Precision/Recall/F1, 군집 특성표, 모델 비교 이력.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-insight"></use></svg>Insight Engine</div>
+      <div class="card-body">분석 결과 자동 해석 문구 + 다음 분석 방향 제안 패널.</div>
+    </div>
+  </div>
+
+  <h3>🔲 Phase 2 — 실사용 편의 기능 (예정)</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-data"></use></svg>파일 업로드</div>
+      <div class="card-body">CSV / XLSX 파일을 직접 불러와 분석. 현재는 내장 샘플 데이터만 지원.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-shield"></use></svg>데이터 영속성</div>
+      <div class="card-body">작업 내용을 localStorage에 저장해 새로고침 후에도 유지.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-chart"></use></svg>차트 추천</div>
+      <div class="card-body">데이터 유형 분석 후 적합한 차트를 자동으로 추천.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg>내보내기</div>
+      <div class="card-body">차트 PNG, 보고서 PDF, 분석 결과 CSV 내보내기.</div>
+    </div>
+  </div>
+
+  <h3>🔲 Phase 3 — 프로덕션 전환 (예정)</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-sql"></use></svg>백엔드 연동</div>
+      <div class="card-body">FastAPI + DuckDB 서버 연동으로 대용량 데이터 처리 지원.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-insight"></use></svg>실제 AI 연동</div>
+      <div class="card-body">OpenAI / 로컬 LLM (Ollama) 연동으로 진짜 자연어 분석 제공.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-tweaks"></use></svg>파이프라인 빌더</div>
+      <div class="card-body">노드 기반 분석 워크플로우 — 분석 단계를 시각적으로 연결.</div>
+    </div>
+  </div>
+
+  <div class="alert tip">
+    <svg class="icon"><use href="#i-info"></use></svg>
+    <div>로드맵 우선순위나 기능 제안은 GitHub 이슈로 남겨주세요. 실제 업무 활용 사례가 개발 방향에 반영됩니다.</div>
   </div>
 </section>
 
