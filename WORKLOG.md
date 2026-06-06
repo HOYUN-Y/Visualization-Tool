@@ -226,6 +226,45 @@ Visualization Tool/
 - ✅ Seoul 탭: 지구 choropleth 정상 렌더링
 - ✅ World · GDP 탭: 세계 choropleth (GDP/Per Capita 메트릭 전환 동작), 30개국 랭킹 패널
 
+### Session 6 — 2026-06-07
+
+**작업 내용: Korea · 행정구역 탭 구현 (시도 choropleth + 시군구 버블맵)**
+
+**수정 파일:**
+- `js/data.js` — `KOREA_PROVINCES` (17 시도, 인구/면적/밀도/GRDP), `KOREA_MUNICIPALITIES` (~84 시군구) 데이터셋 추가
+- `js/mapMode.jsx` — Korea 행정구역 탭 전체 구현
+
+**구현 상세:**
+
+| 기능 | 구현 내용 |
+|---|---|
+| 시도 choropleth | Highcharts npm CDN GeoJSON (`@highcharts/map-collection@2.0.1/countries/kr/kr-all.geo.json`) 로드, 영문명 → 한국어 리맵, ECharts `registerMap("korea_prov")`, visualMap 색상 범례 |
+| 시군구 버블맵 | 80+ 시군구 위경도 → **UTM Zone 52N → Highcharts 투영좌표** 변환 후 scatter overlay |
+| 메트릭 | 시도: 인구/인구밀도/면적/GRDP, 시군구: 인구/인구밀도/면적 |
+| 시도 필터 | 드롭다운으로 특정 시도 시군구만 표시 |
+| 드릴다운 | 시도 클릭 → 해당 시도 시군구 자동 필터링 |
+| 우측 패널 | 시도/시군구 탭 전환, 인구 순위 바 차트, 권역별 인구 |
+
+**핵심 기술적 이슈 해결:**
+
+- **Highcharts GeoJSON 좌표계 문제**: `@highcharts/map-collection` GeoJSON이 표준 WGS84 lat/lon이 아닌 **UTM Zone 52N 투영좌표** (`[2560, -431]` 형식)를 사용함을 발견
+- **해결책**: `wgs84ToHCKorea(lon, lat)` 함수 구현 (WGS84 → UTM Zone 52N → Highcharts JSON 좌표)
+  - Highcharts `hc-transform`: `crs=UTM52N, scale=0.001170, jsonres=15.5, xoffset=114507.65, yoffset=4275280.76`
+  - 변환식: `jsonX = (E-xoff)×sf+mX`, `jsonY = mY+(N-yoff)×sf`  (sf = scale×jsonres)
+  - 검증: 서울 [lon=126.9784, lat=37.5665] → HC [2753, 7755] ✓, 제주 → HC [~2560, ~-431] ✓
+
+**CDN 조사 결과 (Korean GeoJSON):**
+- `raw.githubusercontent.com/southkorea/...` → 404
+- `cdn.jsdelivr.net/gh/southkorea/...` → 403 (jsDelivr GitHub 차단)
+- `echarts@4.9.0/map/json/south-korea.json` → 404
+- ✅ `cdn.jsdelivr.net/npm/@highcharts/map-collection@2.0.1/countries/kr/kr-all.geo.json` → 200
+
+**검증 완료:**
+- ✅ 시도 choropleth: 17개 시도 한국어명, 인구/밀도/면적/GRDP visualMap 전환
+- ✅ 시군구 버블맵: 80+ 도시 지리적 정확 위치 표시 (서울/경기 집중, 남부 분산)
+- ✅ 경기도 필터: 수원·고양·용인 등 경기 시군구 정확 위치 클러스터 확인
+- ✅ 시도 클릭 드릴다운 → 해당 시도 시군구 자동 필터
+
 ---
 
 ## 🔧 다음 세션 작업 계획 (Phase 2)
