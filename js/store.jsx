@@ -104,6 +104,88 @@
         case "rename": { rows.forEach((r) => { r[s.params.to] = r[s.col]; if (s.params.to !== s.col) delete r[s.col]; }); columns = columns.map((c) => c.key === s.col ? { ...c, key: s.params.to, label: s.params.to } : c); break; }
         case "replace": { rows.forEach((r) => { if (r[s.col] != null && String(r[s.col]) === s.params.from) r[s.col] = s.params.to; }); break; }
         case "change_type": { columns = columns.map((c) => c.key === s.col ? { ...c, type: s.params.to, role: (s.params.to === "integer" || s.params.to === "float") ? "measure" : "dimension" } : c); break; }
+        // ---- Phase 2: Encoding ----
+        case "label_encode": {
+          const vals = [...new Set(rows.map((r) => r[s.col]).filter((v) => v != null && v !== ""))].sort();
+          const map = {}; vals.forEach((v, i) => { map[v] = i; });
+          const newKey = s.params && s.params.newKey ? s.params.newKey : s.col + "_enc";
+          rows.forEach((r) => { r[newKey] = r[s.col] != null && r[s.col] !== "" ? map[r[s.col]] : null; });
+          if (!columns.find((c) => c.key === newKey)) columns.push({ key: newKey, label: newKey, type: "integer", role: "measure" });
+          break;
+        }
+        case "dummy_encode": {
+          const vals = [...new Set(rows.map((r) => r[s.col]).filter((v) => v != null && v !== ""))].sort();
+          const safe = (v) => (s.col + "_" + String(v).replace(/\s+/g, "_")).slice(0, 40);
+          vals.forEach((v) => {
+            const k = safe(v);
+            rows.forEach((r) => { r[k] = r[s.col] === v ? 1 : 0; });
+            if (!columns.find((c) => c.key === k)) columns.push({ key: k, label: k, type: "integer", role: "measure" });
+          });
+          break;
+        }
+        // ---- Phase 2: Column ops ----
+        case "drop_col": {
+          columns = columns.filter((c) => c.key !== s.col);
+          rows.forEach((r) => { delete r[s.col]; });
+          break;
+        }
+        // ---- Phase 2: Numeric Transforms ----
+        case "standardize": {
+          const vals = rows.map((r) => r[s.col]); const m = stat.mean(vals), sd = stat.std(vals);
+          if (sd && sd > 0) rows.forEach((r) => { if (r[s.col] != null) r[s.col] = NODE.round((r[s.col] - m) / sd, 4); });
+          columns = columns.map((c) => c.key === s.col ? { ...c, type: "float" } : c);
+          break;
+        }
+        case "normalize": {
+          const vals = rows.map((r) => r[s.col]); const mn = stat.min(vals), mx = stat.max(vals), rng = mx - mn;
+          if (rng > 0) rows.forEach((r) => { if (r[s.col] != null) r[s.col] = NODE.round((r[s.col] - mn) / rng, 4); });
+          columns = columns.map((c) => c.key === s.col ? { ...c, type: "float" } : c);
+          break;
+        }
+        case "log_transform": {
+          rows.forEach((r) => { if (r[s.col] != null && r[s.col] > -1) r[s.col] = NODE.round(Math.log1p(r[s.col]), 4); });
+          columns = columns.map((c) => c.key === s.col ? { ...c, type: "float" } : c);
+          break;
+        }
+        case "rank_transform": {
+          const sorted = rows.map((r, i) => ({ i, v: r[s.col] })).sort((a, b) => (a.v ?? -Infinity) - (b.v ?? -Infinity));
+          const rankArr = new Array(rows.length);
+          sorted.forEach((item, ri) => { rankArr[item.i] = ri + 1; });
+          rows.forEach((r, i) => { r[s.col] = rankArr[i]; });
+          columns = columns.map((c) => c.key === s.col ? { ...c, type: "integer" } : c);
+          break;
+        }
+        case "winsorize": {
+          const p = (s.params && s.params.p != null) ? s.params.p / 100 : 0.05;
+          const vals = rows.map((r) => r[s.col]);
+          const lo = stat.quantile(vals, p), hi = stat.quantile(vals, 1 - p);
+          rows.forEach((r) => { if (r[s.col] != null) r[s.col] = Math.min(Math.max(r[s.col], lo), hi); });
+          break;
+        }
+        case "binning": {
+          const n = (s.params && s.params.bins) ? s.params.bins : 5;
+          const vals = rows.map((r) => r[s.col]); const mn = stat.min(vals), mx = stat.max(vals), w = (mx - mn) / n;
+          const newKey = s.col + "_bin";
+          rows.forEach((r) => {
+            if (r[s.col] == null) { r[newKey] = null; return; }
+            let b = Math.floor((r[s.col] - mn) / w); if (b >= n) b = n - 1; if (b < 0) b = 0;
+            r[newKey] = `[${NODE.round(mn + b * w, 2)}, ${NODE.round(mn + (b + 1) * w, 2)})`;
+          });
+          if (!columns.find((c) => c.key === newKey)) columns.push({ key: newKey, label: newKey, type: "category", role: "dimension" });
+          break;
+        }
+        // ---- Phase 2: Formula Column ----
+        case "formula": {
+          const newKey = s.params.name || "formula_col";
+          let fn; try { fn = new Function("row", "Math", `"use strict"; return (${s.params.expr})`); } catch (e) { break; }
+          rows.forEach((r) => { try { r[newKey] = fn(r, Math); } catch (e) { r[newKey] = null; } });
+          if (!columns.find((c) => c.key === newKey)) {
+            const sample = rows.find((r) => r[newKey] != null)?.[newKey];
+            const type = typeof sample === "number" ? (Number.isInteger(sample) ? "integer" : "float") : "string";
+            columns.push({ key: newKey, label: newKey, type, role: type === "string" ? "dimension" : "measure" });
+          }
+          break;
+        }
         default: break;
       }
     }

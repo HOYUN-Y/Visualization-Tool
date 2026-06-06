@@ -16,11 +16,23 @@
       case "rename": return [`Rename → ${s.params.to}`, c];
       case "replace": return [`Replace "${s.params.from}" → "${s.params.to}"`, c];
       case "change_type": return [`Change type → ${s.params.to}`, c];
+      case "label_encode": return [`Label Encode`, c];
+      case "dummy_encode": return [`Dummy Encode (One-Hot)`, c];
+      case "drop_col": return [`Drop column`, c];
+      case "standardize": return [`Standardize (Z-Score)`, c];
+      case "normalize": return [`Normalize (Min-Max)`, c];
+      case "log_transform": return [`Log Transform (log1p)`, c];
+      case "rank_transform": return [`Rank Transform`, c];
+      case "winsorize": return [`Winsorize ${s.params && s.params.p != null ? s.params.p : 5}%`, c];
+      case "binning": return [`Binning (${s.params && s.params.bins ? s.params.bins : 5} bins)`, c];
+      case "formula": return [`Formula: ${s.params.name}`, s.params.expr];
       default: return [s.op, c];
     }
   }
   const OP_ICON = { drop_missing: "x", fill_mean: "plus", fill_median: "plus", fill_mode: "plus",
-    drop_duplicates: "duplicate", remove_outliers: "filter", rename: "text", replace: "redo", change_type: "layers" };
+    drop_duplicates: "duplicate", remove_outliers: "filter", rename: "text", replace: "redo", change_type: "layers",
+    label_encode: "layers", dummy_encode: "layers", drop_col: "x", standardize: "bolt", normalize: "bolt",
+    log_transform: "bolt", rank_transform: "bolt", winsorize: "filter", binning: "filter", formula: "bolt" };
 
   function CleanCenter() {
     const activeId = useStore((s) => s.activeId);
@@ -90,11 +102,15 @@
   // ---------- Right: operations + history ----------
   function CleanPanel() {
     const activeId = useStore((s) => s.activeId);
-    const { ds, columns, steps, cursor } = derive.getActiveData(activeId);
+    const { ds, rows, columns, steps, cursor } = derive.getActiveData(activeId);
     const [col, setCol] = React.useState(columns[0] ? columns[0].key : "");
     const selCol = columns.find((c) => c.key === col) || columns[0];
     const [renameVal, setRenameVal] = React.useState("");
     const [repl, setRepl] = React.useState({ from: "", to: "" });
+    const [bins, setBins] = React.useState("5");
+    const [winsP, setWinsP] = React.useState("5");
+    const [fmlExpr, setFmlExpr] = React.useState("");
+    const [fmlName, setFmlName] = React.useState("");
 
     React.useEffect(() => { if (!columns.find((c) => c.key === col)) setCol(columns[0] && columns[0].key); }, [activeId]);
 
@@ -147,6 +163,61 @@
               {["string", "integer", "float", "category", "datetime"].map((t) => (
                 <button key={t} className="typebtn" onClick={() => add("change_type", { to: t })}>{t.slice(0, 3)}</button>
               ))}
+            </div>
+            <div className="opbtns" style={{ marginTop: 6 }}>
+              <button className="opbtn" style={{ color: "var(--danger, #e05)" }} onClick={() => add("drop_col")}><Icon name="x" size={13} />Drop column</button>
+            </div>
+          </div>
+
+          <div className="opgroup">
+            <div className="opgroup-h">Encoding</div>
+            <div className="opbtns">
+              <button className="opbtn" onClick={() => add("label_encode")}><Icon name="layers" size={13} />Label Encode</button>
+              <button className="opbtn" onClick={() => {
+                const uniq = [...new Set(rows.map((r) => r[col]).filter((v) => v != null && v !== ""))];
+                if (uniq.length > 20 && !window.confirm(`컬럼 "${col}"의 고유값이 ${uniq.length}개입니다. 더미 컬럼 ${uniq.length}개가 추가됩니다. 계속하시겠습니까?`)) return;
+                add("dummy_encode");
+              }}><Icon name="layers" size={13} />Dummy Encode</button>
+            </div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3 }}>
+              Label: 문자열 → 정수(0,1,2…) 새 컬럼 | Dummy: One-Hot 0/1 컬럼 추가
+            </div>
+          </div>
+
+          {isNum && (
+            <div className="opgroup">
+              <div className="opgroup-h">Numeric Transform</div>
+              <div className="opbtns">
+                <button className="opbtn" onClick={() => add("standardize")}><Icon name="bolt" size={13} />Z-Score</button>
+                <button className="opbtn" onClick={() => add("normalize")}><Icon name="bolt" size={13} />Min-Max</button>
+                <button className="opbtn" onClick={() => add("log_transform")}><Icon name="bolt" size={13} />Log(1+x)</button>
+                <button className="opbtn" onClick={() => add("rank_transform")}><Icon name="bolt" size={13} />Rank</button>
+              </div>
+              <div className="op-inline" style={{ marginTop: 6 }}>
+                <span className="fieldlabel" style={{ whiteSpace: "nowrap" }}>Bins</span>
+                <input className="inp" type="number" min="2" max="50" value={bins} onChange={(e) => setBins(e.target.value)} style={{ width: 52 }} />
+                <button className="btn sm" onClick={() => add("binning", { bins: Math.max(2, parseInt(bins) || 5) })}>Bin</button>
+                <span className="fieldlabel" style={{ whiteSpace: "nowrap", marginLeft: 8 }}>Winsorize %</span>
+                <input className="inp" type="number" min="1" max="49" value={winsP} onChange={(e) => setWinsP(e.target.value)} style={{ width: 44 }} />
+                <button className="btn sm" onClick={() => add("winsorize", { p: Math.max(1, Math.min(49, parseFloat(winsP) || 5)) })}>Apply</button>
+              </div>
+              <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3 }}>
+                Bin: 등폭 구간 범주 컬럼 추가 | Winsorize: 상하 p% 클리핑
+              </div>
+            </div>
+          )}
+
+          <div className="opgroup">
+            <div className="opgroup-h">Formula Column</div>
+            <div className="op-inline">
+              <input className="inp" placeholder="새 컬럼 이름" value={fmlName} onChange={(e) => setFmlName(e.target.value)} style={{ width: 120 }} />
+            </div>
+            <div className="op-inline">
+              <input className="inp mono" placeholder="row.price * 1.1" value={fmlExpr} onChange={(e) => setFmlExpr(e.target.value)} style={{ flex: 1, fontFamily: "var(--font-mono)" }} />
+              <button className="btn sm" disabled={!fmlExpr.trim() || !fmlName.trim()} onClick={() => { add("formula", { name: fmlName.trim(), expr: fmlExpr.trim() }); setFmlExpr(""); setFmlName(""); }}>Add</button>
+            </div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3 }}>
+              <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>row</code> 객체로 각 행 접근. 예: <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>row.area * row.price</code>
             </div>
           </div>
         </div>
