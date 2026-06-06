@@ -1,6 +1,6 @@
 <img src="docs/logo.svg" alt="INSIGHT Analytics" height="48" />
 
-# INSIGHT Analytics Workbench
+# insight Analytics Workbench
 
 **Local-First Business Intelligence & Data Analytics Platform**
 
