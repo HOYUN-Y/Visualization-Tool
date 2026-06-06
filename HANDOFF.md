@@ -88,10 +88,11 @@ js/
   dashMode.jsx             # window.DashMode
   sqlMode.jsx              # window.SqlMode (+ internal runSQL engine)
   mapMode.jsx              # window.MapMode
-  mlMode.jsx               # window.MlMode (regression/classification/kmeans)
-  statsMode.jsx            # window.StatsMode (corr/ttest/anova/chisq/regression)
+  insightEngine.js (plain) # window.IE: profileDataset, summarizeCorrelation/Regression/Clustering/Classification, recommendNextStep
+  mlMode.jsx               # window.MlMode (regression/classification/kmeans) + window.NODE.mlHistory + lastAnalysisResult
+  statsMode.jsx            # window.StatsMode (corr/ttest/anova/chisq/regression/distribution/builder)
   tweaks.jsx               # window.TweaksPanel
-  aiDrawer.jsx             # window.AIDrawer (Insight Engine + NL intent routing)
+  aiDrawer.jsx             # window.AIDrawer (IE auto-profile + NL intent routing + last result linking)
   app.jsx                  # window App root: applies theme/tweak attributes, routes mode→component, mounts
 ```
 
@@ -235,18 +236,32 @@ Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={
 - **Edit mode** (`dash.edit`): drag header to move, corner handle to resize, duplicate, delete; Add-widget tiles in right panel.
 - **Cross-filtering**: clicking a mark in any chart sets `dash.cross = {key, value, source}`. `applyCross(rows, cross, widgetId)` filters every other widget (the **source** widget stays unfiltered as context). KPIs show "% of total". Click same mark again or **Clear** to reset.
 
-### Stats (`statsMode.jsx` + `statsMath.js`)
-- Tests: **Descriptive, Correlation (Pearson/Spearman), T-Test (Welch + Cohen's d), ANOVA (one-way + η²), Chi-Square (independence + Cramér's V), Regression (OLS + per-coef SE/t/p + R²/adj/F)**.
-- **Exact p-values** from `window.SM`: `tP(t,df)`, `fP(F,d1,d2)`, `chiP(x,df)` (regularized incomplete beta/gamma), plus `matInverse` for regression standard errors.
-- Each result shows metric cards + a chart/table + a **color-coded significance verdict** (α=0.05) and a plain-language interpretation string. Config in `ui.stats`.
+### Stats (`statsMode.jsx` + `statsMath.js` + `insightEngine.js`)
+- Tests (8 total): **Descriptive, Distribution, Correlation (Pearson/Spearman), T-Test (Welch + Cohen's d), ANOVA (one-way + η²), Chi-Square (independence + Cramér's V), Regression (OLS + per-coef SE/t/p + R²/adj/F), Analysis Builder**.
+- **Exact p-values** from `window.SM`: `tP(t,df)`, `fP(F,d1,d2)`, `chiP(x,df)` (regularized incomplete beta/gamma), plus `matInverse` for regression standard errors. Also `SM.skewness(a)` and `SM.kurtosis(a)` (Fisher's excess, sample-corrected).
+- Each result shows metric cards + a chart/table + a **color-coded significance verdict** (α=0.05) + `InterpretationPanel` (IE-generated, blue tint) + `NextStepPanel` (green tint, suggests next analysis). Config in `ui.stats`.
+- **Distribution tab** (`DistributionCenter`): column picker → histogram (category-axis ECharts bar with bin labels) + horizontal boxplot (`layout:"horizontal"`, scatter overlay for IQR outliers) + 8 stat cards (n, missing, mean, median, std, min/max, IQR, skewness, kurtosis, outlier count).
+- **Analysis Builder tab** (`AnalysisBuilderCenter`): target + multi-input column selector → `runBuilder()` auto-detects type by column types (numInputs≥1+isNumTarget → OLS regression; catInputs≥1+isNumTarget → ANOVA; catInputs≥1+isCatTarget → chi-square) → shows Summary/Visual/Statistical Results/Next Step.
+- **Descriptive table**: includes Skewness and Kurtosis columns; warns with accent color if |sk|>1.5.
 
 ### ML (`mlMode.jsx`)
-- Tasks: **Regression** (OLS via normal equations → R²/RMSE/MAE, predicted-vs-actual scatter, standardized feature importance), **Classification** (k-NN on standardized features → accuracy + confusion-matrix heatmap), **Clustering** (Lloyd's KMeans → cluster scatter + inertia + sizes).
+- Tasks: **Regression** (OLS via normal equations → R²/RMSE/MAE, predicted-vs-actual scatter, standardized feature importance), **Classification** (k-NN on standardized features → accuracy + confusion-matrix heatmap + **per-class Precision/Recall/F1 table** + macroF1), **Clustering** (Lloyd's KMeans → cluster scatter + inertia + sizes + **cluster characteristics table** in original scale).
 - Config + result in `ui.ml = {task, target, feats[], split, k, K, result}`. Seeded train/test split. All math is inline (no libs).
+- **`window.NODE.mlHistory`** — mutable array persisted on the NODE object (not in Store); survives mode switches. Each entry: `{ task, target, metric, score, ts }`. Max 10 shown in the Model Comparison History table. `pushHistory(entry)` also sets `window.NODE.lastAnalysisResult = { type:"ml", ...entry }`.
+- **IE interpretation panel** shown above metrics after training (calls `IE.summarizeClassification` / `IE.summarizeClustering`).
 
 ### Ask Insight (`aiDrawer.jsx`)
-- Slide-over drawer (`ui.aiOpen`). **Insight Engine**: `buildInsights(rows)` computes real findings (district share, top-3 concentration, price leader, 2022→2024 trend, building-type premium, outlier count).
-- **NL routing**: `interpret(text)` → intent → `runIntent(kind)` actually navigates and builds a chart (e.g. "top complexes" → switches to Chart mode with a Top-10 hbar; "outliers" → Clean mode; "trend" → monthly line). Pattern-matched (no real LLM call) but it drives the genuine app state.
+- **`IE.profileDataset(activeId)`** runs on every render (memoized by `activeId`) → shown in "Dataset Profile" section (string[] of findings).
+- **`window.NODE.lastAnalysisResult`** — shared bridge from ML/Stats → AI drawer. Shows in "Last Analysis Result" section if present.
+- New intents: `last` (reads lastAnalysisResult), `goStats` (setMode("stats") + setUI({stats:{test:tab}})), `goMl` (setMode("ml")).
+- 6th SUGGEST chip: "Summarize last analysis" → kind:"last".
+- NL keywords: corr/regress/distribut/ml/machine/learn → navigate to Stats/ML mode tabs directly.
+
+### Ask Insight (`aiDrawer.jsx`)
+- Slide-over drawer (`ui.aiOpen`). **Market insights**: `buildInsights(rows)` computes real findings (district share, top-3 concentration, price leader, 2022→2024 trend, building-type premium, outlier count).
+- **IE auto-profile**: `IE.profileDataset(activeId)` runs on every render (memoized) → "Dataset Profile" section with shape/missing/outlier/skewness/correlation insights for any active dataset.
+- **Last Analysis Result**: reads `window.NODE.lastAnalysisResult` (set by ML Train and Stats tests) → shown as a linked summary chip.
+- **NL routing**: `interpret(text)` → intent → `runIntent(kind)` actually navigates and builds a chart (e.g. "top complexes" → switches to Chart mode with a Top-10 hbar; "outliers" → Clean mode; "correlation" → Stats/corr tab; "ml" → ML mode). Pattern-matched (no real LLM call) but it drives the genuine app state.
 
 ---
 

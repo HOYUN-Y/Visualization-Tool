@@ -18,3 +18,16 @@
 .ml-feat { display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 6px; border-radius: var(--r-sm);
   font-size: var(--fs-12); color: var(--tx-hi); cursor: pointer; }
 .ml-feat:hover { background: var(--bg-hover); }
+
+/* ── Per-class metrics + cluster table ── */
+.clf-metrics { padding: 4px 12px 10px; flex-shrink: 0; }
+.model-comparison-table { width: 100%; border-collapse: collapse; font-size: var(--fs-11); }
+.model-comparison-table th {
+  text-align: right; font-weight: 600; color: var(--tx-faint);
+  font-size: var(--fs-10); text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 5px 8px; border-bottom: 1px solid var(--line);
+}
+.model-comparison-table th:first-child { text-align: left; }
+.model-comparison-table td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line-2); color: var(--tx-mid); }
+.model-comparison-table td:first-child { text-align: left; }
+.model-comparison-table tbody tr:hover td { background: var(--bg-hover); }

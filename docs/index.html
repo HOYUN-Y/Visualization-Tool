@@ -7,30 +7,51 @@
 <style>
 /* ── Reset & Base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
+
+/* ── Dark theme (default) ── */
+:root, [data-theme="dark"] {
   --bg0: #0e0e10; --bg1: #141418; --bg2: #1c1c22; --bg3: #242430;
   --line: rgba(255,255,255,.09); --line2: rgba(255,255,255,.05);
   --tx-hi: #eeeef2; --tx-mid: #9999b0; --tx-lo: #5c5c78; --tx-faint: #3a3a50;
   --accent: #e8611a; --accent-soft: rgba(232,97,26,.18); --accent-line: rgba(232,97,26,.5);
   --dim: #5a8adb; --meas: #4fad88;
   --pos: #4fad88; --neg: #d05050; --warn: #d4a04a;
+  --topbar-bg: rgba(14,14,16,.92);
+  --code-color: #c6c6e8;
+}
+
+/* ── Light theme ── */
+[data-theme="light"] {
+  --bg0: #f4f4f7; --bg1: #ffffff; --bg2: #f0f0f5; --bg3: #e8e8f0;
+  --line: rgba(0,0,0,.08); --line2: rgba(0,0,0,.04);
+  --tx-hi: #111118; --tx-mid: #444460; --tx-lo: #7a7a95; --tx-faint: #b0b0cc;
+  --accent: #d4560f; --accent-soft: rgba(212,86,15,.1); --accent-line: rgba(212,86,15,.35);
+  --dim: #3a6dbf; --meas: #2e8f6a;
+  --pos: #2e8f6a; --neg: #c03030; --warn: #b07020;
+  --topbar-bg: rgba(244,244,247,.94);
+  --code-color: #333355;
+}
+
+:root {
   --r-sm: 4px; --r-md: 6px; --r-lg: 10px;
   --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --mono: "Cascadia Code", "Fira Code", "Source Code Pro", "Consolas", monospace;
   --sidebar-w: 264px;
   --topbar-h: 52px;
 }
+
 html { scroll-behavior: smooth; }
 body {
   background: var(--bg0); color: var(--tx-mid);
   font-family: var(--font); font-size: 14px; line-height: 1.65;
   display: flex; flex-direction: column; min-height: 100vh;
+  transition: background .2s, color .2s;
 }
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--tx-hi); text-decoration: underline; }
 code {
   font-family: var(--mono); font-size: 12.5px;
-  background: var(--bg3); color: #c6c6e8;
+  background: var(--bg3); color: var(--code-color);
   padding: 1px 6px; border-radius: 3px;
   border: 1px solid var(--line);
 }
@@ -38,7 +59,7 @@ pre {
   background: var(--bg2); border: 1px solid var(--line);
   border-radius: var(--r-md); padding: 18px 20px; overflow-x: auto;
   font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
-  color: #c6c6e8;
+  color: var(--code-color);
 }
 pre code { background: none; border: none; padding: 0; }
 h1, h2, h3, h4, h5 { color: var(--tx-hi); font-weight: 600; line-height: 1.3; }
@@ -56,7 +77,7 @@ hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
 /* ── Topbar ───────────────────────────────────────────────── */
 .topbar {
   position: fixed; top: 0; left: 0; right: 0; height: var(--topbar-h);
-  background: rgba(14,14,16,.92); backdrop-filter: blur(12px);
+  background: var(--topbar-bg); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
   display: flex; align-items: center; gap: 12px; padding: 0 24px;
   z-index: 1000;
@@ -77,6 +98,19 @@ hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
 .layout {
   display: flex; margin-top: var(--topbar-h); flex: 1;
 }
+.theme-btn {
+  width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--bg2); color: var(--tx-mid); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; transition: all .15s; flex-shrink: 0; line-height: 1;
+}
+.theme-btn:hover { background: var(--accent-soft); border-color: var(--accent-line); }
+.user-link {
+  font-size: 11px; color: var(--tx-lo); padding: 4px 10px;
+  border: 1px solid var(--line); border-radius: var(--r-sm); letter-spacing: .04em;
+}
+.user-link:hover { color: var(--accent); border-color: var(--accent-line); text-decoration: none; }
+
 .sidebar {
   position: fixed; top: var(--topbar-h); left: 0; bottom: 0;
   width: var(--sidebar-w); overflow-y: auto; overflow-x: hidden;
@@ -133,7 +167,7 @@ thead th {
 }
 tbody td { padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--line2); vertical-align: top; }
 tbody tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: rgba(255,255,255,.02); }
+tbody tr:hover td { background: rgba(128,128,128,.03); }
 
 /* ── Cards ──────────────────────────────────────────────── */
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0 24px; }
@@ -266,7 +300,9 @@ tbody tr:hover td { background: rgba(255,255,255,.02); }
   <div class="topbar-sep"></div>
   <div class="topbar-sub">Developer Documentation</div>
   <div class="topbar-sep"></div>
-  <div class="topbar-badge">v2.0</div>
+  <a class="user-link" href="user-guide.html">사용자 가이드 →</a>
+  <div class="topbar-badge">v2.1 — JMP Enhancement</div>
+  <button class="theme-btn" id="themeBtn" title="다크/라이트 전환" onclick="toggleTheme()">☀️</button>
 </div>
 
 <!-- ── Layout ── -->
@@ -304,6 +340,7 @@ tbody tr:hover td { background: rgba(255,255,255,.02); }
       <div class="sidebar-heading">보조 모듈</div>
       <a href="#icons">아이콘 시스템</a>
       <a href="#statsmath">통계 수학</a>
+      <a href="#insightengine">Insight Engine</a>
       <a href="#tweaks">Tweaks 패널</a>
       <a href="#aidrawer">AI Drawer</a>
     </div>
@@ -445,7 +482,8 @@ tbody tr:hover td { background: rgba(255,255,255,.02); }
             <tr><td>2</td><td>Babel Standalone (CDN)</td><td>JSX 트랜스파일 활성화</td><td>—</td></tr>
             <tr><td>3</td><td>ECharts (CDN)</td><td><code>window.echarts</code></td><td>—</td></tr>
             <tr><td>4</td><td><code>data.js</code></td><td><code>window.NODE</code></td><td>—</td></tr>
-            <tr><td>5</td><td><code>statsMath.js</code></td><td><code>window.StatsMath</code></td><td>—</td></tr>
+            <tr><td>5</td><td><code>statsMath.js</code></td><td><code>window.SM</code></td><td>—</td></tr>
+            <tr><td>5.5</td><td><code>insightEngine.js</code></td><td><code>window.IE</code></td><td>window.SM, window.NODE</td></tr>
             <tr><td>6</td><td><code>icons.jsx</code></td><td><code>window.Icon</code>, <code>window.isNumType</code>, <code>window.Popover</code></td><td>React</td></tr>
             <tr><td>7</td><td><code>store.jsx</code></td><td><code>window.Store</code></td><td>React, window.NODE</td></tr>
             <tr><td>8</td><td><code>charts.jsx</code></td><td><code>window.Charts</code></td><td>React, echarts</td></tr>
@@ -498,7 +536,8 @@ actions.<span class="fn">addToShelf</span>(<span class="str">"cols"</span>, fiel
 │   └── ai.css              <span class="cmt"># Ask Insight AI 드로어</span>
 └── js/
     ├── data.js             <span class="cmt"># 샘플 데이터셋 (서울 아파트, KOSPI, 월별지수, 구별통계)</span>
-    ├── statsMath.js        <span class="cmt"># 통계 수학 (p-value, gamma, beta, 행렬 역)</span>
+    ├── statsMath.js        <span class="cmt"># 통계 수학 (p-value, gamma, beta, 행렬 역, 왜도, 첨도)</span>
+    ├── insightEngine.js    <span class="cmt"># 규칙 기반 자동 해석 엔진 (window.IE)</span>
     ├── icons.jsx           <span class="cmt"># 아이콘 컴포넌트 + isNumType + Popover</span>
     ├── store.jsx           <span class="cmt"># 전역 상태 + 집계 + 클리닝 트랜스폼</span>
     ├── charts.jsx          <span class="cmt"># ECharts 래퍼 + CSS변수 해석</span>
@@ -510,8 +549,8 @@ actions.<span class="fn">addToShelf</span>(<span class="str">"cols"</span>, fiel
     ├── dashMode.jsx        <span class="cmt"># Dashboard 모드: 위젯 배치 + 크로스 필터</span>
     ├── sqlMode.jsx         <span class="cmt"># SQL 모드: in-memory SQL 쿼리 엔진</span>
     ├── mapMode.jsx         <span class="cmt"># Map 모드: 대한민국 choropleth + 버블맵</span>
-    ├── mlMode.jsx          <span class="cmt"># ML 모드: 선형회귀, 군집화</span>
-    ├── statsMode.jsx       <span class="cmt"># Stats 모드: 기술통계, 상관분석, t-test</span>
+    ├── mlMode.jsx          <span class="cmt"># ML 모드: 선형회귀, k-NN 분류, KMeans 군집 + 클래스별 P/R/F1 + 모델 이력</span>
+    ├── statsMode.jsx       <span class="cmt"># Stats 모드: 기술통계, 상관분석, t-test, Distribution, Analysis Builder</span>
     ├── tweaks.jsx          <span class="cmt"># 레이아웃/테마 Tweaks 사이드패널</span>
     ├── aiDrawer.jsx        <span class="cmt"># Ask Insight AI 드로어</span>
     └── app.jsx             <span class="cmt"># 앱 루트: App 컴포넌트 + ReactDOM.createRoot</span></code></pre>
@@ -902,12 +941,63 @@ e.dataTransfer.<span class="fn">getData</span>(<span class="str">"application/no
 
     <section id="mode-stats">
       <h2>Stats 모드 — <code>statsMode.jsx</code></h2>
-      <p>기술통계, 상관행렬, t-test, ANOVA, 선형회귀를 제공합니다. <code>statsMath.js</code>의 수치 함수와 Store의 <code>stat</code> 객체를 조합하여 구현됩니다.</p>
+      <p>기술통계, 분포 분석, 상관행렬, t-test, ANOVA, 선형회귀, Analysis Builder를 제공합니다. <code>statsMath.js</code>의 수치 함수, <code>insightEngine.js</code>의 자동 해석, Store의 <code>stat</code> 객체를 조합하여 구현됩니다.</p>
+
+      <h3>탭 목록 (8개)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>id</th><th>탭 이름</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>desc</code></td><td>Descriptive</td><td>컬럼별 기술통계 테이블 (n/missing/mean/std/min/max/q1/q3/skewness/kurtosis). |sk|&gt;1.5이면 경고 색상.</td></tr>
+            <tr><td><code>distribution</code></td><td>Distribution</td><td>컬럼 선택 → 히스토그램(카테고리 축) + 수평 박스플롯(IQR 이상치 scatter overlay) + 8개 통계 카드.</td></tr>
+            <tr><td><code>corr</code></td><td>Correlation</td><td>Pearson/Spearman 상관 행렬 히트맵. 숫자형 컬럼 쌍별 r 값.</td></tr>
+            <tr><td><code>ttest</code></td><td>T-Test</td><td>Welch t-test (독립 표본). Cohen's d 효과 크기 포함.</td></tr>
+            <tr><td><code>anova</code></td><td>ANOVA</td><td>일원 분산분석. F-통계량, η² 효과 크기.</td></tr>
+            <tr><td><code>chisq</code></td><td>Chi-Square</td><td>범주형 × 범주형 독립성 검정. Cramér's V.</td></tr>
+            <tr><td><code>reg</code></td><td>Regression</td><td>OLS 다중 선형회귀. R²/adj-R²/F-test, 계수별 SE/t/p 테이블.</td></tr>
+            <tr><td><code>builder</code></td><td>Analysis Builder</td><td>Target + Input 컬럼 선택 → 컬럼 타입 자동 감지 → OLS/ANOVA/카이제곱 자동 선택 실행.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>공통 패널 컴포넌트</h3>
+      <ul>
+        <li><code>InterpretationPanel({ text, icon })</code> — 분석 완료 후 파란색 박스에 <code>window.IE</code>가 생성한 해석 문구 표시.</li>
+        <li><code>NextStepPanel({ context })</code> — 초록색 박스에 <code>IE.recommendNextStep(context)</code>가 제안한 다음 분석 단계 표시.</li>
+      </ul>
+
+      <div class="alert info">
+        💡 모든 탭이 <code>InterpretationPanel</code>과 <code>NextStepPanel</code>을 포함합니다. Config는 <code>ui.stats.test</code>에 저장됩니다.
+      </div>
     </section>
 
     <section id="mode-ml">
       <h2>ML 모드 — <code>mlMode.jsx</code></h2>
-      <p>브라우저 내 간단한 머신러닝. 선형회귀(최소제곱법), K-Means 군집화를 제공합니다.</p>
+      <p>브라우저 내 AutoML. OLS 선형회귀, k-NN 분류, Lloyd's KMeans 군집을 제공합니다. 모든 수학은 외부 라이브러리 없이 인라인으로 구현됩니다.</p>
+
+      <h3>Task 목록</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Task</th><th>알고리즘</th><th>메트릭</th><th>추가 결과</th></tr></thead>
+          <tbody>
+            <tr><td>Regression</td><td>OLS (정규방정식)</td><td>R², RMSE, MAE</td><td>예측 vs 실제 산점도, 표준화 Feature Importance 막대</td></tr>
+            <tr><td>Classification</td><td>k-NN (표준화)</td><td>Accuracy, Macro F1</td><td>혼동 행렬 히트맵, 클래스별 Precision/Recall/F1/TP/FP/FN 테이블</td></tr>
+            <tr><td>Clustering</td><td>Lloyd's KMeans</td><td>Inertia, 군집 크기</td><td>군집 산점도, 군집별 특성 평균 테이블 (원본 스케일)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Model Comparison History</h3>
+      <p><code>window.NODE.mlHistory</code> — Store 외부 NODE 객체에 저장되는 뮤터블 배열. 모드 전환 후에도 유지됩니다. Train 완료 시 자동으로 항목 추가, 최근 10개를 역순으로 비교 테이블에 표시.</p>
+      <pre><code><span class="cmt">// window.NODE.mlHistory 항목 구조</span>
+{ task: <span class="str">"clf"</span>, target: <span class="str">"building_type"</span>, metric: <span class="str">"Accuracy"</span>, score: <span class="str">"70.3%"</span>, ts: <span class="num">1234567890</span> }
+
+<span class="cmt">// window.NODE.lastAnalysisResult — AI Drawer와의 공유 브리지</span>
+{ type: <span class="str">"ml"</span>, task: <span class="str">"clf"</span>, target: <span class="str">"building_type"</span>, score: <span class="str">"70.3%"</span>, ... }</code></pre>
+
+      <div class="alert info">
+        💡 Train 완료 시 <code>window.IE</code>의 <code>summarizeClassification</code> / <code>summarizeClustering</code>가 호출되어 Interpretation 패널에 자동 해석이 표시됩니다.
+      </div>
     </section>
 
     <!-- ═══════════════════ ICONS ═══════════════════ -->
@@ -948,9 +1038,9 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
     <!-- ═══════════════════ STATSMATH ═══════════════════ -->
     <section id="statsmath">
       <h2>통계 수학 — <code>statsMath.js</code></h2>
-      <p>Stats 모드에서 사용하는 고정밀 수치 계산 함수들입니다. 외부 라이브러리 없이 순수 JS로 구현됩니다.</p>
+      <p>Stats 모드에서 사용하는 고정밀 수치 계산 함수들입니다. 외부 라이브러리 없이 순수 JS로 구현됩니다. <code>window.SM</code>으로 노출됩니다.</p>
 
-      <h3>window.StatsMath 인터페이스</h3>
+      <h3>window.SM 인터페이스</h3>
       <div class="table-wrap">
         <table>
           <thead><tr><th>함수</th><th>설명</th></tr></thead>
@@ -959,10 +1049,51 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
             <tr><td><code>fP(F, d1, d2)</code></td><td>F-분포 상측 p-값</td></tr>
             <tr><td><code>chiP(x, df)</code></td><td>카이제곱 상측 p-값</td></tr>
             <tr><td><code>matInverse(M)</code></td><td>정방 행렬 역행렬 (가우스-조르당 소거법)</td></tr>
+            <tr><td><code>skewness(a)</code></td><td>표본 왜도 (n/((n-1)(n-2)) 보정). n&lt;3이면 null 반환.</td></tr>
+            <tr><td><code>kurtosis(a)</code></td><td>Fisher 초과 첨도 (excess kurtosis, sample-corrected). n&lt;4이면 null 반환.</td></tr>
           </tbody>
         </table>
       </div>
       <p>내부적으로 Lanczos 근사 감마함수(<code>gammln</code>), 정규화 불완전 감마함수(<code>gser/gcf</code>), 불완전 베타함수(<code>betai</code>)를 사용합니다.</p>
+
+      <div class="alert info">
+        💡 <strong>왜도 해석:</strong> |skewness| &gt; 1.5이면 분포가 심하게 치우쳐 있음을 의미합니다. Descriptive 테이블에서 해당 값에 경고 색상이 표시됩니다. <strong>첨도 해석:</strong> 0 = 정규분포 (초과 첨도 기준), 양수 = 뾰족한 분포(leptokurtic), 음수 = 납작한 분포(platykurtic).
+      </div>
+    </section>
+
+    <!-- ═══════════════════ INSIGHT ENGINE ═══════════════════ -->
+    <section id="insightengine">
+      <h2>Insight Engine — <code>insightEngine.js</code></h2>
+      <p>규칙 기반 자동 해석 엔진입니다. JSX 없이 plain JS IIFE로 작성되어 있으며, <code>statsMath.js</code> 이후, <code>icons.jsx</code> 이전에 로드됩니다. <code>window.IE</code>로 노출됩니다.</p>
+
+      <h3>window.IE 인터페이스</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>함수</th><th>인수</th><th>반환</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>profileDataset(id)</code></td><td>dataset id (string)</td><td><code>string[]</code></td><td>데이터셋 자동 프로파일: 형상(행×열), 결측 컬럼, IQR 이상치, 왜도 플래그(|γ₁|&gt;1.5), 최강 Pearson 상관쌍</td></tr>
+            <tr><td><code>summarizeCorrelation({ cols, matrix })</code></td><td>상관 행렬 결과</td><td>string</td><td>최강 상관쌍 + |r|&gt;0.5 쌍 수 요약</td></tr>
+            <tr><td><code>summarizeRegression({ r2, adj, terms, target, pF })</code></td><td>OLS 회귀 결과</td><td>string</td><td>R² 품질 등급(Excellent/Good/Moderate/Weak) + 유의 예측변수 목록</td></tr>
+            <tr><td><code>summarizeClustering({ K, sizes, inertia })</code></td><td>KMeans 결과</td><td>string</td><td>군집 균형도 평가 + 가장 큰/작은 군집 비율</td></tr>
+            <tr><td><code>summarizeClassification({ acc, classes, cm, k })</code></td><td>k-NN 결과</td><td>string</td><td>전체 정확도 + 클래스별 Precision/Recall 한 줄 요약</td></tr>
+            <tr><td><code>recommendNextStep({ lastTest, lastResult })</code></td><td>현재 분석 맥락</td><td><code>{ icon, text }</code></td><td>맥락 기반 다음 분석 제안: corr→회귀, reg→ML, ttest/anova→회귀, distribution→클리닝</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <pre><code><span class="cmt">// Ask Insight 드로어에서 자동 프로파일 호출 (memoized)</span>
+<span class="kw">const</span> profile = React.<span class="fn">useMemo</span>(() => {
+  <span class="kw">if</span> (!IE) <span class="kw">return</span> [];
+  <span class="kw">try</span> { <span class="kw">return</span> IE.<span class="fn">profileDataset</span>(activeId); } <span class="kw">catch</span>(_) { <span class="kw">return</span> []; }
+}, [activeId]);
+
+<span class="cmt">// Stats 모드 Interpretation 패널에서 사용</span>
+<span class="kw">const</span> insight = IE.<span class="fn">summarizeRegression</span>({ r2, adj, terms, target, pF });
+<span class="kw">const</span> nextStep = IE.<span class="fn">recommendNextStep</span>({ lastTest: <span class="str">"reg"</span>, lastResult: result });</code></pre>
+
+      <div class="alert info">
+        💡 <code>insightEngine.js</code>는 React/JSX가 없는 순수 JS 파일입니다. <code>window.SM</code>(statsMath)과 <code>window.NODE</code>(datasets) 만 의존합니다. Babel 없이 로드되므로 로드 속도가 빠릅니다.
+      </div>
     </section>
 
     <!-- ═══════════════════ TWEAKS ═══════════════════ -->
@@ -991,7 +1122,37 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
     <!-- ═══════════════════ AI DRAWER ═══════════════════ -->
     <section id="aidrawer">
       <h2>AI Drawer — <code>aiDrawer.jsx</code></h2>
-      <p>"Ask Insight" 버튼으로 토글되는 우측 슬라이드 패널. <code>Store.ui.aiOpen</code> 상태와 연결됩니다. 현재 데이터셋 컨텍스트를 기반으로 AI 분석을 요청하는 UI를 제공합니다.</p>
+      <p>"Ask Insight" 버튼으로 토글되는 우측 슬라이드 패널. <code>Store.ui.aiOpen</code> 상태와 연결됩니다. 세 가지 인사이트 소스를 통합하여 표시합니다.</p>
+
+      <h3>인사이트 소스</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>섹션</th><th>소스</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td>Dataset Profile</td><td><code>IE.profileDataset(activeId)</code></td><td>활성 데이터셋 전환 시 자동 실행(memoized). 형상/결측/이상치/왜도/상관 인사이트 string[] 표시.</td></tr>
+            <tr><td>Last Analysis Result</td><td><code>window.NODE.lastAnalysisResult</code></td><td>ML 훈련 또는 Stats 분석 완료 시 자동 설정되는 공유 객체. 없으면 섹션 숨김.</td></tr>
+            <tr><td>Market Insights</td><td><code>buildInsights(rows)</code></td><td>서울 실거래가 도메인 특화 인사이트 (구별 점유율, 가격 리더, 2022→2024 추세 등).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>NL 인텐트 라우팅</h3>
+      <p>자연어 입력 → <code>interpret(text)</code>로 인텐트 분류 → <code>runIntent(kind, tab)</code>로 실제 앱 상태 변경.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>인텐트</th><th>키워드</th><th>동작</th></tr></thead>
+          <tbody>
+            <tr><td><code>district</code></td><td>district/지역/구별/region</td><td>Chart 모드 → 구별 평균 가격 Bar 차트</td></tr>
+            <tr><td><code>complex</code></td><td>complex/단지/top/상위</td><td>Chart 모드 → Top-10 단지 hbar</td></tr>
+            <tr><td><code>type</code></td><td>type/유형/building/mix</td><td>Chart 모드 → 건물유형 비율 Pie 차트</td></tr>
+            <tr><td><code>trend</code></td><td>trend/추세/time/month/월</td><td>monthly_index 활성화 → Line 차트</td></tr>
+            <tr><td><code>outlier</code></td><td>outlier/이상치/anomal</td><td>Clean 모드로 전환</td></tr>
+            <tr><td><code>last</code></td><td>last/recent/방금/마지막/결과</td><td><code>window.NODE.lastAnalysisResult</code> 읽어 요약 반환</td></tr>
+            <tr><td><code>goStats</code></td><td>corr/regress/distribut/상관/회귀</td><td>Stats 모드 + 해당 탭(<code>tab</code>) 활성화</td></tr>
+            <tr><td><code>goMl</code></td><td>ml/machine/learn/분류/cluster/군집</td><td>ML 모드로 전환</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <!-- ═══════════════════ TOKENS ═══════════════════ -->
@@ -1247,7 +1408,7 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
     <!-- ═══════════════════ FOOTER ═══════════════════ -->
     <hr />
     <div style="text-align:center; color:var(--tx-faint); font-size:11px; padding-bottom:20px;">
-      NØDE Analytics Workbench Developer Docs · v2.0 · 2026-06-06<br/>
+      NØDE Analytics Workbench Developer Docs · v2.1 (JMP Enhancement) · 2026-06-06<br/>
       이 문서는 유지보수 목적으로 생성되었습니다. 오프라인에서도 동작하는 단일 HTML 파일.
     </div>
 
@@ -1256,6 +1417,27 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
 
 <!-- Back to top -->
 <div class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="맨 위로">↑</div>
+
+<!-- ── Theme toggle ── -->
+<script>
+function toggleTheme() {
+  var html = document.documentElement;
+  var next = (html.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+  try { localStorage.setItem('node-dev-theme', next); } catch(e) {}
+}
+(function() {
+  try {
+    var saved = localStorage.getItem('node-dev-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      var btn = document.getElementById('themeBtn');
+      if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+    }
+  } catch(e) {}
+})();
+</script>
 
 <!-- ── Active nav highlight ── -->
 <script>

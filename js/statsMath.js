@@ -63,5 +63,23 @@
     return A.map((r) => r.slice(n));
   }
 
-  window.SM = { gammp, gammq, betai, tP, fP, chiP, matInverse, gammln };
+  function skewness(a) {
+    const x = (Array.isArray(a) ? a : []).filter((v) => v != null && !isNaN(v)).map(Number);
+    const n = x.length; if (n < 3) return null;
+    const m = x.reduce((t, v) => t + v, 0) / n;
+    const s = Math.sqrt(x.reduce((t, v) => t + (v - m) ** 2, 0) / (n - 1));
+    if (s < 1e-12) return 0;
+    return (n / ((n - 1) * (n - 2))) * x.reduce((t, v) => t + ((v - m) / s) ** 3, 0);
+  }
+  function kurtosis(a) {
+    const x = (Array.isArray(a) ? a : []).filter((v) => v != null && !isNaN(v)).map(Number);
+    const n = x.length; if (n < 4) return null;
+    const m = x.reduce((t, v) => t + v, 0) / n;
+    const s = Math.sqrt(x.reduce((t, v) => t + (v - m) ** 2, 0) / (n - 1));
+    if (s < 1e-12) return 0;
+    return (n * (n + 1) / ((n - 1) * (n - 2) * (n - 3))) * x.reduce((t, v) => t + ((v - m) / s) ** 4, 0)
+      - 3 * (n - 1) ** 2 / ((n - 2) * (n - 3));
+  }
+
+  window.SM = { gammp, gammq, betai, tP, fP, chiP, matInverse, gammln, skewness, kurtosis };
 })();
