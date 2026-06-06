@@ -4,14 +4,45 @@ All notable changes to INSIGHT Analytics Workbench are documented here.
 
 ---
 
-## [Unreleased] — Phase 2 (예정)
-- Formula Column, Dummy/Label Encoding, Standardization/Normalization 등 전처리 강화
+## [Unreleased] — Phase 2 (진행 중)
 - localStorage 영속성
 - Auto Chart Recommendation
 - PCA + Biplot + Scree Plot
 - Logistic Regression, ROC/AUC, Confusion Matrix
 - SPC Control Charts (X-Bar/R/S/P/C/U), Process Capability (Cp/Cpk)
 - Moving Average, Exponential Smoothing, ACF/PACF
+
+---
+
+## [1.7.0] — 2026-06-07 — Clean 모드 전처리 강화 (Phase 2 첫 번째 배치)
+
+### Added
+
+#### Clean 모드 — 인코딩 (store.jsx · cleanMode.jsx)
+- **Label Encode** (`label_encode`): 문자열 컬럼 → 정수(0,1,2…) 새 컬럼(`_enc`) 추가. 고유값 알파벳 정렬 후 인덱스 부여.
+- **Dummy Encode** (`dummy_encode`): One-Hot 인코딩 — 고유값마다 `col_값` 0/1 정수 컬럼 추가. 고유값 20개 초과 시 사전 경고.
+- **Drop Column** (`drop_col`): columns 배열 + 모든 row에서 컬럼 완전 삭제.
+
+#### Clean 모드 — 수치 변환 (store.jsx · cleanMode.jsx)
+- **Standardize** (`standardize`): Z-Score 표준화 — (x−μ)/σ, 4자리 반올림, 제자리 변환.
+- **Normalize** (`normalize`): Min-Max 정규화 — (x−min)/(max−min), 0~1 범위, 제자리 변환.
+- **Log Transform** (`log_transform`): log1p(x), x > −1 조건 검사 후 적용.
+- **Rank Transform** (`rank_transform`): 오름차순 순위값(1..n) 제자리 변환, 정수 타입으로 변경.
+- **Winsorize** (`winsorize`): 상하 p% 분위수 클리핑 (기본 p=5, UI에서 1–49 조정 가능).
+- **Binning** (`binning`): 등폭 N구간 → `col_bin` 범주 컬럼 추가 (기본 5개, UI에서 2–50 조정).
+
+#### Clean 모드 — Formula Column (store.jsx · cleanMode.jsx)
+- **Formula** (`formula`): JS 수식으로 파생 컬럼 생성.
+  - `new Function("row", "Math", expr)` — `row` 객체로 모든 컬럼 값 접근, `Math.*` 함수 사용 가능.
+  - 수식 오류 시 해당 셀 `null` 처리 (전체 파이프라인 중단 없음).
+  - 결과 타입 자동 감지 → integer / float / string 컬럼 메타 생성.
+
+#### index.html
+- 전체 JS/JSX 스크립트 태그에 `?v=170` 캐시 버스팅 쿼리 추가 (개발 환경 브라우저 캐시 문제 해결).
+
+### Changed
+- `stepLabel()` / `OP_ICON`: 신규 10개 op 모두 한국어 레이블 + 아이콘 등록.
+- `CleanPanel` destructure: `rows` 추가 (Dummy Encode 고카디널리티 경고에 현재 정제 행 기준 사용).
 
 ---
 

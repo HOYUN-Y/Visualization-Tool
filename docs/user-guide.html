@@ -732,13 +732,68 @@ svg[aria-hidden="true"] { display: none; }
   </div>
 
   <h3>수동 작업 추가 (우측 패널)</h3>
+
+  <h4>기본 정제</h4>
   <ul>
     <li><strong>컬럼 선택</strong> → 적용할 작업 선택</li>
     <li><strong>결측 채우기</strong>: 평균값(mean) / 중앙값(median) / 최빈값(mode) 중 선택</li>
     <li><strong>이름 변경(Rename)</strong>: 컬럼명 수정</li>
     <li><strong>값 치환(Replace)</strong>: 특정 값을 다른 값으로 일괄 교체</li>
     <li><strong>타입 변환(Change Type)</strong>: 문자열 ↔ 숫자 ↔ 날짜 변환</li>
+    <li><strong>Drop column</strong>: 해당 컬럼을 데이터에서 완전 삭제 (ML 불필요 컬럼 제거에 유용)</li>
   </ul>
+
+  <h4>인코딩 (Encoding)</h4>
+  <p>머신러닝 모델은 숫자 입력만 받습니다. 문자열 컬럼을 숫자로 변환하는 두 가지 방법을 제공합니다.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>방법</th><th>동작</th><th>적합한 경우</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Label Encode</strong></td>
+          <td>고유값을 알파벳 순으로 정렬 후 0, 1, 2… 정수 부여. <code>컬럼명_enc</code> 새 컬럼 추가.</td>
+          <td>순서가 있는 범주 (예: 소형/중형/대형 → 0/1/2)</td>
+        </tr>
+        <tr>
+          <td><strong>Dummy Encode</strong></td>
+          <td>고유값마다 0 또는 1짜리 컬럼 생성 (One-Hot). 고유값 20개 초과 시 경고 팝업.</td>
+          <td>순서 없는 범주 (예: 구 이름, 건물 유형)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>수치 변환 (Numeric Transform)</h4>
+  <p>숫자형 컬럼에만 활성화됩니다.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>변환</th><th>수식</th><th>사용 목적</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Z-Score</strong></td><td>(x − μ) / σ</td><td>스케일 통일 (회귀·군집 전처리)</td></tr>
+        <tr><td><strong>Min-Max</strong></td><td>(x − min) / (max − min) → 0~1</td><td>신경망, KNN 등 거리 기반 모델</td></tr>
+        <tr><td><strong>Log(1+x)</strong></td><td>log₁₊(x)</td><td>오른쪽 꼬리 왜도 완화 (가격, 거래량 등)</td></tr>
+        <tr><td><strong>Rank</strong></td><td>오름차순 순위 1, 2, … n</td><td>비모수 방법, 이상치 영향 제거</td></tr>
+        <tr><td><strong>Bins (등폭 구간)</strong></td><td>N등분 → <code>컬럼_bin</code> 범주 컬럼</td><td>연속값 → 구간 범주화 (히스토그램 전처리)</td></tr>
+        <tr><td><strong>Winsorize p%</strong></td><td>하위/상위 p% 분위수로 클리핑</td><td>극단 이상치 영향 축소 (제거 없이)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4>Formula Column — 파생 컬럼 생성</h4>
+  <p>JavaScript 수식으로 새 컬럼을 즉시 만들 수 있습니다. <code>row</code> 객체로 해당 행의 모든 컬럼 값에 접근합니다.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>예시 수식</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td><code>row.price_manwon * 1.05</code></td><td>가격에 부가세 5% 추가</td></tr>
+        <tr><td><code>row.price_manwon / row.area_m2</code></td><td>㎡당 가격 계산</td></tr>
+        <tr><td><code>Math.log1p(row.price_manwon)</code></td><td>로그 변환 파생 컬럼</td></tr>
+        <tr><td><code>row.price_per_m2 > 1000 ? 'high' : 'low'</code></td><td>조건 분기로 범주 컬럼 생성</td></tr>
+        <tr><td><code>row.district + '_' + row.building_type</code></td><td>두 컬럼 결합</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>수식 오류가 발생한 셀은 <code>null</code>로 처리되며 파이프라인 전체에 영향을 주지 않습니다.</p>
 
   <h3>파이프라인 관리 (Undo/Redo)</h3>
   <ul>
@@ -749,7 +804,7 @@ svg[aria-hidden="true"] { display: none; }
   </ul>
 
   <div class="alert tip">
-    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg>정제 결과는 모든 다른 모드(Chart, Stats, ML 등)에 자동 반영됩니다. Clean 모드에서 이상치를 제거하면 Stats 모드의 분석도 정제된 데이터를 사용합니다.
+    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg>정제 결과는 모든 다른 모드(Chart, Stats, ML 등)에 자동 반영됩니다. ML 모드에서 학습 전 Label Encode와 Z-Score를 먼저 적용하면 정확도가 크게 향상됩니다.
   </div>
 </section>
 
@@ -1582,12 +1637,44 @@ LIMIT 5</pre>
     </div>
   </div>
 
-  <h3>🔲 Phase 2 — 실사용 편의 기능 (예정)</h3>
+  <h3>✅ Phase 1.6 — Map 강화 + Export/Import</h3>
   <div class="cards">
-    <div class="card">
-      <div class="card-title"><svg class="icon icon-sm"><use href="#i-data"></use></svg>파일 업로드</div>
-      <div class="card-body">CSV / XLSX 파일을 직접 불러와 분석. 현재는 내장 샘플 데이터만 지원.</div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-map"></use></svg>Korea 탭</div>
+      <div class="card-body">17개 시도 choropleth + 84개 시군구 버블맵. WGS84 좌표 자동 변환.</div>
     </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-map"></use></svg>World 탭</div>
+      <div class="card-body">30개국 GDP/인구 choropleth. 우측 국가 순위 바차트.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-data"></use></svg>내 데이터 모드</div>
+      <div class="card-body">위경도 컬럼 자동 감지 → 임포트 데이터를 지도에 직접 버블로 표시.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg>Export / Import</div>
+      <div class="card-body">차트 PNG·CSV 내보내기. CSV/TSV/JSON 드래그앤드롭 임포트.</div>
+    </div>
+  </div>
+
+  <h3>✅ Phase 2 (1차) — Clean 모드 전처리 강화</h3>
+  <div class="cards">
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-clean"></use></svg>인코딩</div>
+      <div class="card-body">Label Encode (문자→정수) · Dummy Encode (One-Hot) · Drop Column.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-clean"></use></svg>수치 변환</div>
+      <div class="card-body">Z-Score · Min-Max · Log(1+x) · Rank · Binning · Winsorize.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-bolt"></use></svg>Formula Column</div>
+      <div class="card-body">JS 수식으로 파생 컬럼 즉시 생성. row 객체로 모든 컬럼 접근.</div>
+    </div>
+  </div>
+
+  <h3>🔲 Phase 2 (2차) — 분석 기능 확장 (예정)</h3>
+  <div class="cards">
     <div class="card">
       <div class="card-title"><svg class="icon icon-sm"><use href="#i-shield"></use></svg>데이터 영속성</div>
       <div class="card-body">작업 내용을 localStorage에 저장해 새로고침 후에도 유지.</div>
@@ -1597,8 +1684,12 @@ LIMIT 5</pre>
       <div class="card-body">데이터 유형 분석 후 적합한 차트를 자동으로 추천.</div>
     </div>
     <div class="card">
-      <div class="card-title"><svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg>내보내기</div>
-      <div class="card-body">차트 PNG, 보고서 PDF, 분석 결과 CSV 내보내기.</div>
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-ml"></use></svg>PCA + Biplot</div>
+      <div class="card-body">브라우저 SVD 기반 주성분 분석. Scree Plot + Biplot 시각화.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-ml"></use></svg>Logistic Regression</div>
+      <div class="card-body">분류 모델 확장. ROC/AUC · Confusion Matrix · Precision-Recall.</div>
     </div>
   </div>
 

@@ -891,11 +891,58 @@ root.<span class="fn">render</span>(&lt;App /&gt;);</code></pre>
 
     <section id="mode-clean">
       <h2>Clean 모드 — <code>cleanMode.jsx</code></h2>
-      <p>비파괴적 데이터 클리닝. 원본 데이터를 보존하고 스텝 배열로 변환을 관리합니다.</p>
+      <p>비파괴적 데이터 클리닝. 원본 데이터를 보존하고 스텝 배열로 변환을 관리합니다. v1.7.0부터 인코딩 · 수치변환 · Formula Column 등 ML 전처리 op가 추가되었습니다.</p>
       <div class="alert tip">
         <svg class="icon"><use href="#i-insight"></use></svg>
         <div>모든 클리닝 작업은 Store의 <code>clean[datasetId].steps[]</code>에 기록되며, <code>cursor</code>로 undo/redo 지원. 원본 <code>rows</code>는 절대 수정되지 않습니다.</div>
       </div>
+
+      <h3>지원 op 전체 목록 (applySteps switch)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>op</th><th>대상</th><th>params</th><th>동작</th></tr></thead>
+          <tbody>
+            <tr><td><code>drop_missing</code></td><td>컬럼</td><td>—</td><td>해당 컬럼이 null/빈값인 행 삭제</td></tr>
+            <tr><td><code>fill_mean</code></td><td>숫자 컬럼</td><td>—</td><td>결측값 → 평균으로 채우기</td></tr>
+            <tr><td><code>fill_median</code></td><td>숫자 컬럼</td><td>—</td><td>결측값 → 중앙값으로 채우기</td></tr>
+            <tr><td><code>fill_mode</code></td><td>컬럼</td><td>—</td><td>결측값 → 최빈값으로 채우기</td></tr>
+            <tr><td><code>drop_duplicates</code></td><td>전체</td><td>—</td><td>중복 행 제거 (JSON.stringify 비교)</td></tr>
+            <tr><td><code>remove_outliers</code></td><td>숫자 컬럼</td><td>—</td><td>IQR × 1.5 기준 이상치 행 삭제</td></tr>
+            <tr><td><code>rename</code></td><td>컬럼</td><td><code>{ to }</code></td><td>컬럼 key·label 변경</td></tr>
+            <tr><td><code>replace</code></td><td>컬럼</td><td><code>{ from, to }</code></td><td>문자열 값 치환</td></tr>
+            <tr><td><code>change_type</code></td><td>컬럼</td><td><code>{ to }</code></td><td>컬럼 타입 메타 변경</td></tr>
+            <tr><td><code>drop_col</code></td><td>컬럼</td><td>—</td><td>columns + rows 양쪽에서 컬럼 완전 삭제</td></tr>
+            <tr><td><code>label_encode</code></td><td>문자 컬럼</td><td><code>{ newKey? }</code></td><td>고유값 알파벳 정렬 → 0,1,2… 정수, <code>_enc</code> 새 컬럼 추가</td></tr>
+            <tr><td><code>dummy_encode</code></td><td>문자 컬럼</td><td>—</td><td>One-Hot: 고유값마다 <code>col_값</code> 0/1 정수 컬럼 추가</td></tr>
+            <tr><td><code>standardize</code></td><td>숫자 컬럼</td><td>—</td><td>Z-Score 표준화 — (x−μ)/σ, 제자리 변환</td></tr>
+            <tr><td><code>normalize</code></td><td>숫자 컬럼</td><td>—</td><td>Min-Max 정규화 — (x−min)/(max−min), 제자리 변환</td></tr>
+            <tr><td><code>log_transform</code></td><td>숫자 컬럼</td><td>—</td><td>log1p(x), x &gt; −1 체크 후 적용</td></tr>
+            <tr><td><code>rank_transform</code></td><td>숫자 컬럼</td><td>—</td><td>오름차순 순위값 1..n, integer 타입으로 변경</td></tr>
+            <tr><td><code>winsorize</code></td><td>숫자 컬럼</td><td><code>{ p }</code></td><td>p/100 ~ (1-p/100) 분위수 범위로 클리핑 (기본 p=5)</td></tr>
+            <tr><td><code>binning</code></td><td>숫자 컬럼</td><td><code>{ bins }</code></td><td>등폭 N구간 → <code>col_bin</code> category 컬럼 추가</td></tr>
+            <tr><td><code>formula</code></td><td>—</td><td><code>{ name, expr }</code></td><td>JS 수식으로 파생 컬럼 생성 (<code>row</code> 객체 + <code>Math</code> 접근)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Formula Column — 보안 모델</h3>
+      <pre><code><span class="cmt">// store.jsx — formula op 구현</span>
+fn = <span class="kw">new</span> <span class="fn">Function</span>(<span class="str">"row"</span>, <span class="str">"Math"</span>, <span class="str">'"use strict"; return ('</span> + expr + <span class="str">')'</span>);
+rows.<span class="fn">forEach</span>((r) => {
+  <span class="kw">try</span> { r[newKey] = <span class="fn">fn</span>(r, Math); }
+  <span class="kw">catch</span> (e) { r[newKey] = <span class="kw">null</span>; }  <span class="cmt">// 셀 단위 오류 무시</span>
+});
+
+<span class="cmt">// 사용 예</span>
+row.price_manwon * <span class="num">1.05</span>               <span class="cmt">// 숫자 연산</span>
+Math.<span class="fn">log1p</span>(row.area_m2)               <span class="cmt">// 수학 함수</span>
+row.district + <span class="str">'_'</span> + row.building_type  <span class="cmt">// 문자열 결합</span>
+row.price_per_m2 > <span class="num">1000</span> ? <span class="str">'high'</span> : <span class="str">'low'</span>  <span class="cmt">// 조건 분기</span></code></pre>
+
+      <h3>Dummy Encode 고카디널리티 경고</h3>
+      <pre><code><span class="cmt">// cleanMode.jsx — Dummy Encode 버튼 onClick</span>
+<span class="kw">const</span> uniq = [...<span class="kw">new</span> <span class="fn">Set</span>(rows.<span class="fn">map</span>((r) => r[col]).<span class="fn">filter</span>(Boolean))];
+<span class="kw">if</span> (uniq.length > <span class="num">20</span> && !window.<span class="fn">confirm</span>(`고유값 ${uniq.length}개...`)) <span class="kw">return</span>;</code></pre>
     </section>
 
     <section id="mode-sql">
@@ -1534,17 +1581,33 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
         </table>
       </div>
 
-      <h3>🔲 Phase 2 — 브라우저 단독 구현 가능 (예정)</h3>
+      <h3>✅ Phase 2 (1차) — Clean 모드 전처리 강화 (완료)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>카테고리</th><th>항목</th><th>op 키</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="3"><b>인코딩</b></td><td>Label Encoding — 문자열 → 정수(0,1,2…)</td><td><code>label_encode</code></td><td><code>_enc</code> 새 컬럼 추가</td></tr>
+            <tr><td>Dummy(One-Hot) Encoding — 고유값별 0/1 컬럼</td><td><code>dummy_encode</code></td><td>고유값 20개 초과 시 경고</td></tr>
+            <tr><td>컬럼 삭제</td><td><code>drop_col</code></td><td>columns + rows 양쪽 삭제</td></tr>
+            <tr><td rowspan="6"><b>수치 변환</b></td><td>Z-Score 표준화 (μ=0, σ=1)</td><td><code>standardize</code></td><td>제자리 변환</td></tr>
+            <tr><td>Min-Max 정규화 (0~1)</td><td><code>normalize</code></td><td>제자리 변환</td></tr>
+            <tr><td>Log Transform — log1p(x)</td><td><code>log_transform</code></td><td>x &gt; −1 체크</td></tr>
+            <tr><td>Rank Transform — 순위값 1..n</td><td><code>rank_transform</code></td><td>integer 타입</td></tr>
+            <tr><td>Winsorize — 상하 p% 클리핑</td><td><code>winsorize</code></td><td>params: { p } (기본 5)</td></tr>
+            <tr><td>Binning — 등폭 N구간 범주 컬럼</td><td><code>binning</code></td><td>params: { bins } → <code>_bin</code></td></tr>
+            <tr><td><b>Formula Column</b></td><td>JS 수식으로 파생 컬럼 생성</td><td><code>formula</code></td><td>params: { name, expr }; <code>row</code> + <code>Math</code> 접근</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)</h3>
       <p>순수 JS로 구현 가능. 백엔드 불필요. 데이터 규모 ~10k 행까지 실용적.</p>
 
       <div class="table-wrap">
         <table>
           <thead><tr><th>카테고리</th><th>항목</th><th>우선순위</th><th>배치 모드</th></tr></thead>
           <tbody>
-            <tr><td rowspan="4"><b>데이터 전처리</b><br/>(Clean 모드 확장)</td><td>Formula Column — JS 수식으로 파생 컬럼 생성</td><td><span class="tag warn">최우선</span></td><td>Clean</td></tr>
-            <tr><td>Dummy / Label Encoding</td><td><span class="tag warn">최우선</span></td><td>Clean</td></tr>
-            <tr><td>Standardization / Normalization (Z-Score, Min-Max)</td><td><span class="tag warn">최우선</span></td><td>Clean</td></tr>
-            <tr><td>Log / Box-Cox / Rank / Binning / Winsorizing</td><td><span class="tag accent">중요</span></td><td>Clean</td></tr>
+            <tr><td><b>전처리 잔여</b></td><td>Box-Cox Transformation (lambda 최적화)</td><td><span class="tag accent">중요</span></td><td>Clean</td></tr>
             <tr><td rowspan="4"><b>ML 모델 확장</b></td><td>Logistic Regression (단변량 / 다변량)</td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
             <tr><td>Decision Tree, Naive Bayes</td><td><span class="tag accent">중요</span></td><td>ML</td></tr>
             <tr><td>Confusion Matrix, ROC/AUC, Precision-Recall, Lift/Gain/KS Chart</td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
