@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NØDE Analytics Workbench — Developer Documentation</title>
+<title>INSIGHT Analytics Workbench — Developer Documentation</title>
 <style>
 /* ── Reset & Base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -296,7 +296,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
 
 <!-- ── Topbar ── -->
 <div class="topbar">
-  <div class="topbar-brand">NØ<span>DE</span> Analytics</div>
+  <div class="topbar-brand">INSIGHT Analytics</div>
   <div class="topbar-sep"></div>
   <div class="topbar-sub">Developer Documentation</div>
   <div class="topbar-sep"></div>
@@ -364,7 +364,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
 
     <!-- ═══════════════════ HERO ═══════════════════ -->
     <div class="hero">
-      <h1><span>NØ</span>DE Analytics Workbench</h1>
+      <h1>INSIGHT Analytics Workbench</h1>
       <p style="color:var(--tx-mid); font-size:15px; margin-bottom:0;">
         로컬-퍼스트 브라우저 전용 BI 플랫폼. 빌드 단계 없이 순수 HTML + in-browser Babel로 동작하는 데이터 분석 도구.
       </p>
@@ -383,7 +383,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
     <section id="overview">
       <h2>프로젝트 개요</h2>
       <p>
-        NØDE Analytics Workbench는 <strong>로컬-퍼스트</strong> 브라우저 전용 비즈니스 인텔리전스 도구입니다.
+        INSIGHT Analytics Workbench는 <strong>로컬-퍼스트</strong> 브라우저 전용 비즈니스 인텔리전스 도구입니다.
         Node.js, npm, 빌드 단계 없이 <code>python3 -m http.server</code>로 즉시 실행됩니다.
         서울 아파트 실거래가 데이터를 포함한 샘플 데이터셋으로 즉시 사용 가능하며,
         21종의 차트 타입과 8개의 분석 모드를 제공합니다.
@@ -1408,7 +1408,7 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
     <!-- ═══════════════════ FOOTER ═══════════════════ -->
     <hr />
     <div style="text-align:center; color:var(--tx-faint); font-size:11px; padding-bottom:20px;">
-      NØDE Analytics Workbench Developer Docs · v2.1 (JMP Enhancement) · 2026-06-06<br/>
+      INSIGHT Analytics Workbench Developer Docs · v2.1 (JMP Enhancement) · 2026-06-06<br/>
       이 문서는 유지보수 목적으로 생성되었습니다. 오프라인에서도 동작하는 단일 HTML 파일.
     </div>
 
@@ -1425,11 +1425,11 @@ function toggleTheme() {
   var next = (html.getAttribute('data-theme') || 'dark') === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
   document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
-  try { localStorage.setItem('node-dev-theme', next); } catch(e) {}
+  try { localStorage.setItem('insight-dev-theme', next); } catch(e) {}
 }
 (function() {
   try {
-    var saved = localStorage.getItem('node-dev-theme');
+    var saved = localStorage.getItem('insight-dev-theme');
     if (saved) {
       document.documentElement.setAttribute('data-theme', saved);
       var btn = document.getElementById('themeBtn');

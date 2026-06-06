@@ -1,6 +1,6 @@
 # CHANGELOG
 
-All notable changes to NØDE Analytics Workbench are documented here.
+All notable changes to INSIGHT Analytics Workbench are documented here.
 
 ---
 

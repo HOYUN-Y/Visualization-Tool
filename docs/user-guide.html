@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NØDE Analytics Workbench — 사용자 가이드</title>
+<title>INSIGHT Analytics Workbench — 사용자 가이드</title>
 <style>
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -360,7 +360,7 @@ svg[aria-hidden="true"] { display: none; }
 
 <!-- ── Topbar ── -->
 <div class="topbar">
-  <div class="topbar-brand">NØ<span>DE</span> Analytics</div>
+  <div class="topbar-brand">INSIGHT Analytics</div>
   <div class="topbar-sep"></div>
   <div class="topbar-sub">사용자 가이드</div>
   <div class="topbar-sep"></div>
@@ -374,7 +374,7 @@ svg[aria-hidden="true"] { display: none; }
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-section">
     <div class="sidebar-heading">시작하기</div>
-    <a href="#overview">NØDE란 무엇인가</a>
+    <a href="#overview">INSIGHT란 무엇인가</a>
     <a href="#philosophy">설계 철학</a>
     <a href="#quickstart">빠른 시작</a>
     <a href="#interface">화면 구성</a>
@@ -423,7 +423,7 @@ svg[aria-hidden="true"] { display: none; }
 
 <!-- Hero -->
 <div class="hero">
-  <h1><span>NØ</span>DE Analytics Workbench</h1>
+  <h1>INSIGHT Analytics Workbench</h1>
   <p>로컬-퍼스트 데이터 분석 플랫폼. 설치 없이 브라우저에서 바로 실행되는 통합 비즈니스 인텔리전스 도구.</p>
   <div class="hero-meta">
     <div class="hero-chip accent">No Install</div>
@@ -437,9 +437,9 @@ svg[aria-hidden="true"] { display: none; }
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="overview">
-  <h2>NØDE란 무엇인가</h2>
+  <h2>INSIGHT란 무엇인가</h2>
   <p>
-    <strong>NØDE Analytics Workbench</strong>는 Tableau의 시각화 능력, JMP의 통계 분석 깊이, ChatGPT 스타일의 자연어 인터페이스를 하나의 브라우저 앱으로 통합한 <strong>로컬-퍼스트 데이터 분석 도구</strong>입니다.
+    <strong>INSIGHT Analytics Workbench</strong>는 Tableau의 시각화 능력, JMP의 통계 분석 깊이, ChatGPT 스타일의 자연어 인터페이스를 하나의 브라우저 앱으로 통합한 <strong>로컬-퍼스트 데이터 분석 도구</strong>입니다.
   </p>
   <p>
     Python, R, Excel 없이도 — 심지어 인터넷 없이도 — 데이터를 불러오고, 정제하고, 시각화하고, 통계 검정을 수행하고, 머신러닝 모델을 훈련할 수 있습니다.
@@ -1475,7 +1475,7 @@ LIMIT 5</pre>
 
   <hr/>
   <div style="text-align:center; color:var(--tx-faint); font-size:11px; padding:20px 0 0;">
-    NØDE Analytics Workbench 사용자 가이드 · v2.1 · 2026-06-06<br/>
+    INSIGHT Analytics Workbench 사용자 가이드 · v2.1 · 2026-06-06<br/>
     오프라인에서도 동작하는 단일 HTML 파일.
   </div>
 </section>
@@ -1501,13 +1501,13 @@ function toggleTheme() {
   var next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
   syncThemeIcon(next);
-  try { localStorage.setItem('node-ug-theme', next); } catch(e){}
+  try { localStorage.setItem('insight-ug-theme', next); } catch(e){}
 }
 
 // ── Restore saved theme ──
 (function() {
   try {
-    var saved = localStorage.getItem('node-ug-theme');
+    var saved = localStorage.getItem('insight-ug-theme');
     if (saved) {
       document.documentElement.setAttribute('data-theme', saved);
       syncThemeIcon(saved);

@@ -1,4 +1,4 @@
-# Insight Analytics Workbench — Project Handoff
+# INSIGHT Analytics Workbench — Project Handoff
 
 > Local-first Business Intelligence & data-analytics workbench (Tableau / Power BI / JMP-style),
 > built as a **single-page, no-build** web app. Dark-default + light themes, English UI,

@@ -1,4 +1,4 @@
-# NØDE Analytics Workbench
+# INSIGHT Analytics Workbench
 
 **Local-First Business Intelligence & Data Analytics Platform**
 

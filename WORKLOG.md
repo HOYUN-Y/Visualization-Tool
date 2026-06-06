@@ -1,4 +1,4 @@
-# NØDE Analytics Workbench — Work Log
+# INSIGHT Analytics Workbench — Work Log
 
 > 이 파일은 세션 간 작업 연속성을 위한 로그입니다.  
 > 변경사항 발생 시 자동으로 업데이트 & git push 됩니다.  
