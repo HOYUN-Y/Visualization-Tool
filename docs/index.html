@@ -410,6 +410,21 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
         </div>
       </div>
 
+      <h3>브랜드 아이덴티티</h3>
+      <p>로고는 <strong>IN</strong> + <strong style="color:var(--accent)">SIGHT</strong> + <span style="color:var(--tx-lo);font-size:.9em">Analytics</span> 세 요소로 구성됩니다.</p>
+      <div class="table-wrap" style="margin-top:12px;margin-bottom:20px">
+        <table>
+          <thead><tr><th>구성</th><th>색상</th><th>역할</th></tr></thead>
+          <tbody>
+            <tr><td><code>IN</code></td><td>기본 텍스트 (<code>--tx-hi</code>)</td><td>조용히 시작하는 전치사</td></tr>
+            <tr><td><code style="color:var(--accent);font-weight:700">SIGHT</code></td><td><code>#e8611a</code> — <code>--accent</code></td><td>브랜드 핵심 — 시각·통찰·발견. UI accent 색과 동일</td></tr>
+            <tr><td><code>Analytics</code></td><td><code>--tx-lo</code> 흐린 회색, 소자</td><td>기능 설명, 배경으로 물러남</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="color:var(--tx-mid);font-size:13px;margin-bottom:8px">SVG 로고 파일: <code>docs/logo.svg</code> — README 및 외부 문서 embed용. 라이트 배경 기준으로 제작(IN은 <code>#1a1a2e</code> 다크 네이비, SIGHT는 <code>#e8611a</code> 주황).</p>
+      <p style="color:var(--tx-mid);font-size:13px">코드에서 SIGHT 강조는 <code>.sight { color: var(--accent); }</code> 클래스로 처리하며, Analytics는 <code>.analytics { font-size: …; color: var(--tx-lo); }</code> 로 통일합니다.</p>
+
       <h3>기술 스택</h3>
       <div class="table-wrap">
         <table>
