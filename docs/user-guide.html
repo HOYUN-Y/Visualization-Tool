@@ -190,7 +190,9 @@ section[id] { scroll-margin-top: 72px; }
 .alert {
   padding: 12px 16px; border-radius: var(--r-md); margin: 14px 0;
   border-left: 3px solid; font-size: 13px; line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 8px;
 }
+.alert > svg { margin-top: 2px; }
 .alert.tip  { background: rgba(79,173,136,.08); border-color: var(--pos); color: var(--pos); }
 .alert.info { background: rgba(90,138,219,.08); border-color: var(--dim); color: #7aadff; }
 .alert.warn { background: rgba(212,160,74,.08); border-color: var(--warn); color: var(--warn); }
@@ -289,6 +291,26 @@ kbd {
 }
 .back-top:hover { opacity: 1; background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
 
+/* ── SVG Icons ── */
+.icon {
+  display: inline-block; vertical-align: middle; flex-shrink: 0;
+  width: 16px; height: 16px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+}
+.icon-lg { width: 22px; height: 22px; stroke-width: 1.4; }
+.icon-sm { width: 13px; height: 13px; stroke-width: 1.7; }
+.mt-icon { display: flex; align-items: center; justify-content: flex-start; margin-bottom: 8px; color: var(--accent); }
+.icon-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; vertical-align: middle; margin-right: 4px; }
+.icon-dot.red   { background: #d05050; }
+.icon-dot.yellow{ background: #d4a04a; }
+.icon-dot.orange{ background: #c86b30; }
+.icon-dot.blue  { background: #5a8adb; }
+.icon-dot.green { background: #4fad88; }
+.chk { color: var(--pos); font-weight: 700; }
+.xmark { color: var(--neg); font-weight: 700; }
+svg[aria-hidden="true"] { display: none; }
+
 /* ── Responsive ── */
 @media (max-width: 860px) {
   .sidebar { display: none; }
@@ -303,6 +325,39 @@ kbd {
 </head>
 <body>
 
+<!-- ── SVG Icon Sprite ── -->
+<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-data" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4.03 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/></symbol>
+  <symbol id="i-clean" viewBox="0 0 24 24"><path d="M12 3 13.8 8.2 19 10 13.8 11.8 12 17 10.2 11.8 5 10 10.2 8.2Z"/><path d="M19 3 19.9 5.6 22 6.5 19.9 7.4 19 10 18.1 7.4 16 6.5 18.1 5.6Z"/><path d="M5 17 5.6 19 7 19.7 5.6 20.4 5 22 4.4 20.4 3 19.7 4.4 19Z"/></symbol>
+  <symbol id="i-sql" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="i-stats" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+  <symbol id="i-ml" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="15" x2="22" y2="15"/></symbol>
+  <symbol id="i-insight" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  <symbol id="i-tweaks" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="8" cy="6" r="2" fill="var(--bg1)"/><circle cx="16" cy="12" r="2" fill="var(--bg1)"/><circle cx="10" cy="18" r="2" fill="var(--bg1)"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="i-tableau" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></symbol>
+  <symbol id="i-sigma" viewBox="0 0 24 24"><path d="M18 4H6l6 8-6 8h12"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><path d="M12 2v4"/><path d="m16.24 7.76 2.83-2.83"/><path d="M18 12h4"/><path d="m16.24 16.24 2.83 2.83"/><path d="M12 18v4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M2 12h4"/><path d="m4.93 4.93 2.83 2.83"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="m10.29 3.86-8.08 14A1 1 0 0 0 3.08 19.5h17.83a1 1 0 0 0 .87-1.5l-8.09-14a1 1 0 0 0-1.7 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></symbol>
+  <symbol id="i-missing" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></symbol>
+  <symbol id="i-duplicate" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+  <symbol id="i-trend-down" viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></symbol>
+  <symbol id="i-cluster" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="3" cy="6" r="2"/><circle cx="21" cy="6" r="2"/><circle cx="3" cy="18" r="2"/><circle cx="21" cy="18" r="2"/><line x1="5" y1="6" x2="9" y2="11"/><line x1="19" y1="6" x2="15" y2="11"/><line x1="5" y1="18" x2="9" y2="13"/><line x1="19" y1="18" x2="15" y2="13"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+</svg>
+
 <!-- ── Topbar ── -->
 <div class="topbar">
   <div class="topbar-brand">NØ<span>DE</span> Analytics</div>
@@ -311,7 +366,7 @@ kbd {
   <div class="topbar-sep"></div>
   <a class="dev-link" href="index.html">개발자 문서 →</a>
   <div class="topbar-badge">v2.1</div>
-  <button class="theme-btn" id="themeBtn" title="다크/라이트 전환" onclick="toggleTheme()">☀️</button>
+  <button class="theme-btn" id="themeBtn" title="다크/라이트 전환" onclick="toggleTheme()"><svg class="icon" id="themeSun"><use href="#i-sun"></use></svg><svg class="icon" id="themeMoon" style="display:none"><use href="#i-moon"></use></svg></button>
 </div>
 
 <div class="layout">
@@ -327,27 +382,27 @@ kbd {
   <div class="sidebar-section">
     <div class="sidebar-heading">데이터 준비</div>
     <a href="#datasets">샘플 데이터셋</a>
-    <a href="#mode-data">📊 Data — 데이터 탐색</a>
-    <a href="#mode-clean">🧹 Clean — 데이터 정제</a>
-    <a href="#mode-sql">🔍 SQL — 쿼리</a>
+    <a href="#mode-data"><svg class="icon icon-sm"><use href="#i-data"></use></svg> Data — 데이터 탐색</a>
+    <a href="#mode-clean"><svg class="icon icon-sm"><use href="#i-clean"></use></svg> Clean — 데이터 정제</a>
+    <a href="#mode-sql"><svg class="icon icon-sm"><use href="#i-sql"></use></svg> SQL — 쿼리</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-heading">시각화</div>
-    <a href="#mode-chart">📈 Chart — 차트 빌더</a>
-    <a href="#mode-map">🗺️ Map — 지도</a>
-    <a href="#mode-dashboard">📋 Dashboard — 대시보드</a>
+    <a href="#mode-chart"><svg class="icon icon-sm"><use href="#i-chart"></use></svg> Chart — 차트 빌더</a>
+    <a href="#mode-map"><svg class="icon icon-sm"><use href="#i-map"></use></svg> Map — 지도</a>
+    <a href="#mode-dashboard"><svg class="icon icon-sm"><use href="#i-dashboard"></use></svg> Dashboard — 대시보드</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-heading">분석</div>
-    <a href="#mode-stats">📐 Stats — 통계 분석</a>
+    <a href="#mode-stats"><svg class="icon icon-sm"><use href="#i-stats"></use></svg> Stats — 통계 분석</a>
     <a href="#stats-dist" class="indent">Distribution 탭</a>
     <a href="#stats-builder" class="indent">Analysis Builder 탭</a>
-    <a href="#mode-ml">🤖 ML — 머신러닝</a>
-    <a href="#mode-ai">💡 Ask Insight</a>
+    <a href="#mode-ml"><svg class="icon icon-sm"><use href="#i-ml"></use></svg> ML — 머신러닝</a>
+    <a href="#mode-ai"><svg class="icon icon-sm"><use href="#i-insight"></use></svg> Ask Insight</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-heading">커스터마이징</div>
-    <a href="#tweaks">⚙️ Tweaks 패널</a>
+    <a href="#tweaks"><svg class="icon icon-sm"><use href="#i-tweaks"></use></svg> Tweaks 패널</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-heading">활용 예시</div>
@@ -392,42 +447,42 @@ kbd {
 
   <div class="mode-grid">
     <div class="mode-tile">
-      <div class="mt-icon">📊</div>
+      <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-data"></use></svg></div>
       <div class="mt-name">Data</div>
       <div class="mt-desc">데이터셋 탐색, 컬럼 프로파일링, 분포 확인</div>
     </div>
     <div class="mode-tile">
-      <div class="mt-icon">🧹</div>
+      <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-clean"></use></svg></div>
       <div class="mt-name">Clean</div>
       <div class="mt-desc">결측치/중복/이상치 제거, Undo/Redo 파이프라인</div>
     </div>
     <div class="mode-tile">
-      <div class="mt-icon">🔍</div>
+      <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-sql"></use></svg></div>
       <div class="mt-name">SQL</div>
       <div class="mt-desc">로컬 SQL 쿼리 엔진, 결과를 새 데이터셋으로 저장</div>
     </div>
     <div class="mode-tile">
-      <div class="mt-icon">📈</div>
+      <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-chart"></use></svg></div>
       <div class="mt-name">Chart</div>
       <div class="mt-desc">드래그&드롭 차트 빌더, 21종 차트 타입</div>
     </div>
     <div class="mode-tile">
-      <div class="mt-icon">🗺️</div>
+      <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-map"></use></svg></div>
       <div class="mt-name">Map</div>
       <div class="mt-desc">서울 25구 단계구분도 + 버블맵</div>
     </div>
     <div class="mode-tile">
-      <div class="mt-icon">📋</div>
+      <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-dashboard"></use></svg></div>
       <div class="mt-name">Dashboard</div>
       <div class="mt-desc">드래그 위젯 대시보드, Cross Filtering</div>
     </div>
     <div class="mode-tile">
-      <div class="mt-icon">📐</div>
+      <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-stats"></use></svg></div>
       <div class="mt-name">Stats</div>
       <div class="mt-desc">Distribution, 상관분석, 회귀, ANOVA, Analysis Builder</div>
     </div>
     <div class="mode-tile">
-      <div class="mt-icon">🤖</div>
+      <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-ml"></use></svg></div>
       <div class="mt-name">ML</div>
       <div class="mt-desc">OLS 회귀, k-NN 분류, KMeans 군집화</div>
     </div>
@@ -439,27 +494,27 @@ kbd {
   <h2>설계 철학</h2>
   <div class="cards">
     <div class="card accent">
-      <div class="card-title">🚀 Zero Friction</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-rocket"></use></svg>Zero Friction</div>
       <div class="card-body">설치, npm, 빌드 없음. <code>python3 -m http.server</code> 한 줄로 즉시 실행. 데이터 분석 시작까지 30초.</div>
     </div>
     <div class="card">
-      <div class="card-title">🔒 데이터는 내 컴퓨터에</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-shield"></use></svg>데이터는 내 컴퓨터에</div>
       <div class="card-body">모든 연산이 브라우저 내부에서 실행됩니다. 데이터가 외부 서버로 전송되지 않습니다.</div>
     </div>
     <div class="card">
-      <div class="card-title">📊 Tableau 감성</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-tableau"></use></svg>Tableau 감성</div>
       <div class="card-body">Dimension/Measure 셸프 드래그로 차트를 즉시 구성. 코드 없이 시각화.</div>
     </div>
     <div class="card">
-      <div class="card-title">📐 JMP 깊이</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-sigma"></use></svg>JMP 깊이</div>
       <div class="card-body">분포 분석, 왜도/첨도, 자동 분석 유형 선택, 결과 자동 해석 패널.</div>
     </div>
     <div class="card">
-      <div class="card-title">💡 인사이트 자동화</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-auto"></use></svg>인사이트 자동화</div>
       <div class="card-body">Insight Engine이 분석 결과를 자동 해석하고 다음 분석 방향을 제안합니다.</div>
     </div>
     <div class="card">
-      <div class="card-title">🎨 고밀도 UI</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-palette"></use></svg>고밀도 UI</div>
       <div class="card-body">다크/라이트 테마, 다양한 레이아웃 옵션. 작은 화면에서도 많은 정보를 표시.</div>
     </div>
   </div>
@@ -505,10 +560,10 @@ kbd {
   </div>
 
   <div class="alert tip">
-    💡 <strong>왜 HTTP 서버가 필요한가?</strong> 브라우저 보안 정책(CORS)으로 인해 <code>file://</code>로 직접 열면 JSX 파일을 불러올 수 없습니다. 반드시 HTTP 서버를 통해 접근해야 합니다.
+    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg><strong>왜 HTTP 서버가 필요한가?</strong> 브라우저 보안 정책(CORS)으로 인해 <code>file://</code>로 직접 열면 JSX 파일을 불러올 수 없습니다. 반드시 HTTP 서버를 통해 접근해야 합니다.
   </div>
   <div class="alert warn">
-    ⚠️ 포트 8742가 이미 사용 중이라면 <code>kill $(lsof -ti :8742)</code> 후 재실행하세요.
+    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-warn"></use></svg>포트 8742가 이미 사용 중이라면 <code>kill $(lsof -ti :8742)</code> 후 재실행하세요.
   </div>
 
   <h3>첫 화면 이해하기</h3>
@@ -548,9 +603,9 @@ kbd {
     <table>
       <thead><tr><th>버튼</th><th>기능</th></tr></thead>
       <tbody>
-        <tr><td>💡 <strong>Ask Insight</strong></td><td>AI 분석 드로어 열기. 자연어 질문, 자동 인사이트, 마지막 분석 결과 확인.</td></tr>
-        <tr><td>⊟ <strong>슬라이더 아이콘</strong></td><td>Tweaks 패널 열기. 레이아웃/테마/밀도/액센트 컬러 변경.</td></tr>
-        <tr><td>🌙/☀️ <strong>테마 토글</strong></td><td>다크 ↔ 라이트 모드 전환.</td></tr>
+        <tr><td><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-insight"></use></svg><strong>Ask Insight</strong></td><td>AI 분석 드로어 열기. 자연어 질문, 자동 인사이트, 마지막 분석 결과 확인.</td></tr>
+        <tr><td><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-tweaks"></use></svg><strong>슬라이더 아이콘</strong></td><td>Tweaks 패널 열기. 레이아웃/테마/밀도/액센트 컬러 변경.</td></tr>
+        <tr><td><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-sun"></use></svg><strong>테마 토글</strong></td><td>다크 ↔ 라이트 모드 전환.</td></tr>
       </tbody>
     </table>
   </div>
@@ -594,13 +649,13 @@ kbd {
   </div>
 
   <div class="alert info">
-    💡 SQL 모드에서 <strong>Save as Dataset</strong>으로 쿼리 결과를 새 데이터셋으로 저장할 수 있습니다. 저장된 데이터셋은 다른 모든 모드에서 즉시 사용 가능합니다.
+    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg>SQL 모드에서 <strong>Save as Dataset</strong>으로 쿼리 결과를 새 데이터셋으로 저장할 수 있습니다. 저장된 데이터셋은 다른 모든 모드에서 즉시 사용 가능합니다.
   </div>
 </section>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-data">
-  <h2>📊 Data 모드 — 데이터 탐색</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-data"></use></svg>Data 모드 — 데이터 탐색</h2>
   <p>데이터를 처음 받았을 때 가장 먼저 방문하는 모드입니다. 데이터 구조, 값의 분포, 품질 문제를 빠르게 파악합니다.</p>
 
   <h3>중앙 탭</h3>
@@ -621,7 +676,7 @@ kbd {
     <li><strong>숫자 컬럼 필터</strong>: 범위(min~max) 입력</li>
     <li><strong>범주형 컬럼 필터</strong>: 값 목록에서 다중 선택</li>
     <li><strong>검색창</strong>: 모든 컬럼에서 텍스트 검색</li>
-    <li><strong>컬럼 아이콘 헤더</strong>: 🔵 = Dimension(범주형), 🟢 = Measure(수치형)</li>
+    <li><strong>컬럼 아이콘 헤더</strong>: <span class="icon-dot blue" style="display:inline-block"></span> Dimension(범주형), <span class="icon-dot green" style="display:inline-block"></span> Measure(수치형)</li>
   </ul>
 
   <h3>컬럼 상세 프로파일 (우측 패널)</h3>
@@ -635,7 +690,7 @@ kbd {
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-clean">
-  <h2>🧹 Clean 모드 — 데이터 정제</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-clean"></use></svg>Clean 모드 — 데이터 정제</h2>
   <p>실제 데이터에는 항상 오류가 있습니다. Clean 모드는 원본 데이터를 보존하면서 정제 작업을 단계별로 쌓아가는 <strong>비파괴적 파이프라인</strong>을 제공합니다.</p>
 
   <h3>이슈 바 (상단)</h3>
@@ -644,9 +699,9 @@ kbd {
     <table>
       <thead><tr><th>이슈 유형</th><th>감지 방법</th><th>원클릭 해결</th></tr></thead>
       <tbody>
-        <tr><td>🔴 결측치 (Missing)</td><td>null / 빈 값 셀 수</td><td>평균값 채우기 / 해당 행 제거</td></tr>
-        <tr><td>🟡 중복 (Duplicates)</td><td>완전히 동일한 행 수</td><td>중복 행 제거</td></tr>
-        <tr><td>🟠 이상치 (Outliers)</td><td>IQR × 1.5 벗어나는 값</td><td>이상치 행 제거</td></tr>
+        <tr><td><svg class="icon icon-sm" style="margin-right:5px;color:#d05050"><use href="#i-missing"></use></svg>결측치 (Missing)</td><td>null / 빈 값 셀 수</td><td>평균값 채우기 / 해당 행 제거</td></tr>
+        <tr><td><svg class="icon icon-sm" style="margin-right:5px;color:#d4a04a"><use href="#i-duplicate"></use></svg>중복 (Duplicates)</td><td>완전히 동일한 행 수</td><td>중복 행 제거</td></tr>
+        <tr><td><svg class="icon icon-sm" style="margin-right:5px;color:#c86b30"><use href="#i-warn"></use></svg>이상치 (Outliers)</td><td>IQR × 1.5 벗어나는 값</td><td>이상치 행 제거</td></tr>
       </tbody>
     </table>
   </div>
@@ -669,13 +724,13 @@ kbd {
   </ul>
 
   <div class="alert tip">
-    💡 정제 결과는 모든 다른 모드(Chart, Stats, ML 등)에 자동 반영됩니다. Clean 모드에서 이상치를 제거하면 Stats 모드의 분석도 정제된 데이터를 사용합니다.
+    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg>정제 결과는 모든 다른 모드(Chart, Stats, ML 등)에 자동 반영됩니다. Clean 모드에서 이상치를 제거하면 Stats 모드의 분석도 정제된 데이터를 사용합니다.
   </div>
 </section>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-sql">
-  <h2>🔍 SQL 모드 — 쿼리</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-sql"></use></svg>SQL 모드 — 쿼리</h2>
   <p>복잡한 집계나 필터링이 필요할 때 SQL을 사용합니다. 결과를 새 데이터셋으로 저장해 다른 모드에서 활용할 수 있습니다.</p>
 
   <h3>지원 문법</h3>
@@ -690,14 +745,14 @@ LIMIT 10</pre>
     <table>
       <thead><tr><th>기능</th><th>지원</th><th>예시</th></tr></thead>
       <tbody>
-        <tr><td>기본 SELECT</td><td>✅</td><td><code>SELECT col1, col2 FROM dataset</code></td></tr>
-        <tr><td>집계 함수</td><td>✅</td><td><code>SUM, AVG, COUNT, COUNT(*), MIN, MAX, MEDIAN</code></td></tr>
-        <tr><td>WHERE 필터</td><td>✅</td><td><code>WHERE price > 50000 AND district = '강남구'</code></td></tr>
-        <tr><td>LIKE 패턴</td><td>✅</td><td><code>WHERE complex_name LIKE '%힐스테이트%'</code></td></tr>
-        <tr><td>GROUP BY</td><td>✅</td><td><code>GROUP BY district, building_type</code></td></tr>
-        <tr><td>ORDER BY</td><td>✅</td><td><code>ORDER BY avg_price DESC</code></td></tr>
-        <tr><td>LIMIT</td><td>✅</td><td><code>LIMIT 20</code></td></tr>
-        <tr><td>JOIN / 서브쿼리</td><td>❌</td><td>미지원 (예정)</td></tr>
+        <tr><td>기본 SELECT</td><td><svg class="icon icon-sm chk"><use href="#i-check"></use></svg></td><td><code>SELECT col1, col2 FROM dataset</code></td></tr>
+        <tr><td>집계 함수</td><td><svg class="icon icon-sm chk"><use href="#i-check"></use></svg></td><td><code>SUM, AVG, COUNT, COUNT(*), MIN, MAX, MEDIAN</code></td></tr>
+        <tr><td>WHERE 필터</td><td><svg class="icon icon-sm chk"><use href="#i-check"></use></svg></td><td><code>WHERE price > 50000 AND district = '강남구'</code></td></tr>
+        <tr><td>LIKE 패턴</td><td><svg class="icon icon-sm chk"><use href="#i-check"></use></svg></td><td><code>WHERE complex_name LIKE '%힐스테이트%'</code></td></tr>
+        <tr><td>GROUP BY</td><td><svg class="icon icon-sm chk"><use href="#i-check"></use></svg></td><td><code>GROUP BY district, building_type</code></td></tr>
+        <tr><td>ORDER BY</td><td><svg class="icon icon-sm chk"><use href="#i-check"></use></svg></td><td><code>ORDER BY avg_price DESC</code></td></tr>
+        <tr><td>LIMIT</td><td><svg class="icon icon-sm chk"><use href="#i-check"></use></svg></td><td><code>LIMIT 20</code></td></tr>
+        <tr><td>JOIN / 서브쿼리</td><td><svg class="icon icon-sm xmark"><use href="#i-x"></use></svg></td><td>미지원 (예정)</td></tr>
       </tbody>
     </table>
   </div>
@@ -723,7 +778,7 @@ LIMIT 5</pre>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-chart">
-  <h2>📈 Chart 모드 — 차트 빌더</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-chart"></use></svg>Chart 모드 — 차트 빌더</h2>
   <p>Tableau 스타일의 드래그&드롭 인터페이스로 코드 없이 차트를 구성합니다.</p>
 
   <h3>셸프(Shelf) 사용법</h3>
@@ -796,7 +851,7 @@ LIMIT 5</pre>
   </div>
 
   <div class="alert info">
-    💡 Financial 차트는 <code>KOSPI_Stock</code> 데이터셋을 선택할 때만 활성화됩니다. <code>open, high, low, close</code> 컬럼이 모두 필요합니다.
+    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg>Financial 차트는 <code>KOSPI_Stock</code> 데이터셋을 선택할 때만 활성화됩니다. <code>open, high, low, close</code> 컬럼이 모두 필요합니다.
   </div>
 
   <h3>정렬 & 상위 N개</h3>
@@ -808,7 +863,7 @@ LIMIT 5</pre>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-map">
-  <h2>🗺️ Map 모드 — 지도</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-map"></use></svg>Map 모드 — 지도</h2>
   <p>서울 25개 구의 데이터를 지리적으로 시각화합니다. <code>district_stats</code> 데이터셋을 자동으로 사용합니다.</p>
 
   <h3>지도 타입</h3>
@@ -836,7 +891,7 @@ LIMIT 5</pre>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-dashboard">
-  <h2>📋 Dashboard 모드 — 대시보드</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-dashboard"></use></svg>Dashboard 모드 — 대시보드</h2>
   <p>여러 차트와 지표를 하나의 화면에 배치하여 종합 현황판을 구성합니다.</p>
 
   <h3>위젯 종류</h3>
@@ -872,17 +927,17 @@ LIMIT 5</pre>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-stats">
-  <h2>📐 Stats 모드 — 통계 분석</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-stats"></use></svg>Stats 모드 — 통계 분석</h2>
   <p>JMP 수준의 정밀 통계 분석을 제공합니다. 8개 탭으로 구성되며, 모든 결과에는 <strong>자동 해석 패널</strong>과 <strong>다음 분석 제안</strong>이 표시됩니다.</p>
 
   <h3>공통 결과 패널</h3>
   <div class="cards">
     <div class="card accent">
-      <div class="card-title">💬 Interpretation Panel (파란색)</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-message"></use></svg>Interpretation Panel (파란색)</div>
       <div class="card-body">분석 결과를 비전문가도 이해할 수 있는 언어로 자동 해석합니다. Insight Engine이 생성합니다.</div>
     </div>
     <div class="card ok">
-      <div class="card-title">→ Next Step Panel (초록색)</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-arrow-right"></use></svg>Next Step Panel (초록색)</div>
       <div class="card-body">현재 분석 결과를 바탕으로 다음에 수행하면 좋을 분석을 제안합니다.</div>
     </div>
   </div>
@@ -940,7 +995,7 @@ LIMIT 5</pre>
     </div>
 
     <div class="alert tip">
-      💡 <strong>왜도(Skewness) 해석 가이드</strong><br/>
+      <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg><strong>왜도(Skewness) 해석 가이드</strong><br/>
       0에 가까울수록 대칭 분포. <strong>양수(+)</strong>: 오른쪽 꼬리 (고가 거래 소수 존재). <strong>음수(-)</strong>: 왼쪽 꼬리. |1.5| 초과 시 변환(log, sqrt) 검토 권장.
     </div>
   </section>
@@ -1029,28 +1084,28 @@ LIMIT 5</pre>
     </div>
 
     <div class="alert tip">
-      💡 Analysis Builder는 통계 방법을 모를 때 특히 유용합니다. "price_manwon를 예측하고 싶은데 어떤 방법을 써야 하지?"라는 상황에서 컬럼만 선택하면 됩니다.
+      <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg>Analysis Builder는 통계 방법을 모를 때 특히 유용합니다. "price_manwon를 예측하고 싶은데 어떤 방법을 써야 하지?"라는 상황에서 컬럼만 선택하면 됩니다.
     </div>
   </section>
 </section>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-ml">
-  <h2>🤖 ML 모드 — 머신러닝</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-ml"></use></svg>ML 모드 — 머신러닝</h2>
   <p>Python이나 scikit-learn 없이 브라우저에서 직접 머신러닝 모델을 훈련하고 결과를 해석합니다.</p>
 
   <h3>Task 선택</h3>
   <div class="cards">
     <div class="card">
-      <div class="card-title">📉 Regression (회귀)</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-trend-down"></use></svg>Regression (회귀)</div>
       <div class="card-body">수치 값을 예측. 예: 아파트 가격 예측. OLS 정규방정식 기반.</div>
     </div>
     <div class="card">
-      <div class="card-title">🏷️ Classification (분류)</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-tag"></use></svg>Classification (분류)</div>
       <div class="card-body">범주를 예측. 예: 건물 유형 분류. k-NN 알고리즘, 표준화 자동 적용.</div>
     </div>
     <div class="card">
-      <div class="card-title">🔵 Clustering (군집화)</div>
+      <div class="card-title"><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-cluster"></use></svg>Clustering (군집화)</div>
       <div class="card-body">데이터를 자동으로 그룹화. KMeans 알고리즘. K값 직접 설정.</div>
     </div>
   </div>
@@ -1130,13 +1185,13 @@ LIMIT 5</pre>
   <p>우측 하단의 <strong>Model History</strong> 테이블에서 이번 세션에 훈련한 모든 모델을 비교할 수 있습니다. Task, Target, 성능 지표(Score)를 한 눈에 비교합니다. 최근 10개를 유지합니다.</p>
 
   <div class="alert info">
-    💡 모델 훈련 완료 시 <strong>Ask Insight 드로어</strong>의 "Last Analysis Result" 섹션에 결과가 자동으로 연동됩니다. "Summarize last analysis" 칩을 클릭해 요약을 확인하세요.
+    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg>모델 훈련 완료 시 <strong>Ask Insight 드로어</strong>의 "Last Analysis Result" 섹션에 결과가 자동으로 연동됩니다. "Summarize last analysis" 칩을 클릭해 요약을 확인하세요.
   </div>
 </section>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-ai">
-  <h2>💡 Ask Insight — AI 분석 드로어</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-insight"></use></svg>Ask Insight — AI 분석 드로어</h2>
   <p>TopBar의 <strong>Ask Insight</strong> 버튼(또는 단축키)으로 열리는 슬라이드 패널입니다. 자연어로 질문하거나 자동 인사이트를 확인합니다.</p>
 
   <h3>자동 표시 섹션</h3>
@@ -1195,7 +1250,7 @@ LIMIT 5</pre>
 
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="tweaks">
-  <h2>⚙️ Tweaks 패널 — 커스터마이징</h2>
+  <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-tweaks"></use></svg>Tweaks 패널 — 커스터마이징</h2>
   <p>TopBar의 슬라이더 아이콘을 클릭해 열리는 설정 패널입니다. 앱의 외관과 레이아웃을 즉시 변경할 수 있습니다.</p>
 
   <div class="table-wrap">
@@ -1212,7 +1267,7 @@ LIMIT 5</pre>
     </table>
   </div>
   <div class="alert info">
-    💡 Tweaks 설정은 현재 세션에만 적용됩니다. 새로고침하면 기본값으로 돌아갑니다.
+    <svg class="icon icon-sm" style="margin-right:6px;flex-shrink:0"><use href="#i-info"></use></svg>Tweaks 설정은 현재 세션에만 적용됩니다. 새로고침하면 기본값으로 돌아갑니다.
   </div>
 </section>
 
@@ -1433,12 +1488,19 @@ LIMIT 5</pre>
 
 <script>
 // ── Theme toggle ──
+function syncThemeIcon(theme) {
+  var sun = document.getElementById('themeSun');
+  var moon = document.getElementById('themeMoon');
+  if (!sun || !moon) return;
+  if (theme === 'dark') { sun.style.display=''; moon.style.display='none'; }
+  else { sun.style.display='none'; moon.style.display=''; }
+}
 function toggleTheme() {
   var html = document.documentElement;
   var current = html.getAttribute('data-theme') || 'dark';
   var next = current === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+  syncThemeIcon(next);
   try { localStorage.setItem('node-ug-theme', next); } catch(e){}
 }
 
@@ -1448,7 +1510,7 @@ function toggleTheme() {
     var saved = localStorage.getItem('node-ug-theme');
     if (saved) {
       document.documentElement.setAttribute('data-theme', saved);
-      document.getElementById('themeBtn').textContent = saved === 'dark' ? '☀️' : '🌙';
+      syncThemeIcon(saved);
     }
   } catch(e) {}
 })();
