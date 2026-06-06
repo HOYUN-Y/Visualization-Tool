@@ -152,7 +152,7 @@
       <div className="topbar">
         <div className="brand"><span className="logomark"><Icon name="visualize" size={16} /></span></div>
         <div className="wb-name">
-          <span className="k">Insight · Workbench</span>
+          <span className="k logo-text"><span className="logo-in">in</span><span className="logo-sight">sight</span><span className="logo-an"> Analytics</span></span>
           <span className="v">Seoul Real-Estate Analysis</span>
         </div>
         <div className="topbar-sep" />
