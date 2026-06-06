@@ -81,9 +81,11 @@ open http://localhost:8742
 .
 ├── index.html          # 메인 진입점 (스크립트 로드 순서 중요)
 ├── HANDOFF.md          # 개발 인수인계 문서 (전체 아키텍처 설명)
+├── CHANGELOG.md        # 버전별 변경사항 기록
 ├── WORKLOG.md          # 세션별 작업 로그
 ├── css/                # 13개 CSS 파일 (토큰 → 기능별 분리)
-└── js/                 # 19개 JS/JSX 모듈 (window.* 전역 공유)
+├── js/                 # 20개 JS/JSX 모듈 (window.* 전역 공유)
+└── docs/               # 개발자 매뉴얼 (자기 완결형 HTML)
 ```
 
 ---
