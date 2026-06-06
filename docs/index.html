@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NØDE Analytics Workbench — Developer Documentation</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg0: #0e0e10; --bg1: #141418; --bg2: #1c1c22; --bg3: #242430;
+  --line: rgba(255,255,255,.09); --line2: rgba(255,255,255,.05);
+  --tx-hi: #eeeef2; --tx-mid: #9999b0; --tx-lo: #5c5c78; --tx-faint: #3a3a50;
+  --accent: #e8611a; --accent-soft: rgba(232,97,26,.18); --accent-line: rgba(232,97,26,.5);
+  --dim: #5a8adb; --meas: #4fad88;
+  --pos: #4fad88; --neg: #d05050; --warn: #d4a04a;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 10px;
+  --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Cascadia Code", "Fira Code", "Source Code Pro", "Consolas", monospace;
+  --sidebar-w: 264px;
+  --topbar-h: 52px;
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg0); color: var(--tx-mid);
+  font-family: var(--font); font-size: 14px; line-height: 1.65;
+  display: flex; flex-direction: column; min-height: 100vh;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--tx-hi); text-decoration: underline; }
+code {
+  font-family: var(--mono); font-size: 12.5px;
+  background: var(--bg3); color: #c6c6e8;
+  padding: 1px 6px; border-radius: 3px;
+  border: 1px solid var(--line);
+}
+pre {
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 18px 20px; overflow-x: auto;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+  color: #c6c6e8;
+}
+pre code { background: none; border: none; padding: 0; }
+h1, h2, h3, h4, h5 { color: var(--tx-hi); font-weight: 600; line-height: 1.3; }
+h1 { font-size: 28px; }
+h2 { font-size: 20px; margin: 48px 0 16px; padding-top: 48px; border-top: 1px solid var(--line2); }
+h3 { font-size: 15px; margin: 28px 0 10px; color: var(--accent); }
+h4 { font-size: 13px; margin: 20px 0 8px; color: var(--tx-hi); }
+p { margin-bottom: 14px; }
+ul, ol { padding-left: 22px; margin-bottom: 14px; }
+li { margin-bottom: 5px; }
+strong { color: var(--tx-hi); font-weight: 600; }
+em { color: var(--warn); font-style: normal; font-size: 12px; font-weight: 500; }
+hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
+
+/* ── Topbar ───────────────────────────────────────────────── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--topbar-h);
+  background: rgba(14,14,16,.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px; padding: 0 24px;
+  z-index: 1000;
+}
+.topbar-brand {
+  font-size: 17px; font-weight: 700; letter-spacing: .05em; color: var(--tx-hi);
+}
+.topbar-brand span { color: var(--accent); }
+.topbar-sub { font-size: 11px; color: var(--tx-lo); letter-spacing: .1em; text-transform: uppercase; }
+.topbar-sep { flex: 1; }
+.topbar-badge {
+  font-size: 10px; padding: 3px 8px; border-radius: 99px;
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+  color: var(--accent); letter-spacing: .08em; font-weight: 600;
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+.layout {
+  display: flex; margin-top: var(--topbar-h); flex: 1;
+}
+.sidebar {
+  position: fixed; top: var(--topbar-h); left: 0; bottom: 0;
+  width: var(--sidebar-w); overflow-y: auto; overflow-x: hidden;
+  background: var(--bg1); border-right: 1px solid var(--line);
+  padding: 20px 0 40px;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--tx-faint); border-radius: 2px; }
+.sidebar-section { margin-bottom: 4px; }
+.sidebar-heading {
+  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--tx-faint); padding: 14px 20px 6px;
+}
+.sidebar a {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 20px; font-size: 12.5px; color: var(--tx-lo);
+  transition: all .12s; border-left: 2px solid transparent;
+}
+.sidebar a:hover { color: var(--tx-mid); background: rgba(255,255,255,.03); text-decoration: none; }
+.sidebar a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); }
+.sidebar .indent { padding-left: 32px; font-size: 12px; color: var(--tx-faint); }
+.main {
+  margin-left: var(--sidebar-w); flex: 1; min-width: 0;
+  padding: 48px 60px 120px;
+  max-width: 960px;
+}
+
+/* ── Section anchors ─────────────────────────────────────── */
+section[id] { scroll-margin-top: 72px; }
+
+/* ── Hero ────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--bg2), var(--bg1));
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg); padding: 40px 48px; margin-bottom: 48px;
+}
+.hero h1 { font-size: 32px; margin-bottom: 10px; }
+.hero h1 span { color: var(--accent); }
+.hero-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 20px; }
+.hero-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 99px; font-size: 11.5px; font-weight: 500;
+  background: var(--bg3); border: 1px solid var(--line); color: var(--tx-mid);
+}
+.hero-chip.accent { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+
+/* ── Tables ─────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin: 16px 0 24px; border-radius: var(--r-md); border: 1px solid var(--line); }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  background: var(--bg2); padding: 9px 14px; text-align: left;
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--tx-lo); border-bottom: 1px solid var(--line);
+}
+tbody td { padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--line2); vertical-align: top; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,.02); }
+
+/* ── Cards ──────────────────────────────────────────────── */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+.card {
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 16px 18px;
+}
+.card-title { font-size: 12px; font-weight: 600; color: var(--tx-hi); margin-bottom: 6px; }
+.card-body { font-size: 12px; color: var(--tx-lo); line-height: 1.55; }
+.card.accent { border-color: var(--accent-line); background: linear-gradient(135deg, var(--accent-soft), transparent); }
+.card.warn { border-color: rgba(212,160,74,.4); background: rgba(212,160,74,.08); }
+.card.ok { border-color: rgba(79,173,136,.4); background: rgba(79,173,136,.08); }
+
+/* ── Alert boxes ────────────────────────────────────────── */
+.alert {
+  padding: 12px 16px; border-radius: var(--r-md); margin: 16px 0;
+  border-left: 3px solid; font-size: 13px;
+}
+.alert.warn { background: rgba(212,160,74,.1); border-color: var(--warn); color: #d4a04a; }
+.alert.info { background: rgba(90,138,219,.1); border-color: var(--dim); color: #7aadff; }
+.alert.tip  { background: rgba(79,173,136,.1); border-color: var(--meas); color: #5ec99a; }
+.alert.danger { background: rgba(208,80,80,.1); border-color: var(--neg); color: #e08080; }
+
+/* ── Tags ───────────────────────────────────────────────── */
+.tag {
+  display: inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600;
+  margin: 0 2px;
+}
+.tag.dim  { background: rgba(90,138,219,.18); color: var(--dim); }
+.tag.meas { background: rgba(79,173,136,.18); color: var(--meas); }
+.tag.accent { background: var(--accent-soft); color: var(--accent); }
+.tag.ok   { background: rgba(79,173,136,.18); color: var(--pos); }
+.tag.warn { background: rgba(212,160,74,.18); color: var(--warn); }
+
+/* ── Syntax Highlight (手 manual) ────────────────────────── */
+.kw { color: #c789e0; }
+.fn { color: #79b8ff; }
+.str { color: #99d06a; }
+.cmt { color: #5c6680; font-style: italic; }
+.num { color: #f0b44d; }
+.prop { color: #79c0ff; }
+.type { color: #f1c27d; }
+.op { color: var(--tx-mid); }
+.punc { color: var(--tx-lo); }
+
+/* ── Flow diagram ──────────────────────────────────────── */
+.flow {
+  display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+  background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 20px 24px; margin: 16px 0;
+}
+.flow-box {
+  background: var(--bg3); border: 1px solid var(--line-strong, rgba(255,255,255,.16));
+  border-radius: var(--r-sm); padding: 8px 14px; font-size: 12px; font-weight: 600;
+  color: var(--tx-hi); white-space: nowrap;
+}
+.flow-box.accent { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+.flow-arr {
+  color: var(--tx-faint); font-size: 18px; padding: 0 8px;
+  display: flex; align-items: center;
+}
+.flow-group { display: flex; align-items: center; gap: 0; }
+
+/* ── Mode grid ─────────────────────────────────────────── */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin: 16px 0; }
+.mode-tile {
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 14px 16px;
+}
+.mode-tile .mt-id { font-size: 11px; color: var(--tx-faint); font-family: var(--mono); margin-bottom: 4px; }
+.mode-tile .mt-name { font-size: 13px; font-weight: 600; color: var(--tx-hi); margin-bottom: 6px; }
+.mode-tile .mt-file { font-size: 11px; color: var(--accent); font-family: var(--mono); }
+
+/* ── Rule list ─────────────────────────────────────────── */
+.rule-list { counter-reset: rule; list-style: none; padding: 0; }
+.rule-list li {
+  counter-increment: rule; position: relative; padding: 10px 16px 10px 48px;
+  border-bottom: 1px solid var(--line2); font-size: 13px;
+}
+.rule-list li::before {
+  content: counter(rule);
+  position: absolute; left: 12px; top: 10px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg3); border: 1px solid var(--accent-line);
+  color: var(--accent); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.rule-list li:last-child { border-bottom: none; }
+
+/* ── Chart type grid ──────────────────────────────────── */
+.ct-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin: 12px 0 24px; }
+.ct-row {
+  background: var(--bg2); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 10px 14px; display: flex; gap: 10px; align-items: flex-start;
+}
+.ct-id { font-family: var(--mono); font-size: 11px; color: var(--accent); min-width: 80px; margin-top: 1px; }
+.ct-info .ct-name { font-size: 13px; font-weight: 600; color: var(--tx-hi); }
+.ct-info .ct-need { font-size: 11px; color: var(--tx-lo); margin-top: 2px; }
+.ct-group { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--tx-faint); padding: 10px 0 4px; }
+
+/* ── Back to top ─────────────────────────────────────── */
+.back-top {
+  position: fixed; bottom: 28px; right: 28px;
+  background: var(--bg3); border: 1px solid var(--line);
+  border-radius: 50%; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--tx-mid); font-size: 18px; cursor: pointer;
+  transition: all .15s; opacity: .6;
+}
+.back-top:hover { opacity: 1; background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 860px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 24px 20px 80px; }
+}
+@media print {
+  .topbar, .sidebar, .back-top { display: none; }
+  .main { margin-left: 0; padding: 0; }
+  body { background: #fff; color: #111; }
+  pre, code { background: #f0f0f0; color: #111; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <div class="topbar-brand">NØ<span>DE</span> Analytics</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-sub">Developer Documentation</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-badge">v2.0</div>
+</div>
+
+<!-- ── Layout ── -->
+<div class="layout">
+
+  <!-- Sidebar Nav -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-heading">개요</div>
+      <a href="#overview">프로젝트 개요</a>
+      <a href="#quickstart">빠른 시작</a>
+      <a href="#architecture">아키텍처</a>
+      <a href="#filestructure">파일 구조</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">핵심 모듈</div>
+      <a href="#data-engine">데이터 엔진 (data.js)</a>
+      <a href="#store">전역 스토어 (store.jsx)</a>
+      <a href="#charts">차트 래퍼 (charts.jsx)</a>
+      <a href="#shell">셸 컴포넌트 (shell.jsx)</a>
+      <a href="#app">앱 루트 (app.jsx)</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">모드 모듈</div>
+      <a href="#mode-data">Data 모드</a>
+      <a href="#mode-clean">Clean 모드</a>
+      <a href="#mode-sql">SQL 모드</a>
+      <a href="#mode-viz">Viz 모드</a>
+      <a href="#mode-map">Map 모드</a>
+      <a href="#mode-dash">Dashboard 모드</a>
+      <a href="#mode-stats">Stats 모드</a>
+      <a href="#mode-ml">ML 모드</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">보조 모듈</div>
+      <a href="#icons">아이콘 시스템</a>
+      <a href="#statsmath">통계 수학</a>
+      <a href="#tweaks">Tweaks 패널</a>
+      <a href="#aidrawer">AI Drawer</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">스타일 & 토큰</div>
+      <a href="#tokens">디자인 토큰</a>
+      <a href="#css-files">CSS 파일 목록</a>
+      <a href="#theming">테마 시스템</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-heading">개발 규칙</div>
+      <a href="#globals">window.* 전역 규칙</a>
+      <a href="#dev-rules">핵심 개발 규칙</a>
+      <a href="#loading-screen">로딩 화면</a>
+      <a href="#chart-types">차트 타입 레지스트리</a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- ═══════════════════ HERO ═══════════════════ -->
+    <div class="hero">
+      <h1><span>NØ</span>DE Analytics Workbench</h1>
+      <p style="color:var(--tx-mid); font-size:15px; margin-bottom:0;">
+        로컬-퍼스트 브라우저 전용 BI 플랫폼. 빌드 단계 없이 순수 HTML + in-browser Babel로 동작하는 데이터 분석 도구.
+      </p>
+      <div class="hero-meta">
+        <div class="hero-chip accent">No Build</div>
+        <div class="hero-chip">React 18.3.1 UMD</div>
+        <div class="hero-chip">ECharts 5.5.1</div>
+        <div class="hero-chip">Babel Standalone 7.29.0</div>
+        <div class="hero-chip">IBM Plex Font</div>
+        <div class="hero-chip">21 Chart Types</div>
+        <div class="hero-chip">8 Analysis Modes</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════ OVERVIEW ═══════════════════ -->
+    <section id="overview">
+      <h2>프로젝트 개요</h2>
+      <p>
+        NØDE Analytics Workbench는 <strong>로컬-퍼스트</strong> 브라우저 전용 비즈니스 인텔리전스 도구입니다.
+        Node.js, npm, 빌드 단계 없이 <code>python3 -m http.server</code>로 즉시 실행됩니다.
+        서울 아파트 실거래가 데이터를 포함한 샘플 데이터셋으로 즉시 사용 가능하며,
+        21종의 차트 타입과 8개의 분석 모드를 제공합니다.
+      </p>
+
+      <h3>목적 및 설계 철학</h3>
+      <div class="cards">
+        <div class="card">
+          <div class="card-title">🚀 Zero Dependency</div>
+          <div class="card-body">npm install 없음. CDN에서 React/ECharts를 로드하는 단일 HTML 파일 기반.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔒 Local-First</div>
+          <div class="card-body">데이터가 브라우저를 벗어나지 않음. 백엔드 서버 없이 모든 분석이 클라이언트에서 실행.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 Tableau-Inspired UX</div>
+          <div class="card-body">드래그&드롭 Shelf 기반 시각화. Columns/Rows/Color 드롭존으로 차트 즉시 구성.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚡ In-Browser Babel</div>
+          <div class="card-body">JSX가 브라우저에서 직접 트랜스파일됨. 개발자는 .jsx 파일만 편집하면 됨.</div>
+        </div>
+      </div>
+
+      <h3>기술 스택</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>라이브러리</th><th>버전</th><th>용도</th><th>로드 방법</th></tr></thead>
+          <tbody>
+            <tr><td><strong>React</strong></td><td>18.3.1</td><td>UI 컴포넌트 (UMD)</td><td>unpkg CDN (SRI 검증)</td></tr>
+            <tr><td><strong>ReactDOM</strong></td><td>18.3.1</td><td>DOM 렌더링</td><td>unpkg CDN (SRI 검증)</td></tr>
+            <tr><td><strong>Babel Standalone</strong></td><td>7.29.0</td><td>in-browser JSX 트랜스파일</td><td>unpkg CDN (SRI 검증)</td></tr>
+            <tr><td><strong>ECharts</strong></td><td>5.5.1</td><td>모든 차트 렌더링</td><td>jsdelivr CDN</td></tr>
+            <tr><td><strong>IBM Plex Sans/Mono</strong></td><td>—</td><td>UI/코드 폰트</td><td>Google Fonts</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="alert warn">
+        ⚠️ <strong>SRI 해시 주의:</strong> unpkg CDN 스크립트에는 <code>integrity</code> 속성(SRI)이 적용되어 있습니다. CDN URL이나 버전 변경 시 반드시 해시를 재생성해야 합니다.
+      </div>
+    </section>
+
+    <!-- ═══════════════════ QUICKSTART ═══════════════════ -->
+    <section id="quickstart">
+      <h2>빠른 시작</h2>
+      <pre><code><span class="cmt"># 1. 프로젝트 디렉토리로 이동</span>
+<span class="fn">cd</span> <span class="str">"/Users/lyuhoyun/Documents/GitHub/Visualization Tool"</span>
+
+<span class="cmt"># 2. 로컬 HTTP 서버 실행 (포트 8742)</span>
+<span class="fn">python3</span> -m http.server <span class="num">8742</span>
+
+<span class="cmt"># 3. 브라우저에서 열기</span>
+<span class="fn">open</span> http://localhost:8742
+
+<span class="cmt"># 포트 충돌 시</span>
+<span class="fn">kill</span> $(<span class="fn">lsof</span> -ti :<span class="num">8742</span>)</code></pre>
+
+      <div class="alert info">
+        💡 <strong>왜 HTTP 서버가 필요한가?</strong> Babel Standalone은 <code>file://</code> 프로토콜에서 CORS 제한으로 .jsx 파일을 fetch할 수 없습니다. 반드시 HTTP 서버를 통해 접근해야 합니다.
+      </div>
+
+      <h3>오프라인 동작</h3>
+      <ul>
+        <li><strong>차트, 데이터 처리:</strong> 완전히 로컬에서 동작 (CDN 이후 캐시됨)</li>
+        <li><strong>지도 (Map 모드):</strong> GeoJSON CDN 미접근 시 버블맵 폴백으로 동작</li>
+        <li><strong>폰트:</strong> Google Fonts 미접근 시 시스템 폰트로 폴백</li>
+      </ul>
+    </section>
+
+    <!-- ═══════════════════ ARCHITECTURE ═══════════════════ -->
+    <section id="architecture">
+      <h2>아키텍처</h2>
+
+      <h3>전체 데이터 흐름</h3>
+      <div class="flow">
+        <div class="flow-box accent">data.js<br/><small style="font-weight:400;color:var(--tx-mid)">원본 데이터셋</small></div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box">Store.derive.getActiveData()<br/><small style="font-weight:400;color:var(--tx-mid)">클린 스텝 적용</small></div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box">Store.derive.aggregate()<br/><small style="font-weight:400;color:var(--tx-mid)">집계/그룹화</small></div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box accent">ECharts option<br/><small style="font-weight:400;color:var(--tx-mid)">buildOption()</small></div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box">EChart 컴포넌트<br/><small style="font-weight:400;color:var(--tx-mid)">렌더링</small></div>
+      </div>
+
+      <h3>스크립트 로드 순서 (의존성 순서)</h3>
+      <p><strong>⚠️ 이 순서는 절대 변경하면 안 됩니다.</strong> 각 파일은 이전 파일의 <code>window.*</code> 전역 변수에 의존합니다.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>파일</th><th>노출 전역 변수</th><th>의존 변수</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>React, ReactDOM (CDN)</td><td><code>window.React</code>, <code>window.ReactDOM</code></td><td>—</td></tr>
+            <tr><td>2</td><td>Babel Standalone (CDN)</td><td>JSX 트랜스파일 활성화</td><td>—</td></tr>
+            <tr><td>3</td><td>ECharts (CDN)</td><td><code>window.echarts</code></td><td>—</td></tr>
+            <tr><td>4</td><td><code>data.js</code></td><td><code>window.NODE</code></td><td>—</td></tr>
+            <tr><td>5</td><td><code>statsMath.js</code></td><td><code>window.StatsMath</code></td><td>—</td></tr>
+            <tr><td>6</td><td><code>icons.jsx</code></td><td><code>window.Icon</code>, <code>window.isNumType</code>, <code>window.Popover</code></td><td>React</td></tr>
+            <tr><td>7</td><td><code>store.jsx</code></td><td><code>window.Store</code></td><td>React, window.NODE</td></tr>
+            <tr><td>8</td><td><code>charts.jsx</code></td><td><code>window.Charts</code></td><td>React, echarts</td></tr>
+            <tr><td>9</td><td><code>grid.jsx</code></td><td><code>window.DataGrid</code> 등</td><td>React, Store, Icon</td></tr>
+            <tr><td>10</td><td><code>shell.jsx</code></td><td><code>window.TopBar</code>, <code>window.Rail</code>, <code>window.StatusBar</code>, <code>window.Workspace</code></td><td>React, Store, Icon</td></tr>
+            <tr><td>11–19</td><td>각 Mode .jsx 파일</td><td><code>window.DataCenter</code> 등 모드별</td><td>Store, Charts, Shell, Icon</td></tr>
+            <tr><td>20</td><td><code>app.jsx</code></td><td>—</td><td>모든 window.* 필요</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>상태 관리 패턴</h3>
+      <p>Redux에서 영감을 받은 커스텀 스토어를 사용합니다. <code>useState</code> 대신 <code>useStore</code> 훅으로 전역 상태를 구독합니다.</p>
+      <pre><code><span class="cmt">// 컴포넌트에서 상태 구독 (selector 패턴)</span>
+<span class="kw">const</span> <span class="prop">mode</span> = <span class="fn">useStore</span>(<span class="prop">s</span> => <span class="prop">s</span>.mode);
+<span class="kw">const</span> <span class="prop">viz</span>  = <span class="fn">useStore</span>(<span class="prop">s</span> => <span class="prop">s</span>.viz);
+
+<span class="cmt">// 액션으로 상태 변경</span>
+actions.<span class="fn">setMode</span>(<span class="str">"visualize"</span>);
+actions.<span class="fn">setViz</span>({ type: <span class="str">"bar"</span> });
+actions.<span class="fn">addToShelf</span>(<span class="str">"cols"</span>, field);
+
+<span class="cmt">// 파생 데이터 (항상 이 방법으로 데이터 접근)</span>
+<span class="kw">const</span> { ds, rows, columns } = Store.derive.<span class="fn">getActiveData</span>(datasetId);</code></pre>
+    </section>
+
+    <!-- ═══════════════════ FILE STRUCTURE ═══════════════════ -->
+    <section id="filestructure">
+      <h2>파일 구조</h2>
+      <pre><code>Visualization Tool/
+├── index.html              <span class="cmt"># 메인 진입점 + 로딩 화면 + CDN 스크립트 태그</span>
+├── docs/
+│   └── index.html          <span class="cmt"># 이 개발 문서 파일</span>
+├── WORKLOG.md              <span class="cmt"># 세션 간 작업 로그 (자동 git push)</span>
+├── README.md               <span class="cmt"># 프로젝트 소개</span>
+├── HANDOFF.md              <span class="cmt"># 개발 인수인계 전체 문서</span>
+├── css/
+│   ├── tokens.css          <span class="cmt"># 디자인 토큰 (컬러, 타이포, 스페이싱)</span>
+│   ├── app.css             <span class="cmt"># 기본 + 셸 컴포넌트 레이아웃</span>
+│   ├── grid.css            <span class="cmt"># DataGrid 컴포넌트</span>
+│   ├── data.css            <span class="cmt"># Data 모드 UI</span>
+│   ├── clean.css           <span class="cmt"># Cleaning Studio UI</span>
+│   ├── viz.css             <span class="cmt"># Visualization Builder + Facet Grid</span>
+│   ├── dash.css            <span class="cmt"># Dashboard 위젯 레이아웃</span>
+│   ├── sql.css             <span class="cmt"># SQL Workspace</span>
+│   ├── map.css             <span class="cmt"># Map 모드</span>
+│   ├── ml.css              <span class="cmt"># ML Studio</span>
+│   ├── stats.css           <span class="cmt"># Stats Studio</span>
+│   ├── tweaks.css          <span class="cmt"># Tweaks 사이드패널</span>
+│   └── ai.css              <span class="cmt"># Ask Insight AI 드로어</span>
+└── js/
+    ├── data.js             <span class="cmt"># 샘플 데이터셋 (서울 아파트, KOSPI, 월별지수, 구별통계)</span>
+    ├── statsMath.js        <span class="cmt"># 통계 수학 (p-value, gamma, beta, 행렬 역)</span>
+    ├── icons.jsx           <span class="cmt"># 아이콘 컴포넌트 + isNumType + Popover</span>
+    ├── store.jsx           <span class="cmt"># 전역 상태 + 집계 + 클리닝 트랜스폼</span>
+    ├── charts.jsx          <span class="cmt"># ECharts 래퍼 + CSS변수 해석</span>
+    ├── grid.jsx            <span class="cmt"># DataGrid (가상화 스크롤)</span>
+    ├── shell.jsx           <span class="cmt"># TopBar, Rail, StatusBar, Workspace 레이아웃</span>
+    ├── dataMode.jsx        <span class="cmt"># Data 모드: DatasetTree, DataCenter, ColumnProfile</span>
+    ├── cleanMode.jsx       <span class="cmt"># Clean 모드: 클리닝 스튜디오</span>
+    ├── vizMode.jsx         <span class="cmt"># Chart 모드: 21종 차트 buildOption + FacetGrid</span>
+    ├── dashMode.jsx        <span class="cmt"># Dashboard 모드: 위젯 배치 + 크로스 필터</span>
+    ├── sqlMode.jsx         <span class="cmt"># SQL 모드: in-memory SQL 쿼리 엔진</span>
+    ├── mapMode.jsx         <span class="cmt"># Map 모드: 대한민국 choropleth + 버블맵</span>
+    ├── mlMode.jsx          <span class="cmt"># ML 모드: 선형회귀, 군집화</span>
+    ├── statsMode.jsx       <span class="cmt"># Stats 모드: 기술통계, 상관분석, t-test</span>
+    ├── tweaks.jsx          <span class="cmt"># 레이아웃/테마 Tweaks 사이드패널</span>
+    ├── aiDrawer.jsx        <span class="cmt"># Ask Insight AI 드로어</span>
+    └── app.jsx             <span class="cmt"># 앱 루트: App 컴포넌트 + ReactDOM.createRoot</span></code></pre>
+    </section>
+
+    <!-- ═══════════════════ DATA ENGINE ═══════════════════ -->
+    <section id="data-engine">
+      <h2>데이터 엔진 — <code>data.js</code></h2>
+      <p>빌드 없이 즉시 사용 가능한 샘플 데이터셋을 생성하고 <code>window.NODE</code>로 노출합니다. 모든 데이터는 시드 기반 PRNG로 생성되므로 리로드 시에도 동일한 값을 반환합니다.</p>
+
+      <h3>window.NODE 인터페이스</h3>
+      <pre><code><span class="prop">window</span>.NODE = {
+  <span class="prop">datasets</span>: Array&lt;Dataset&gt;,    <span class="cmt">// 4개 데이터셋 배열</span>
+  <span class="fn">fmtWon</span>: (v) => string,        <span class="cmt">// 만원 → "3.2억" / "1,500만" 형식</span>
+  <span class="fn">fmtNum</span>: (v, d?) => string,    <span class="cmt">// 숫자 → 로케일 포맷</span>
+  <span class="fn">fmtCompact</span>: (v) => string,   <span class="cmt">// 숫자 → "12.3억" / "4.5k" 압축 형식</span>
+  <span class="fn">round</span>: (n, d?) => number,     <span class="cmt">// 소수점 d자리 반올림</span>
+  <span class="prop">palette</span>: string[],            <span class="cmt">// 8개 CSS 변수명 ["--cat-1" .. "--cat-8"]</span>
+};</code></pre>
+
+      <h3>Dataset 스키마</h3>
+      <pre><code><span class="kw">type</span> <span class="type">Dataset</span> = {
+  id:      string,           <span class="cmt">// 고유 식별자 (예: "seoul_txns")</span>
+  name:    string,           <span class="cmt">// 파일명 표시용 (예: "Seoul_Apartment_Txns.csv")</span>
+  short:   string,           <span class="cmt">// 축약명 (StatusBar 표시용)</span>
+  icon:    string,           <span class="cmt">// 아이콘 이름 ("table" | "trend" | "map")</span>
+  source:  string,           <span class="cmt">// "CSV" | "Derived" | "Simulated"</span>
+  rows:    object[],         <span class="cmt">// 실제 데이터 행 배열</span>
+  columns: Column[],         <span class="cmt">// 컬럼 메타데이터 배열</span>
+}
+
+<span class="kw">type</span> <span class="type">Column</span> = {
+  key:   string,             <span class="cmt">// 행 객체의 키 이름</span>
+  label: string,             <span class="cmt">// 표시 이름</span>
+  type:  <span class="str">"integer" | "float" | "datetime" | "category" | "string"</span>,
+  role:  <span class="str">"dimension" | "measure"</span>,
+  agg:   string | null,      <span class="cmt">// 기본 집계함수 ("sum" | "avg" | "max" | "min")</span>
+  unit:  string | null,      <span class="cmt">// 단위 표시용 (예: "m²", "%")</span>
+  fmt:   string | null,      <span class="cmt">// 특수 포맷 ("won" → fmtWon 적용)</span>
+}</code></pre>
+
+      <h3>포함된 데이터셋</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>id</th><th>이름</th><th>행 수</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>seoul_txns</code></td><td>Seoul_Apartment_Txns</td><td>~503행</td><td>서울 12개 구 아파트 실거래가 (2022-2025). 의도적 결측값/이상치 포함 (Cleaning 데모용).</td></tr>
+            <tr><td><code>monthly_index</code></td><td>Monthly_Price_Index</td><td>~42행</td><td>서울 아파트 월별 평균 가격 지수. seoul_txns에서 파생.</td></tr>
+            <tr><td><code>kospi_stock</code></td><td>KOSPI_Stock_2024</td><td>~252행</td><td>KOSPI 시뮬레이션 OHLCV 데이터 (2024-2025). 금융 차트 전용. open/high/low/close 컬럼 필수.</td></tr>
+            <tr><td><code>district_stats</code></td><td>District_Summary</td><td>12행</td><td>구별 집계 통계. 지도 시각화 기본 데이터.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>PRNG 함수 (mulberry32)</h3>
+      <pre><code><span class="cmt">// 시드 기반 의사난수 생성기 — 리로드 시 동일한 데이터 보장</span>
+<span class="kw">function</span> <span class="fn">rng</span>(seed) {
+  <span class="kw">return function</span>() {
+    seed |= <span class="num">0</span>; seed = (seed + <span class="num">0x6D2B79F5</span>) | <span class="num">0</span>;
+    <span class="kw">let</span> t = Math.<span class="fn">imul</span>(seed ^ (seed >>> <span class="num">15</span>), <span class="num">1</span> | seed);
+    <span class="cmt">// ... 고품질 32비트 난수 반환</span>
+    <span class="kw">return</span> ((t ^ (t >>> <span class="num">14</span>)) >>> <span class="num">0</span>) / <span class="num">4294967296</span>;
+  };
+}</code></pre>
+    </section>
+
+    <!-- ═══════════════════ STORE ═══════════════════ -->
+    <section id="store">
+      <h2>전역 스토어 — <code>store.jsx</code></h2>
+      <p>Redux-like 단방향 데이터 흐름. <code>window.Store</code>로 노출되며, 모든 UI 상태와 데이터 변환 로직을 담당합니다.</p>
+
+      <h3>window.Store 인터페이스</h3>
+      <pre><code><span class="prop">window</span>.Store = {
+  <span class="fn">useStore</span>: (selector?) => state,   <span class="cmt">// React hook: 상태 구독</span>
+  <span class="fn">getState</span>: () => state,             <span class="cmt">// 현재 스냅샷 (비리액티브)</span>
+  <span class="fn">setState</span>: (patch | fn) => void,   <span class="cmt">// 직접 상태 업데이트</span>
+  <span class="prop">actions</span>: { ... },                  <span class="cmt">// 모든 상태 변경 액션</span>
+  <span class="prop">derive</span>: { ... },                   <span class="cmt">// 파생 데이터 & 변환 함수</span>
+  <span class="prop">stat</span>: { ... },                     <span class="cmt">// 통계 함수 (순수함수)</span>
+  <span class="prop">aggFn</span>: { ... },                    <span class="cmt">// 집계 함수 맵</span>
+};</code></pre>
+
+      <h3>전역 상태 (State) 구조</h3>
+      <pre><code>{
+  theme: <span class="str">"dark" | "light"</span>,
+  mode:  <span class="str">"data" | "clean" | "sql" | "visualize" | "map" | "dashboard" | "stats" | "ml"</span>,
+  activeId: string,               <span class="cmt">// 현재 활성 데이터셋 id</span>
+  ui: {
+    leftW: number,                <span class="cmt">// 좌측 패널 너비 (px)</span>
+    rightW: number,               <span class="cmt">// 우측 패널 너비 (px)</span>
+    dataTab: <span class="str">"preview" | "profile" | "profiling"</span>,
+    selCol: string | null,        <span class="cmt">// 선택된 컬럼 key</span>
+    aiOpen: boolean,              <span class="cmt">// AI Drawer 열림 여부</span>
+  },
+  clean: {                        <span class="cmt">// 데이터셋 id → 클리닝 상태</span>
+    [datasetId]: { steps: Step[], cursor: number }
+  },
+  viz: {
+    type: string,                 <span class="cmt">// 차트 타입 id (예: "bar")</span>
+    cols: Field[],                <span class="cmt">// Columns 셸프 필드 배열</span>
+    rows: Field[],                <span class="cmt">// Rows 셸프 필드 배열</span>
+    color: Field | null,          <span class="cmt">// Color 인코딩 필드</span>
+    label: Field | null,
+    filters: Filter[],
+    sortDesc: boolean,
+    topN: number,                 <span class="cmt">// 0 = 전체</span>
+  },
+  dash: { widgets, cross, edit },
+  tweaks: { layout, sidebar, tone, density, accent },
+}</code></pre>
+
+      <h3>Actions (액션 함수)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>액션</th><th>인자</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>setTheme(t)</code></td><td>string</td><td>테마 설정</td></tr>
+            <tr><td><code>toggleTheme()</code></td><td>—</td><td>다크/라이트 전환</td></tr>
+            <tr><td><code>setMode(m)</code></td><td>string</td><td>활성 모드 전환</td></tr>
+            <tr><td><code>setActive(id)</code></td><td>string</td><td>활성 데이터셋 변경</td></tr>
+            <tr><td><code>setUI(patch)</code></td><td>Partial&lt;ui&gt;</td><td>UI 상태 부분 업데이트</td></tr>
+            <tr><td><code>addStep(step)</code></td><td>CleanStep</td><td>클리닝 스텝 추가 (undo 히스토리 보존)</td></tr>
+            <tr><td><code>undo() / redo()</code></td><td>—</td><td>클리닝 히스토리 이동</td></tr>
+            <tr><td><code>gotoStep(i)</code></td><td>number</td><td>특정 스텝으로 점프</td></tr>
+            <tr><td><code>setViz(patch)</code></td><td>Partial&lt;viz&gt;</td><td>시각화 상태 업데이트</td></tr>
+            <tr><td><code>addToShelf(shelf, field)</code></td><td>string, Field</td><td>Columns/Rows/Color 셸프에 필드 추가</td></tr>
+            <tr><td><code>removeFromShelf(shelf, key)</code></td><td>string, string</td><td>셸프에서 필드 제거</td></tr>
+            <tr><td><code>setRowAgg(key, agg)</code></td><td>string, string</td><td>measure의 집계함수 변경</td></tr>
+            <tr><td><code>setDash(patch)</code></td><td>Partial&lt;dash&gt;</td><td>대시보드 상태 업데이트</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>derive (파생 데이터 함수)</h3>
+      <pre><code><span class="cmt">// 항상 이 방법으로 데이터를 읽어야 함 — 직접 NODE.datasets[i].rows 접근 금지!</span>
+Store.derive.<span class="fn">getActiveData</span>(id?) → { ds, rows, columns, steps, cursor }
+
+<span class="cmt">// 집계: dimKeys 기준으로 그룹화, measures 집계</span>
+Store.derive.<span class="fn">aggregate</span>(rows, dimKeys[], measures[{key, agg, id}]) → aggregatedRows[]
+
+<span class="cmt">// 클리닝 스텝 적용</span>
+Store.derive.<span class="fn">applySteps</span>(dataset, steps) → { rows, columns }
+
+<span class="cmt">// 컬럼 통계 (mean, median, mode, q1, q3)</span>
+Store.derive.<span class="fn">colStats</span>(rows, key) → stats</code></pre>
+
+      <h3>stat (통계 함수)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>함수</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>stat.mean(arr)</code></td><td>산술 평균 (null/NaN 무시)</td></tr>
+            <tr><td><code>stat.sum(arr)</code></td><td>합계</td></tr>
+            <tr><td><code>stat.min(arr) / max(arr)</code></td><td>최솟값 / 최댓값</td></tr>
+            <tr><td><code>stat.median(arr)</code></td><td>중앙값</td></tr>
+            <tr><td><code>stat.quantile(arr, q)</code></td><td>q분위수 (0–1)</td></tr>
+            <tr><td><code>stat.std(arr)</code></td><td>표본 표준편차</td></tr>
+            <tr><td><code>stat.mode(arr)</code></td><td>최빈값</td></tr>
+            <tr><td><code>stat.countDistinct(arr)</code></td><td>유니크 값 수</td></tr>
+            <tr><td><code>stat.missing(arr)</code></td><td>결측값 수</td></tr>
+            <tr><td><code>stat.pearson(a, b)</code></td><td>피어슨 상관계수</td></tr>
+            <tr><td><code>stat.histogram(arr, bins?)</code></td><td>히스토그램 버킷 배열</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>클리닝 스텝 (op 타입)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>op</th><th>필수 파라미터</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>drop_missing</code></td><td>col</td><td>해당 컬럼에 결측값 있는 행 제거</td></tr>
+            <tr><td><code>fill_mean</code></td><td>col</td><td>결측값을 평균으로 채움</td></tr>
+            <tr><td><code>fill_median</code></td><td>col</td><td>결측값을 중앙값으로 채움</td></tr>
+            <tr><td><code>fill_mode</code></td><td>col</td><td>결측값을 최빈값으로 채움</td></tr>
+            <tr><td><code>drop_duplicates</code></td><td>—</td><td>완전 중복 행 제거</td></tr>
+            <tr><td><code>remove_outliers</code></td><td>col</td><td>IQR 1.5× 초과 이상치 제거</td></tr>
+            <tr><td><code>rename</code></td><td>col, params.to</td><td>컬럼명 변경</td></tr>
+            <tr><td><code>replace</code></td><td>col, params.from, params.to</td><td>값 치환</td></tr>
+            <tr><td><code>change_type</code></td><td>col, params.to</td><td>컬럼 타입 변경</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ CHARTS ═══════════════════ -->
+    <section id="charts">
+      <h2>차트 래퍼 — <code>charts.jsx</code></h2>
+      <p>ECharts 인스턴스를 React 컴포넌트로 래핑하고, CSS Custom Properties를 런타임에 해석하여 테마 연동을 제공합니다.</p>
+
+      <h3>window.Charts 인터페이스</h3>
+      <pre><code><span class="prop">window</span>.Charts = {
+  <span class="fn">resolveVar</span>: (cssVarName) => rgbString,   <span class="cmt">// CSS 변수 → rgb() 해석 (canvas 기반)</span>
+  <span class="fn">palette</span>: () => string[],                <span class="cmt">// 8색 팔레트 rgb 배열</span>
+  <span class="fn">themeColors</span>: () => {                    <span class="cmt">// 테마 컬러 오브젝트</span>
+    text, textHi, faint, axis, split, bg, accent, dim, meas
+  },
+  <span class="fn">baseGrid</span>: (colors) => EChartsOption,   <span class="cmt">// 공통 grid/tooltip/textStyle</span>
+  EChart: ReactComponent,                 <span class="cmt">// ECharts React 래퍼 컴포넌트</span>
+};</code></pre>
+
+      <h3>EChart 컴포넌트 Props</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Prop</th><th>타입</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>option</code></td><td>object</td><td>ECharts 옵션 객체 (필수)</td></tr>
+            <tr><td><code>onEvents</code></td><td>object</td><td>이벤트 핸들러 맵 <code>{click: fn, ...}</code></td></tr>
+            <tr><td><code>style</code></td><td>object</td><td>추가 인라인 스타일</td></tr>
+            <tr><td><code>className</code></td><td>string</td><td>CSS 클래스명</td></tr>
+            <tr><td><code>group</code></td><td>string</td><td>차트 연결 그룹 id (연동 줌)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="alert warn">
+        ⚠️ <strong>animation: false 필수:</strong> 모든 ECharts 옵션에 반드시 <code>animation: false</code>를 포함해야 합니다. iframe/Preview 환경에서 requestAnimationFrame 사이클이 멈춰 차트가 빈 캔버스로 보이는 버그가 발생합니다.
+      </div>
+
+      <h3>baseGrid 반환 구조</h3>
+      <pre><code>{
+  animation: <span class="kw">false</span>,
+  textStyle: { fontFamily: <span class="str">"IBM Plex Sans"</span>, color: c.text },
+  grid: { left: <span class="num">8</span>, right: <span class="num">14</span>, top: <span class="num">18</span>, bottom: <span class="num">6</span>, containLabel: <span class="kw">true</span> },
+  tooltip: {
+    backgroundColor: c.bg, borderColor: ..., textStyle: { ... },
+    confine: <span class="kw">true</span>,                      <span class="cmt">// 컨테이너 내부로 tooltip 제한</span>
+  }
+}</code></pre>
+
+      <h3>CSS 변수 해석 원리</h3>
+      <p><code>resolveVar</code>는 1×1 픽셀 Canvas를 생성해 CSS 컬러를 렌더링한 뒤 픽셀 값을 읽어 <code>rgb(r,g,b)</code>로 변환합니다. 결과는 테마×변수명 키로 캐시됩니다.</p>
+    </section>
+
+    <!-- ═══════════════════ SHELL ═══════════════════ -->
+    <section id="shell">
+      <h2>셸 컴포넌트 — <code>shell.jsx</code></h2>
+      <p>앱 전체 레이아웃을 구성하는 TopBar, Rail, StatusBar, Workspace 컴포넌트를 정의합니다.</p>
+
+      <h3>노출 전역 변수</h3>
+      <pre><code>Object.<span class="fn">assign</span>(window, { TopBar, Rail, StatusBar, Workspace, MODES });</code></pre>
+
+      <h3>Workspace 컴포넌트</h3>
+      <p>3패널(좌-중-우) 레이아웃. 드래그 리사이저 포함. <code>tweaks.layout === "focus"</code> 시 우측 패널 숨김.</p>
+      <pre><code>&lt;<span class="fn">Workspace</span>
+  left={&lt;DatasetTree /&gt;}     <span class="cmt">{/* 좌측 패널 내용 */}</span>
+  leftTitle=<span class="str">"Data Explorer"</span>
+  center={&lt;DataCenter /&gt;}    <span class="cmt">{/* 중앙 주요 영역 */}</span>
+  right={&lt;ColumnProfile /&gt;}  <span class="cmt">{/* 우측 패널 내용 */}</span>
+  rightTitle=<span class="str">"Column Profile"</span>
+/&gt;</code></pre>
+
+      <h3>MODES 배열</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>id</th><th>label</th><th>icon</th><th>구현 컴포넌트</th></tr></thead>
+          <tbody>
+            <tr><td><code>data</code></td><td>Data</td><td>data</td><td>window.DataCenter, window.DatasetTree, window.ColumnProfile</td></tr>
+            <tr><td><code>clean</code></td><td>Clean</td><td>clean</td><td>window.CleanMode</td></tr>
+            <tr><td><code>sql</code></td><td>SQL</td><td>sql</td><td>window.SqlMode</td></tr>
+            <tr><td><code>visualize</code></td><td>Chart</td><td>visualize</td><td>window.VizMode</td></tr>
+            <tr><td><code>map</code></td><td>Map</td><td>map</td><td>window.MapMode</td></tr>
+            <tr><td><code>dashboard</code></td><td>Board</td><td>dashboard</td><td>window.DashMode</td></tr>
+            <tr><td><code>stats</code></td><td>Stats</td><td>stats</td><td>window.StatsMode</td></tr>
+            <tr><td><code>ml</code></td><td>ML</td><td>ml</td><td>window.MlMode</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ APP ═══════════════════ -->
+    <section id="app">
+      <h2>앱 루트 — <code>app.jsx</code></h2>
+      <p>모든 모드를 조립하여 렌더링하는 최상위 컴포넌트. 모든 <code>window.*</code> 변수가 로드된 이후 마지막으로 실행됩니다.</p>
+
+      <pre><code><span class="cmt">// 앱이 마운트될 때 테마/tone/density 데이터 속성 설정</span>
+React.<span class="fn">useEffect</span>(() => {
+  document.documentElement.<span class="fn">setAttribute</span>(<span class="str">"data-theme"</span>, theme);
+  document.documentElement.<span class="fn">setAttribute</span>(<span class="str">"data-tone"</span>, tw.tone);
+  document.documentElement.<span class="fn">setAttribute</span>(<span class="str">"data-density"</span>, tw.density);
+}, [theme, tw]);
+
+<span class="cmt">// ReactDOM.createRoot 진입점</span>
+<span class="kw">const</span> root = ReactDOM.<span class="fn">createRoot</span>(document.<span class="fn">getElementById</span>(<span class="str">"root"</span>));
+root.<span class="fn">render</span>(&lt;App /&gt;);</code></pre>
+    </section>
+
+    <!-- ═══════════════════ MODES ═══════════════════ -->
+    <section id="mode-data">
+      <h2>Data 모드 — <code>dataMode.jsx</code></h2>
+      <p>데이터셋 탐색, 미리보기, 컬럼 프로파일링을 제공합니다.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>컴포넌트</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>window.DatasetTree</code></td><td>좌측 데이터셋 목록. 클릭 시 <code>actions.setActive()</code> 호출</td></tr>
+            <tr><td><code>window.DataCenter</code></td><td>중앙 패널: Preview / Profile / Profiling 탭</td></tr>
+            <tr><td><code>window.ColumnProfile</code></td><td>우측: 선택 컬럼 상세 통계 + 미니 히스토그램</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="mode-clean">
+      <h2>Clean 모드 — <code>cleanMode.jsx</code></h2>
+      <p>비파괴적 데이터 클리닝. 원본 데이터를 보존하고 스텝 배열로 변환을 관리합니다.</p>
+      <div class="alert tip">
+        💡 모든 클리닝 작업은 Store의 <code>clean[datasetId].steps[]</code>에 기록되며, <code>cursor</code>로 undo/redo 지원. 원본 <code>rows</code>는 절대 수정되지 않습니다.
+      </div>
+    </section>
+
+    <section id="mode-sql">
+      <h2>SQL 모드 — <code>sqlMode.jsx</code></h2>
+      <p>브라우저 내 in-memory SQL 쿼리 엔진. SELECT / WHERE / GROUP BY / ORDER BY / LIMIT를 파싱하여 실행합니다.</p>
+      <pre><code><span class="cmt">// 예시 쿼리</span>
+<span class="kw">SELECT</span> district, <span class="fn">AVG</span>(price_per_m2) <span class="kw">AS</span> avg_ppm, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> cnt
+<span class="kw">FROM</span> seoul_txns
+<span class="kw">WHERE</span> building_type = <span class="str">'아파트'</span>
+<span class="kw">GROUP BY</span> district
+<span class="kw">ORDER BY</span> avg_ppm <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">10</span></code></pre>
+    </section>
+
+    <section id="mode-viz">
+      <h2>Viz 모드 — <code>vizMode.jsx</code></h2>
+      <p>Tableau-inspired 드래그&드롭 차트 빌더. 21종 차트 타입, 4개 그룹으로 분류됩니다.</p>
+
+      <h3>노출 전역 변수</h3>
+      <pre><code>window.<span class="prop">VizMode</span>              <span class="cmt">// Viz 모드 루트 컴포넌트</span>
+window.<span class="fn">buildVizOption</span>      <span class="cmt">// Dashboard에서 재사용 가능한 옵션 빌더</span>
+window.<span class="fn">VizAddField</span>         <span class="cmt">// 외부에서 셸프에 필드 추가 (더블클릭 드래그 없이)</span></code></pre>
+
+      <h3>Shelf 드롭존 (Shelf 컴포넌트)</h3>
+      <pre><code><span class="cmt">// drag-and-drop: dataTransfer에서 필드 JSON 읽기</span>
+e.dataTransfer.<span class="fn">getData</span>(<span class="str">"application/node-field"</span>)
+<span class="cmt">→ { key, label, type, role, agg }</span>
+
+<span class="cmt">// Columns 셸프: dimension/datetime 권장</span>
+<span class="cmt">// Rows 셸프: measure (자동으로 agg 할당)</span>
+<span class="cmt">// Color 셸프: dimension (카테고리 색상 인코딩)</span></code></pre>
+
+      <h3>need 코드 — 차트 활성화 조건</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>need 코드</th><th>활성화 조건</th></tr></thead>
+          <tbody>
+            <tr><td><code>"1d+1m"</code></td><td>dimension ≥1 AND measure ≥1</td></tr>
+            <tr><td><code>"2m"</code></td><td>measure ≥2</td></tr>
+            <tr><td><code>"2d+1m"</code></td><td>dimension ≥2 AND measure ≥1</td></tr>
+            <tr><td><code>"3m"</code></td><td>measure ≥3</td></tr>
+            <tr><td><code>"1d+2m"</code></td><td>dimension ≥1 AND measure ≥2</td></tr>
+            <tr><td><code>"fin"</code></td><td>컬럼 목록에 open/high/low/close 모두 존재</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>FacetGrid 컴포넌트</h3>
+      <p>Facet 차트 타입은 단일 ECharts 인스턴스 대신 <code>FacetGrid</code> React 컴포넌트를 사용합니다. Color 차원값별로 N개의 미니 ECharts를 CSS grid에 배치합니다.</p>
+      <pre><code><span class="cmt">// viz.css — Facet Grid 레이아웃</span>
+.facet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(<span class="num">240px</span>, <span class="num">1fr</span>));
+  grid-auto-rows: <span class="num">200px</span>;
+  gap: <span class="num">8px</span>;
+}</code></pre>
+
+      <h3>Violin Plot — KDE 픽셀 공간 계산</h3>
+      <div class="alert info">
+        <strong>ECharts category axis 제한:</strong> <code>api.coord([fractionalIndex, y])</code>는 분수 인덱스를 무시합니다. Violin의 좌우 폭 계산은 픽셀 공간에서 직접 수행해야 합니다.
+      </div>
+      <pre><code><span class="cmt">// 올바른 방법: 인접 카테고리 좌표로 픽셀 폭 계산</span>
+<span class="kw">const</span> centerX = api.<span class="fn">coord</span>([ci, yPts[<span class="num">0</span>]])[<span class="num">0</span>];
+<span class="kw">const</span> nextX = ci + <span class="num">1</span> < cats.length ? api.<span class="fn">coord</span>([ci + <span class="num">1</span>, yPts[<span class="num">0</span>]])[<span class="num">0</span>] : centerX + <span class="num">48</span>;
+<span class="kw">const</span> halfPxW = Math.<span class="fn">abs</span>(nextX - centerX) * <span class="num">0.42</span>;
+<span class="cmt">// 폴리곤 포인트를 픽셀 좌표로 직접 구성</span>
+<span class="kw">const</span> rightPts = dens.<span class="fn">map</span>((d, i) => [centerX + (d/maxD)*halfPxW, api.<span class="fn">coord</span>([ci, yPts[i]])[<span class="num">1</span>]]);</code></pre>
+    </section>
+
+    <section id="mode-map">
+      <h2>Map 모드 — <code>mapMode.jsx</code></h2>
+      <p>대한민국 서울 choropleth 지도. ECharts Map 시리즈 + 서울 GeoJSON (CDN). 오프라인 시 버블맵으로 폴백합니다.</p>
+    </section>
+
+    <section id="mode-dash">
+      <h2>Dashboard 모드 — <code>dashMode.jsx</code></h2>
+      <p>드래그 가능한 위젯 배치. <code>buildVizOption</code>을 재사용하여 각 위젯의 차트를 렌더링합니다. Cross-filtering: 위젯 클릭 시 <code>actions.setCross()</code>로 필터 전파.</p>
+    </section>
+
+    <section id="mode-stats">
+      <h2>Stats 모드 — <code>statsMode.jsx</code></h2>
+      <p>기술통계, 상관행렬, t-test, ANOVA, 선형회귀를 제공합니다. <code>statsMath.js</code>의 수치 함수와 Store의 <code>stat</code> 객체를 조합하여 구현됩니다.</p>
+    </section>
+
+    <section id="mode-ml">
+      <h2>ML 모드 — <code>mlMode.jsx</code></h2>
+      <p>브라우저 내 간단한 머신러닝. 선형회귀(최소제곱법), K-Means 군집화를 제공합니다.</p>
+    </section>
+
+    <!-- ═══════════════════ ICONS ═══════════════════ -->
+    <section id="icons">
+      <h2>아이콘 시스템 — <code>icons.jsx</code></h2>
+      <p>SVG path 문자열을 딕셔너리로 관리하고 <code>&lt;Icon&gt;</code> 컴포넌트로 렌더링합니다. 추가 의존성 없이 순수 SVG 아이콘입니다.</p>
+
+      <pre><code><span class="cmt">// 사용법</span>
+&lt;<span class="fn">Icon</span> name=<span class="str">"bar"</span> size={<span class="num">16</span>} /&gt;
+&lt;<span class="fn">Icon</span> name=<span class="str">"scatter"</span> size={<span class="num">20</span>} color=<span class="str">"var(--accent)"</span> /&gt;
+
+<span class="cmt">// window.Icon = (props) => &lt;svg ...&gt;&lt;path.../&gt;&lt;/svg&gt;</span></code></pre>
+
+      <h3>아이콘 목록</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>이름</th><th>용도</th></tr></thead>
+          <tbody>
+            <tr><td>data, clean, visualize, dashboard, sql, stats, ml, ai, map</td><td>모드 Rail 아이콘</td></tr>
+            <tr><td>bar, line, area, pie, scatter, heatmap, treemap, funnel, radar</td><td>기본 차트 타입</td></tr>
+            <tr><td>bubble, waterfall, boxplot, violin, sankey, sunburst, facet</td><td>고급 차트 타입</td></tr>
+            <tr><td>candle, cumreturn</td><td>금융 차트 타입</td></tr>
+            <tr><td>table, trend, search, sun, moon, sliders, filter, sort</td><td>UI 범용</td></tr>
+            <tr><td>plus, x, chevR, chevD, undo, redo, eye, eyeoff</td><td>액션 아이콘</td></tr>
+            <tr><td>save, upload, download, pin, info, check, book</td><td>도구 아이콘</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>추가 노출 함수</h3>
+      <pre><code><span class="cmt">// 타입이 숫자형인지 판별 (measure role 판단에 사용)</span>
+window.<span class="fn">isNumType</span> = (type) => [<span class="str">"integer"</span>, <span class="str">"float"</span>].<span class="fn">includes</span>(type);
+
+<span class="cmt">// 포지션 기반 팝오버 컴포넌트 (셸프 메뉴, agg 선택 등에 사용)</span>
+window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
+    </section>
+
+    <!-- ═══════════════════ STATSMATH ═══════════════════ -->
+    <section id="statsmath">
+      <h2>통계 수학 — <code>statsMath.js</code></h2>
+      <p>Stats 모드에서 사용하는 고정밀 수치 계산 함수들입니다. 외부 라이브러리 없이 순수 JS로 구현됩니다.</p>
+
+      <h3>window.StatsMath 인터페이스</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>함수</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>tP(t, df)</code></td><td>Student t-분포 양측 p-값</td></tr>
+            <tr><td><code>fP(F, d1, d2)</code></td><td>F-분포 상측 p-값</td></tr>
+            <tr><td><code>chiP(x, df)</code></td><td>카이제곱 상측 p-값</td></tr>
+            <tr><td><code>matInverse(M)</code></td><td>정방 행렬 역행렬 (가우스-조르당 소거법)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>내부적으로 Lanczos 근사 감마함수(<code>gammln</code>), 정규화 불완전 감마함수(<code>gser/gcf</code>), 불완전 베타함수(<code>betai</code>)를 사용합니다.</p>
+    </section>
+
+    <!-- ═══════════════════ TWEAKS ═══════════════════ -->
+    <section id="tweaks">
+      <h2>Tweaks 패널 — <code>tweaks.jsx</code></h2>
+      <p>TopBar의 슬라이더 아이콘 클릭 시 노출되는 사이드패널. 레이아웃, 테마 색조, 밀도, 액센트 색상을 실시간으로 변경합니다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>설정</th><th>값</th><th>효과</th></tr></thead>
+          <tbody>
+            <tr><td><code>tweaks.layout</code></td><td>classic / focus / wide</td><td>우측 패널 표시 여부 / 중앙 확장</td></tr>
+            <tr><td><code>tweaks.sidebar</code></td><td>rail / labeled</td><td>좌측 Rail 레이블 표시 여부</td></tr>
+            <tr><td><code>tweaks.tone</code></td><td>cool / warm / neutral</td><td><code>data-tone</code> 속성으로 CSS 변수 전환</td></tr>
+            <tr><td><code>tweaks.density</code></td><td>compact / comfortable</td><td>행 높이, 패딩 조정</td></tr>
+            <tr><td><code>tweaks.accent</code></td><td>orange / blue / green</td><td>액센트 컬러 전환</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="alert info">
+        💡 Tweaks 패널 토글은 <code>window.dispatchEvent(new CustomEvent("node-tweaks-toggle"))</code>로 발행됩니다.
+      </div>
+    </section>
+
+    <!-- ═══════════════════ AI DRAWER ═══════════════════ -->
+    <section id="aidrawer">
+      <h2>AI Drawer — <code>aiDrawer.jsx</code></h2>
+      <p>"Ask Insight" 버튼으로 토글되는 우측 슬라이드 패널. <code>Store.ui.aiOpen</code> 상태와 연결됩니다. 현재 데이터셋 컨텍스트를 기반으로 AI 분석을 요청하는 UI를 제공합니다.</p>
+    </section>
+
+    <!-- ═══════════════════ TOKENS ═══════════════════ -->
+    <section id="tokens">
+      <h2>디자인 토큰 — <code>css/tokens.css</code></h2>
+      <p>모든 색상, 타이포, 간격을 CSS Custom Properties로 정의합니다. <strong>하드코딩 절대 금지.</strong></p>
+
+      <h3>색상 레이어 (Dark 기준)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>변수</th><th>값</th><th>용도</th></tr></thead>
+          <tbody>
+            <tr><td><code>--bg-0</code></td><td>oklch(0.20 …)</td><td>앱 전체 배경</td></tr>
+            <tr><td><code>--bg-1</code></td><td>oklch(0.235 …)</td><td>패널 배경</td></tr>
+            <tr><td><code>--bg-2</code></td><td>oklch(0.275 …)</td><td>인풋, 카드</td></tr>
+            <tr><td><code>--bg-3</code></td><td>oklch(0.32 …)</td><td>호버, 칩</td></tr>
+            <tr><td><code>--tx-hi</code></td><td>oklch(0.93 …)</td><td>주요 텍스트</td></tr>
+            <tr><td><code>--tx-mid</code></td><td>oklch(0.72 …)</td><td>일반 텍스트</td></tr>
+            <tr><td><code>--tx-lo</code></td><td>oklch(0.56 …)</td><td>보조 텍스트</td></tr>
+            <tr><td><code>--tx-faint</code></td><td>oklch(0.44 …)</td><td>힌트 텍스트</td></tr>
+            <tr><td><code>--accent</code></td><td>oklch(0.72 0.17 48)</td><td>오렌지 강조색 (주요 CTA)</td></tr>
+            <tr><td><code>--dim-color</code></td><td>oklch(0.62 0.12 230)</td><td>Dimension 필드 (파란색)</td></tr>
+            <tr><td><code>--meas-color</code></td><td>oklch(0.62 0.13 155)</td><td>Measure 필드 (초록색)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>카테고리 팔레트 (차트용 8색)</h3>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin: 12px 0 20px;">
+        <div style="width:40px;height:40px;border-radius:6px;background:oklch(0.72 0.17 48);display:flex;align-items:center;justify-content:center;font-size:10px;color:#1a0f06;font-weight:700;">1</div>
+        <div style="width:40px;height:40px;border-radius:6px;background:oklch(0.64 0.12 235);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;">2</div>
+        <div style="width:40px;height:40px;border-radius:6px;background:oklch(0.66 0.12 165);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;">3</div>
+        <div style="width:40px;height:40px;border-radius:6px;background:oklch(0.68 0.14 300);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;">4</div>
+        <div style="width:40px;height:40px;border-radius:6px;background:oklch(0.74 0.13 95);display:flex;align-items:center;justify-content:center;font-size:10px;color:#1a1a00;font-weight:700;">5</div>
+        <div style="width:40px;height:40px;border-radius:6px;background:oklch(0.64 0.13 20);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;">6</div>
+        <div style="width:40px;height:40px;border-radius:6px;background:oklch(0.62 0.10 200);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;">7</div>
+        <div style="width:40px;height:40px;border-radius:6px;background:oklch(0.60 0.09 130);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;">8</div>
+      </div>
+
+      <h3>타이포 스케일</h3>
+      <pre><code>--fs-9  → 9px   --fs-10 → 10px   --fs-11 → 11px
+--fs-12 → 12px  --fs-13 → 13px   --fs-14 → 14px
+--fs-16 → 16px  --fs-19 → 19px   --fs-24 → 24px</code></pre>
+
+      <h3>반지름 & 밀도 메트릭</h3>
+      <pre><code>--r-xs: 3px    --r-sm: 4px    --r-md: 6px    --r-lg: 9px
+--row-h: 28px  --topbar-h: 44px  --rail-w: 52px</code></pre>
+    </section>
+
+    <!-- ═══════════════════ CSS FILES ═══════════════════ -->
+    <section id="css-files">
+      <h2>CSS 파일 목록</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>파일</th><th>담당 범위</th><th>주요 클래스</th></tr></thead>
+          <tbody>
+            <tr><td><code>tokens.css</code></td><td>전체 디자인 토큰</td><td>:root CSS 변수, 팔레트</td></tr>
+            <tr><td><code>app.css</code></td><td>기본 리셋 + 셸 레이아웃</td><td>.app, .topbar, .rail, .workspace, .panel, .statusbar</td></tr>
+            <tr><td><code>grid.css</code></td><td>DataGrid 컴포넌트</td><td>.datagrid, .dg-head, .dg-row, .dg-cell</td></tr>
+            <tr><td><code>data.css</code></td><td>Data 모드 UI</td><td>.dataset-tree, .col-profile, .mini-hist</td></tr>
+            <tr><td><code>clean.css</code></td><td>Cleaning Studio</td><td>.clean-step, .step-list</td></tr>
+            <tr><td><code>viz.css</code></td><td>Viz Builder + Facet Grid</td><td>.shelfbar, .shelf, .showme, .sm-tile, .facet-grid, .facet-cell</td></tr>
+            <tr><td><code>dash.css</code></td><td>Dashboard 위젯</td><td>.dash-grid, .widget, .widget-head</td></tr>
+            <tr><td><code>sql.css</code></td><td>SQL Workspace</td><td>.sql-editor, .sql-result</td></tr>
+            <tr><td><code>map.css</code></td><td>Map 모드</td><td>.map-canvas, .map-legend</td></tr>
+            <tr><td><code>stats.css</code></td><td>Stats Studio</td><td>.stats-table, .corr-matrix</td></tr>
+            <tr><td><code>ml.css</code></td><td>ML Studio</td><td>.ml-chart, .ml-params</td></tr>
+            <tr><td><code>tweaks.css</code></td><td>Tweaks 패널</td><td>.tweaks-panel, .tw-row</td></tr>
+            <tr><td><code>ai.css</code></td><td>AI Drawer</td><td>.ai-drawer, .ai-msg</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ THEMING ═══════════════════ -->
+    <section id="theming">
+      <h2>테마 시스템</h2>
+      <p>CSS 속성 선택자로 테마를 전환합니다. JS에서 <code>document.documentElement.setAttribute("data-theme", "dark")</code>만 호출하면 전체 색상이 전환됩니다.</p>
+
+      <pre><code><span class="cmt">/* 다크 테마 (기본) */</span>
+:root, [data-theme=<span class="str">"dark"</span>] { --bg-0: oklch(<span class="num">0.20</span> ...); ... }
+
+<span class="cmt">/* 라이트 테마 */</span>
+[data-theme=<span class="str">"light"</span>] { --bg-0: oklch(<span class="num">0.955</span> ...); ... }
+
+<span class="cmt">/* 색조 변형 (tone) */</span>
+[data-tone=<span class="str">"warm"</span>] { <span class="cmt">/* 배경에 따뜻한 색조 */</span> }
+
+<span class="cmt">/* 밀도 (density) */</span>
+[data-density=<span class="str">"comfortable"</span>] { --row-h: <span class="num">36px</span>; }</code></pre>
+
+      <div class="alert tip">
+        💡 ECharts의 테마는 별도 ECharts theme 시스템이 아닌 <code>Charts.resolveVar()</code>로 CSS 변수를 읽어 option에 직접 주입합니다. 따라서 테마 전환 시 차트가 자동으로 업데이트됩니다.
+      </div>
+    </section>
+
+    <!-- ═══════════════════ GLOBALS ═══════════════════ -->
+    <section id="globals">
+      <h2>window.* 전역 변수 완전 목록</h2>
+      <p>Babel Standalone 환경에서는 ES module import/export가 불가합니다. 모든 공유 심볼은 <code>window.*</code>에 등록됩니다.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>변수</th><th>정의 파일</th><th>타입</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>window.React</code></td><td>CDN</td><td>Object</td><td>React 18 UMD 전역</td></tr>
+            <tr><td><code>window.ReactDOM</code></td><td>CDN</td><td>Object</td><td>ReactDOM 18 UMD 전역</td></tr>
+            <tr><td><code>window.echarts</code></td><td>CDN</td><td>Object</td><td>ECharts 5.5.1 전역</td></tr>
+            <tr><td><code>window.NODE</code></td><td>data.js</td><td>Object</td><td>데이터셋 + 포맷팅 함수</td></tr>
+            <tr><td><code>window.StatsMath</code></td><td>statsMath.js</td><td>Object</td><td>통계 수학 함수 (tP, fP, chiP, matInverse)</td></tr>
+            <tr><td><code>window.Icon</code></td><td>icons.jsx</td><td>Component</td><td>아이콘 컴포넌트</td></tr>
+            <tr><td><code>window.isNumType</code></td><td>icons.jsx</td><td>Function</td><td>숫자 타입 판별</td></tr>
+            <tr><td><code>window.Popover</code></td><td>icons.jsx</td><td>Component</td><td>팝오버 컴포넌트</td></tr>
+            <tr><td><code>window.Store</code></td><td>store.jsx</td><td>Object</td><td>전역 스토어 (useStore, actions, derive, stat)</td></tr>
+            <tr><td><code>window.Charts</code></td><td>charts.jsx</td><td>Object</td><td>ECharts 래퍼 + 테마 함수</td></tr>
+            <tr><td><code>window.DataGrid</code></td><td>grid.jsx</td><td>Component</td><td>가상화 스크롤 데이터 그리드</td></tr>
+            <tr><td><code>window.DatasetTree</code></td><td>dataMode.jsx</td><td>Component</td><td>좌측 데이터셋 목록</td></tr>
+            <tr><td><code>window.DataCenter</code></td><td>dataMode.jsx</td><td>Component</td><td>데이터 탭 중앙 패널</td></tr>
+            <tr><td><code>window.ColumnProfile</code></td><td>dataMode.jsx</td><td>Component</td><td>컬럼 프로파일 패널</td></tr>
+            <tr><td><code>window.TopBar</code></td><td>shell.jsx</td><td>Component</td><td>상단 바</td></tr>
+            <tr><td><code>window.Rail</code></td><td>shell.jsx</td><td>Component</td><td>좌측 모드 Rail</td></tr>
+            <tr><td><code>window.StatusBar</code></td><td>shell.jsx</td><td>Component</td><td>하단 상태 바</td></tr>
+            <tr><td><code>window.Workspace</code></td><td>shell.jsx</td><td>Component</td><td>3패널 레이아웃</td></tr>
+            <tr><td><code>window.MODES</code></td><td>shell.jsx</td><td>Array</td><td>모드 정의 배열</td></tr>
+            <tr><td><code>window.CleanMode</code></td><td>cleanMode.jsx</td><td>Component</td><td>클리닝 스튜디오</td></tr>
+            <tr><td><code>window.SqlMode</code></td><td>sqlMode.jsx</td><td>Component</td><td>SQL 워크스페이스</td></tr>
+            <tr><td><code>window.VizMode</code></td><td>vizMode.jsx</td><td>Component</td><td>차트 빌더</td></tr>
+            <tr><td><code>window.buildVizOption</code></td><td>vizMode.jsx</td><td>Function</td><td>ECharts option 빌더 (Dashboard 재사용)</td></tr>
+            <tr><td><code>window.VizAddField</code></td><td>vizMode.jsx</td><td>Function</td><td>외부에서 셸프 필드 추가</td></tr>
+            <tr><td><code>window.DashMode</code></td><td>dashMode.jsx</td><td>Component</td><td>대시보드 모드</td></tr>
+            <tr><td><code>window.MapMode</code></td><td>mapMode.jsx</td><td>Component</td><td>지도 모드</td></tr>
+            <tr><td><code>window.MlMode</code></td><td>mlMode.jsx</td><td>Component</td><td>ML 스튜디오</td></tr>
+            <tr><td><code>window.StatsMode</code></td><td>statsMode.jsx</td><td>Component</td><td>통계 스튜디오</td></tr>
+            <tr><td><code>window.TweaksPanel</code></td><td>tweaks.jsx</td><td>Component</td><td>Tweaks 사이드패널</td></tr>
+            <tr><td><code>window.AIDrawer</code></td><td>aiDrawer.jsx</td><td>Component</td><td>AI Ask Insight 드로어</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ DEV RULES ═══════════════════ -->
+    <section id="dev-rules">
+      <h2>핵심 개발 규칙</h2>
+      <ul class="rule-list">
+        <li>
+          <strong>window.*로 반드시 노출하기</strong><br/>
+          모든 컴포넌트와 유틸리티는 파일 말미에 <code>window.X = X</code> 또는 <code>Object.assign(window, {...})</code>로 끝나야 합니다. 이 줄이 없으면 다음 파일에서 참조할 수 없습니다.
+        </li>
+        <li>
+          <strong>데이터는 항상 getActiveData()로 읽기</strong><br/>
+          <code>NODE.datasets[i].rows</code> 직접 접근 금지. 반드시 <code>Store.derive.getActiveData(id)</code>를 통해 읽어야 클리닝 스텝이 적용된 데이터가 반환됩니다.
+        </li>
+        <li>
+          <strong>animation: false 항상 유지</strong><br/>
+          모든 ECharts 옵션 최상위에 <code>animation: false</code>를 포함해야 합니다. iframe/Preview 환경에서 rAF 루프가 멈추면 차트가 흰 캔버스로 보이는 버그가 발생합니다.
+        </li>
+        <li>
+          <strong>하드코딩 색상 절대 금지</strong><br/>
+          <code>#e8611a</code>, <code>rgb(100,150,200)</code> 같은 색상 리터럴 사용 금지. 반드시 <code>var(--accent)</code>, <code>Charts.resolveVar("--cat-1")</code>을 통해 사용하세요.
+        </li>
+        <li>
+          <strong>&lt;script&gt; 순서 변경 금지</strong><br/>
+          <code>index.html</code>의 스크립트 로드 순서는 의존성 순서입니다. 순서를 바꾸면 <code>window.X is not defined</code> 에러가 발생합니다.
+        </li>
+        <li>
+          <strong>.jsx 파일 수정 후 저장 = 즉시 반영</strong><br/>
+          in-browser Babel이 매 페이지 로드 시 .jsx를 트랜스파일합니다. 별도 빌드 명령이 필요 없습니다. 브라우저 새로고침으로 변경사항을 확인하세요.
+        </li>
+        <li>
+          <strong>ECharts category axis에서 분수 인덱스 사용 금지</strong><br/>
+          <code>api.coord([1.5, y])</code>처럼 분수 카테고리 인덱스는 ECharts가 무시합니다. 폭 계산이 필요할 때는 픽셀 공간에서 직접 계산하세요 (Violin 차트 구현 참조).
+        </li>
+        <li>
+          <strong>크로스파일 통신은 window.*와 CustomEvent만 사용</strong><br/>
+          ES module import/export 불가. 파일 간 데이터 전달은 window 전역 변수, 또는 <code>window.dispatchEvent(new CustomEvent(...))</code>로 처리합니다.
+        </li>
+      </ul>
+    </section>
+
+    <!-- ═══════════════════ LOADING SCREEN ═══════════════════ -->
+    <section id="loading-screen">
+      <h2>로딩 화면 — <code>index.html</code> 인라인</h2>
+      <p>페이지 로드 시 의존성 상태를 실시간으로 표시하는 오버레이. 외부 파일 없이 <code>index.html</code> 내부에 인라인 CSS + JS로 구현됩니다.</p>
+
+      <h3>4단계 체크 시퀀스</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>단계</th><th>id</th><th>검사 조건</th><th>타임아웃</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>nlc-react</code></td><td><code>window.React && window.ReactDOM && window.Babel</code></td><td>8초</td></tr>
+            <tr><td>2</td><td><code>nlc-echarts</code></td><td><code>window.echarts</code></td><td>8초</td></tr>
+            <tr><td>3</td><td><code>nlc-data</code></td><td><code>window.NODE && window.NODE.datasets && window.Store</code></td><td>12초</td></tr>
+            <tr><td>4</td><td><code>nlc-app</code></td><td><code>#root 요소에 자식 존재</code></td><td>12초</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>dismiss() 시퀀스</h3>
+      <pre><code><span class="cmt">// 모든 단계 완료 시 380ms 지연 후 실행</span>
+<span class="kw">function</span> <span class="fn">dismiss</span>() {
+  timers.<span class="fn">forEach</span>(clearTimeout);             <span class="cmt">// 대기 중인 poll 타이머 모두 취소</span>
+  loader.classList.<span class="fn">add</span>(<span class="str">"hiding"</span>);            <span class="cmt">// opacity: 0 트랜지션 (0.55s)</span>
+  <span class="fn">setTimeout</span>(() => loader.parentNode.<span class="fn">removeChild</span>(loader), <span class="num">580</span>);
+}
+<span class="cmt">// 강제 해제: 15초 후 무조건 dismiss()</span></code></pre>
+    </section>
+
+    <!-- ═══════════════════ CHART TYPES ═══════════════════ -->
+    <section id="chart-types">
+      <h2>차트 타입 레지스트리 (21종)</h2>
+
+      <div class="ct-group">Basic (8종)</div>
+      <div class="ct-grid">
+        <div class="ct-row"><div class="ct-id">bar</div><div class="ct-info"><div class="ct-name">Bar Chart</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">hbar</div><div class="ct-info"><div class="ct-name">Horizontal Bar</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">line</div><div class="ct-info"><div class="ct-name">Line Chart</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">area</div><div class="ct-info"><div class="ct-name">Area Chart</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">pie</div><div class="ct-info"><div class="ct-name">Pie / Donut</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">scatter</div><div class="ct-info"><div class="ct-name">Scatter Plot</div><div class="ct-need">2m</div></div></div>
+        <div class="ct-row"><div class="ct-id">treemap</div><div class="ct-info"><div class="ct-name">Treemap</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">heatmap</div><div class="ct-info"><div class="ct-name">Heatmap</div><div class="ct-need">2d + 1m</div></div></div>
+      </div>
+
+      <div class="ct-group">Advanced (8종)</div>
+      <div class="ct-grid">
+        <div class="ct-row"><div class="ct-id">bubble</div><div class="ct-info"><div class="ct-name">Bubble Chart</div><div class="ct-need">3m (x, y, size)</div></div></div>
+        <div class="ct-row"><div class="ct-id">waterfall</div><div class="ct-info"><div class="ct-name">Waterfall</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">funnel</div><div class="ct-info"><div class="ct-name">Funnel</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">radar</div><div class="ct-info"><div class="ct-name">Radar</div><div class="ct-need">1d + 2m</div></div></div>
+        <div class="ct-row"><div class="ct-id">boxplot</div><div class="ct-info"><div class="ct-name">Box Plot</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">violin</div><div class="ct-info"><div class="ct-name">Violin Plot (KDE)</div><div class="ct-need">1d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">sankey</div><div class="ct-info"><div class="ct-name">Sankey Diagram</div><div class="ct-need">2d + 1m</div></div></div>
+        <div class="ct-row"><div class="ct-id">sunburst</div><div class="ct-info"><div class="ct-name">Sunburst</div><div class="ct-need">2d + 1m</div></div></div>
+      </div>
+
+      <div class="ct-group">Financial (3종) — KOSPI 데이터셋 전용</div>
+      <div class="ct-grid">
+        <div class="ct-row"><div class="ct-id">candlestick</div><div class="ct-info"><div class="ct-name">Candlestick</div><div class="ct-need">open/high/low/close 필요</div></div></div>
+        <div class="ct-row"><div class="ct-id">ohlcvol</div><div class="ct-info"><div class="ct-name">OHLC + Volume</div><div class="ct-need">open/high/low/close 필요</div></div></div>
+        <div class="ct-row"><div class="ct-id">cumreturn</div><div class="ct-info"><div class="ct-name">Cumulative Return</div><div class="ct-need">open/high/low/close 필요</div></div></div>
+      </div>
+
+      <div class="ct-group">Special (1종)</div>
+      <div class="ct-grid">
+        <div class="ct-row"><div class="ct-id">facet</div><div class="ct-info"><div class="ct-name">Facet Grid (Small Multiples)</div><div class="ct-need">2d + 1m, Color dim 필수</div></div></div>
+      </div>
+
+      <div class="alert info">
+        💡 <strong>Financial 차트 활성화 조건:</strong> <code>valid("fin")</code> 함수는 현재 데이터셋 컬럼 목록에 <code>open</code>, <code>high</code>, <code>low</code>, <code>close</code> 키가 모두 존재하는지 확인합니다. KOSPI 데이터셋 선택 시에만 Financial 그룹이 활성화됩니다.
+      </div>
+    </section>
+
+    <!-- ═══════════════════ FOOTER ═══════════════════ -->
+    <hr />
+    <div style="text-align:center; color:var(--tx-faint); font-size:11px; padding-bottom:20px;">
+      NØDE Analytics Workbench Developer Docs · v2.0 · 2026-06-06<br/>
+      이 문서는 유지보수 목적으로 생성되었습니다. 오프라인에서도 동작하는 단일 HTML 파일.
+    </div>
+
+  </main>
+</div>
+
+<!-- Back to top -->
+<div class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="맨 위로">↑</div>
+
+<!-- ── Active nav highlight ── -->
+<script>
+(function() {
+  var links = document.querySelectorAll('.sidebar a[href^="#"]');
+  var sections = [];
+  links.forEach(function(link) {
+    var id = link.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, link: link });
+  });
+
+  function onScroll() {
+    var scrollY = window.scrollY + 80;
+    var active = null;
+    for (var i = sections.length - 1; i >= 0; i--) {
+      if (sections[i].el.offsetTop <= scrollY) { active = sections[i].link; break; }
+    }
+    links.forEach(function(l) { l.classList.remove('active'); });
+    if (active) active.classList.add('active');
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>
