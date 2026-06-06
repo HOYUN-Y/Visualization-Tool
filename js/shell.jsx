@@ -54,7 +54,7 @@
       <div className="rail">
         {MODES.map((m) => (
           <button key={m.id} className={"rail-item" + (mode === m.id ? " on" : "")}
-            onClick={() => actions.setMode(m.id)} title={m.label}>
+            onClick={() => { actions.setMode(m.id); window.LOG && window.LOG.info('mode', 'Mode switched to ' + m.id); }} title={m.label}>
             <Icon name={m.icon} />
             <span className="lbl">{m.label}</span>
           </button>

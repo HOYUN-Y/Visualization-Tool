@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>INSIGHT Analytics — 세션 로그 뷰어</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root, [data-theme="dark"] {
+  --bg0: #0e0e10; --bg1: #141418; --bg2: #1c1c22; --bg3: #242430;
+  --line: rgba(255,255,255,.09); --line2: rgba(255,255,255,.05);
+  --tx-hi: #eeeef2; --tx-mid: #9999b0; --tx-lo: #5c5c78; --tx-faint: #3a3a50;
+  --accent: #e8611a; --accent-soft: rgba(232,97,26,.15); --accent-line: rgba(232,97,26,.4);
+  --info-bg: rgba(90,138,219,.1); --info-tx: #7aadff; --info-bd: #5a8adb;
+  --warn-bg: rgba(212,160,74,.1); --warn-tx: #d4a04a; --warn-bd: #d4a04a;
+  --err-bg:  rgba(208,80,80,.12); --err-tx:  #ff7070; --err-bd:  #d05050;
+  --ok-bg:   rgba(79,173,136,.1); --ok-tx:   #4fad88; --ok-bd:   #4fad88;
+  --topbar-bg: rgba(14,14,16,.94);
+  --code-bg: #1a1a22; --code-tx: #b0b0d8;
+  --shadow: rgba(0,0,0,.4);
+}
+[data-theme="light"] {
+  --bg0: #f4f4f7; --bg1: #ffffff; --bg2: #f0f0f5; --bg3: #e8e8f0;
+  --line: rgba(0,0,0,.08); --line2: rgba(0,0,0,.04);
+  --tx-hi: #111118; --tx-mid: #444460; --tx-lo: #7a7a95; --tx-faint: #b0b0cc;
+  --accent: #d4560f; --accent-soft: rgba(212,86,15,.1); --accent-line: rgba(212,86,15,.3);
+  --info-bg: rgba(90,138,219,.08); --info-tx: #3a6dbf; --info-bd: #3a6dbf;
+  --warn-bg: rgba(212,160,74,.1);  --warn-tx: #b07020; --warn-bd: #b07020;
+  --err-bg:  rgba(208,80,80,.08);  --err-tx:  #c03030; --err-bd:  #c03030;
+  --ok-bg:   rgba(79,173,136,.08); --ok-tx:   #2e8f6a; --ok-bd:   #2e8f6a;
+  --topbar-bg: rgba(244,244,247,.95);
+  --code-bg: #ededf3; --code-tx: #333355;
+  --shadow: rgba(0,0,0,.1);
+}
+
+:root {
+  --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  --r: 6px; --topbar-h: 52px;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg0); color: var(--tx-mid);
+  font-family: var(--font); font-size: 13px; line-height: 1.6;
+  min-height: 100vh;
+  transition: background .2s, color .2s;
+}
+
+/* ── Topbar ── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--topbar-h);
+  background: var(--topbar-bg); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px; padding: 0 20px;
+  z-index: 100;
+}
+.tb-brand { font-size: 15px; font-weight: 700; color: var(--tx-hi); letter-spacing: .04em; }
+.tb-brand span { color: var(--accent); }
+.tb-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+.tb-sub { font-size: 11px; color: var(--tx-lo); text-transform: uppercase; letter-spacing: .1em; }
+.tb-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: var(--r); border: 1px solid var(--line);
+  background: var(--bg2); color: var(--tx-mid); font-size: 12px; cursor: pointer;
+  transition: all .15s; white-space: nowrap;
+}
+.btn:hover { background: var(--bg3); color: var(--tx-hi); }
+.btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.accent:hover { opacity: .88; }
+.btn.danger { border-color: var(--err-bd); color: var(--err-tx); }
+.btn.danger:hover { background: var(--err-bg); }
+.btn.theme { width: 34px; height: 34px; padding: 0; justify-content: center; border-radius: 50%; }
+
+/* ── Layout ── */
+.page { margin-top: var(--topbar-h); padding: 24px 28px 80px; max-width: 1400px; }
+
+/* ── Summary strip ── */
+.summary {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+}
+.sum-card {
+  background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 12px 18px; min-width: 110px;
+}
+.sum-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--tx-faint); margin-bottom: 4px; }
+.sum-value { font-size: 22px; font-weight: 700; color: var(--tx-hi); font-family: var(--mono); }
+.sum-card.info  { border-color: var(--info-bd);  background: var(--info-bg); }
+.sum-card.warn  { border-color: var(--warn-bd);  background: var(--warn-bg); }
+.sum-card.error { border-color: var(--err-bd);   background: var(--err-bg); }
+
+/* ── Filter bar ── */
+.filters {
+  background: var(--bg1); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  margin-bottom: 16px;
+}
+.filter-label { font-size: 11px; color: var(--tx-faint); text-transform: uppercase; letter-spacing: .08em; }
+.filter-group { display: flex; gap: 6px; align-items: center; }
+.chip {
+  padding: 3px 10px; border-radius: 99px; font-size: 11.5px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg2); color: var(--tx-lo);
+  transition: all .12s;
+}
+.chip:hover { color: var(--tx-hi); }
+.chip.on { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.chip.info-on  { border-color: var(--info-bd);  background: var(--info-bg);  color: var(--info-tx); }
+.chip.warn-on  { border-color: var(--warn-bd);  background: var(--warn-bg);  color: var(--warn-tx); }
+.chip.error-on { border-color: var(--err-bd);   background: var(--err-bg);   color: var(--err-tx); }
+
+.search-wrap { flex: 1; min-width: 180px; }
+.search-inp {
+  width: 100%; padding: 5px 10px; border-radius: var(--r);
+  border: 1px solid var(--line); background: var(--bg2); color: var(--tx-hi);
+  font-family: var(--font); font-size: 12.5px;
+}
+.search-inp:focus { outline: none; border-color: var(--accent-line); }
+.search-inp::placeholder { color: var(--tx-faint); }
+
+.seg { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg select {
+  padding: 4px 8px; border: none; background: var(--bg2); color: var(--tx-mid);
+  font-size: 12px; cursor: pointer;
+}
+.seg select:focus { outline: none; }
+
+/* ── Log table ── */
+.log-wrap {
+  background: var(--bg1); border: 1px solid var(--line); border-radius: var(--r);
+  overflow: hidden;
+}
+.log-header {
+  display: grid; grid-template-columns: 170px 56px 80px 1fr;
+  padding: 7px 14px; background: var(--bg2); border-bottom: 1px solid var(--line);
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--tx-faint);
+}
+.log-body { max-height: 68vh; overflow-y: auto; }
+.log-body::-webkit-scrollbar { width: 4px; }
+.log-body::-webkit-scrollbar-thumb { background: var(--tx-faint); border-radius: 2px; }
+
+.log-row {
+  display: grid; grid-template-columns: 170px 56px 80px 1fr;
+  padding: 6px 14px; border-bottom: 1px solid var(--line2);
+  align-items: start; transition: background .1s; cursor: default;
+}
+.log-row:last-child { border-bottom: none; }
+.log-row:hover { background: rgba(128,128,128,.04); }
+.log-row.INFO  { border-left: 2px solid transparent; }
+.log-row.WARN  { border-left: 2px solid var(--warn-bd); background: var(--warn-bg); }
+.log-row.ERROR { border-left: 2px solid var(--err-bd);  background: var(--err-bg); }
+
+.log-ts   { font-family: var(--mono); font-size: 11px; color: var(--tx-faint); }
+.log-lv   { font-size: 10px; font-weight: 700; letter-spacing: .06em; padding-top: 1px; }
+.log-lv.INFO  { color: var(--info-tx); }
+.log-lv.WARN  { color: var(--warn-tx); }
+.log-lv.ERROR { color: var(--err-tx); }
+.log-cat  { font-size: 11px; color: var(--tx-lo); font-family: var(--mono); padding-top: 1px; }
+.log-msg  { font-size: 12.5px; color: var(--tx-hi); word-break: break-word; }
+.log-data {
+  grid-column: 4; margin-top: 4px;
+  font-family: var(--mono); font-size: 11px; color: var(--code-tx);
+  background: var(--code-bg); border-radius: 4px; padding: 6px 10px;
+  white-space: pre-wrap; word-break: break-all;
+  max-height: 200px; overflow-y: auto;
+}
+
+/* ── Session separator ── */
+.session-sep {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; background: var(--bg2); border-bottom: 1px solid var(--line);
+  font-size: 10.5px; color: var(--tx-faint); font-family: var(--mono);
+}
+.session-sep::before, .session-sep::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+
+/* ── Empty / Loading ── */
+.empty { text-align: center; padding: 60px 20px; color: var(--tx-faint); }
+.empty .big { font-size: 36px; margin-bottom: 12px; }
+
+/* ── AI Export modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.6); z-index: 200;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg1); border: 1px solid var(--line); border-radius: 10px;
+  width: min(700px, 95vw); max-height: 80vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 20px 60px var(--shadow);
+}
+.modal-head {
+  padding: 16px 20px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 10px;
+}
+.modal-head h3 { font-size: 14px; color: var(--tx-hi); flex: 1; }
+.modal-body { padding: 16px 20px; flex: 1; overflow-y: auto; }
+.modal-ta {
+  width: 100%; height: 320px; font-family: var(--mono); font-size: 11.5px;
+  background: var(--code-bg); color: var(--code-tx); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 12px; resize: vertical;
+}
+.modal-foot {
+  padding: 12px 20px; border-top: 1px solid var(--line);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+.hint { font-size: 11.5px; color: var(--tx-faint); margin-bottom: 10px; }
+
+.count-badge {
+  display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px;
+  background: var(--bg3); color: var(--tx-lo); margin-left: 6px; font-family: var(--mono);
+}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="tb-brand">INSIGHT <span>Analytics</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-sub">세션 로그 뷰어</div>
+  <div class="tb-right">
+    <button class="btn" onclick="refreshLogs()">↻ 새로고침</button>
+    <button class="btn" onclick="openAIExport()">AI 분석용 복사</button>
+    <button class="btn" onclick="exportJSON()">JSON 저장</button>
+    <button class="btn" onclick="exportText()">TXT 저장</button>
+    <button class="btn danger" onclick="confirmClear()">로그 초기화</button>
+    <button class="btn theme" id="themeBtn" title="다크/라이트" onclick="toggleTheme()">☀</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="page">
+
+  <!-- Summary -->
+  <div class="summary" id="summary"></div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <span class="filter-label">레벨</span>
+    <div class="filter-group" id="levelFilters">
+      <span class="chip on" data-lv="ALL"   onclick="setLevel('ALL')">전체</span>
+      <span class="chip"    data-lv="INFO"  onclick="setLevel('INFO')">INFO</span>
+      <span class="chip"    data-lv="WARN"  onclick="setLevel('WARN')">WARN</span>
+      <span class="chip"    data-lv="ERROR" onclick="setLevel('ERROR')">ERROR</span>
+    </div>
+    <div class="tb-sep"></div>
+    <span class="filter-label">카테고리</span>
+    <div class="seg">
+      <select id="catFilter" onchange="render()">
+        <option value="">전체</option>
+        <option value="session">session</option>
+        <option value="mode">mode</option>
+        <option value="ml">ml</option>
+        <option value="stats">stats</option>
+        <option value="sql">sql</option>
+        <option value="clean">clean</option>
+        <option value="ai">ai</option>
+        <option value="network">network</option>
+        <option value="error">error</option>
+        <option value="promise">promise</option>
+        <option value="uncaught">uncaught</option>
+      </select>
+    </div>
+    <div class="tb-sep"></div>
+    <span class="filter-label">세션</span>
+    <div class="seg">
+      <select id="sessionFilter" onchange="render()">
+        <option value="">전체 세션</option>
+      </select>
+    </div>
+    <div class="search-wrap">
+      <input class="search-inp" id="searchInp" placeholder="메시지 / 데이터 검색..." oninput="render()" />
+    </div>
+  </div>
+
+  <!-- Log table -->
+  <div class="log-wrap">
+    <div class="log-header">
+      <span>시각</span><span>레벨</span><span>카테고리</span><span>메시지 / 데이터</span>
+    </div>
+    <div class="log-body" id="logBody">
+      <div class="empty"><div class="big">📋</div>로그를 불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Export Modal -->
+<div class="modal-overlay" id="aiModal" onclick="closeIfOverlay(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>AI 분석용 로그 내보내기</h3>
+      <button class="btn" onclick="closeAIModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">아래 텍스트를 복사해서 Claude 또는 다른 AI에 붙여넣으세요. 현재 필터가 적용된 로그를 포함합니다.</p>
+      <textarea class="modal-ta" id="aiTextarea" readonly></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeAIModal()">닫기</button>
+      <button class="btn accent" onclick="copyAIText()">📋 클립보드에 복사</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 상수 & 상태 ──────────────────────────────────────────────
+var STORAGE_KEY = 'insight-session-log';
+var allLogs = [];
+var activeLv = 'ALL';
+
+// ── 로그 읽기 ─────────────────────────────────────────────────
+function loadLogs() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    allLogs = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(allLogs)) allLogs = [];
+  } catch(e) { allLogs = []; }
+}
+
+// ── 세션 목록 갱신 ────────────────────────────────────────────
+function refreshSessionFilter() {
+  var sel = document.getElementById('sessionFilter');
+  var sids = [];
+  allLogs.forEach(function(e) {
+    if (sids.indexOf(e.sid) === -1) sids.push(e.sid);
+  });
+  // 역순 (최신 세션 먼저)
+  sids.reverse();
+  sel.innerHTML = '<option value="">전체 세션 (' + sids.length + ')</option>';
+  sids.forEach(function(sid, i) {
+    var opt = document.createElement('option');
+    opt.value = sid;
+    // 세션 시작 시각 찾기
+    var start = allLogs.find(function(e) { return e.sid === sid && e.cat === 'session'; });
+    var label = start ? (start.ts || '').slice(0,19).replace('T', ' ') : sid;
+    opt.textContent = 'Session ' + (sids.length - i) + ' · ' + label;
+    sel.appendChild(opt);
+  });
+}
+
+// ── 필터 적용 ─────────────────────────────────────────────────
+function filtered() {
+  var lv  = activeLv;
+  var cat = document.getElementById('catFilter').value;
+  var sid = document.getElementById('sessionFilter').value;
+  var q   = (document.getElementById('searchInp').value || '').toLowerCase();
+
+  return allLogs.filter(function(e) {
+    if (lv !== 'ALL' && e.lv !== lv) return false;
+    if (cat && e.cat !== cat) return false;
+    if (sid && e.sid !== sid) return false;
+    if (q) {
+      var haystack = (e.msg + ' ' + JSON.stringify(e.data || '')).toLowerCase();
+      if (haystack.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+}
+
+// ── 요약 카드 ─────────────────────────────────────────────────
+function renderSummary(logs) {
+  var total = allLogs.length;
+  var infos  = allLogs.filter(function(e){ return e.lv==='INFO';  }).length;
+  var warns  = allLogs.filter(function(e){ return e.lv==='WARN';  }).length;
+  var errors = allLogs.filter(function(e){ return e.lv==='ERROR'; }).length;
+  var sids   = [];
+  allLogs.forEach(function(e){ if(sids.indexOf(e.sid)===-1) sids.push(e.sid); });
+
+  var el = document.getElementById('summary');
+  el.innerHTML = [
+    card('전체 로그',   total,        ''),
+    card('세션 수',     sids.length,  ''),
+    card('INFO',        infos,        'info'),
+    card('WARN',        warns,        'warn'),
+    card('ERROR',       errors,       'error'),
+    card('현재 표시',   logs.length,  ''),
+  ].join('');
+}
+function card(label, val, cls) {
+  return '<div class="sum-card ' + cls + '"><div class="sum-label">' + label + '</div><div class="sum-value">' + val + '</div></div>';
+}
+
+// ── 메인 렌더링 ───────────────────────────────────────────────
+function render() {
+  var logs = filtered();
+  renderSummary(logs);
+
+  var body = document.getElementById('logBody');
+  if (logs.length === 0) {
+    body.innerHTML = '<div class="empty"><div class="big">🔍</div>조건에 맞는 로그가 없습니다.</div>';
+    return;
+  }
+
+  var html = '';
+  var prevSid = null;
+
+  logs.forEach(function(e) {
+    // 세션 경계선
+    if (e.sid !== prevSid) {
+      var sidx = allLogs.filter(function(x){ return x.sid === e.sid && x.cat === 'session'; });
+      var label = sidx.length ? sidx[0].ts.slice(0,19).replace('T',' ') + ' · ' + e.sid : e.sid;
+      html += '<div class="session-sep">세션 시작 · ' + escHtml(label) + '</div>';
+      prevSid = e.sid;
+    }
+
+    var tsLocal = formatTs(e.ts);
+    var dataStr = e.data ? JSON.stringify(e.data, null, 2) : '';
+
+    html += '<div class="log-row ' + e.lv + '">';
+    html += '<div class="log-ts">' + escHtml(tsLocal) + '</div>';
+    html += '<div class="log-lv ' + e.lv + '">' + e.lv + '</div>';
+    html += '<div class="log-cat">' + escHtml(e.cat || '') + '</div>';
+    html += '<div>';
+    html += '<div class="log-msg">' + escHtml(e.msg || '') + '</div>';
+    if (dataStr && dataStr !== 'null') {
+      html += '<div class="log-data">' + escHtml(dataStr) + '</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+  });
+
+  body.innerHTML = html;
+}
+
+// ── 레벨 필터 ─────────────────────────────────────────────────
+function setLevel(lv) {
+  activeLv = lv;
+  document.querySelectorAll('#levelFilters .chip').forEach(function(c) {
+    var cls = 'chip';
+    if (c.dataset.lv === lv) {
+      cls += lv === 'INFO' ? ' info-on' : lv === 'WARN' ? ' warn-on' : lv === 'ERROR' ? ' error-on' : ' on';
+    }
+    c.className = cls;
+  });
+  render();
+}
+
+// ── 새로고침 ──────────────────────────────────────────────────
+function refreshLogs() {
+  loadLogs();
+  refreshSessionFilter();
+  render();
+}
+
+// ── 초기화 확인 ───────────────────────────────────────────────
+function confirmClear() {
+  if (confirm('로그를 전부 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+    allLogs = [];
+    refreshSessionFilter();
+    render();
+  }
+}
+
+// ── AI 내보내기 ───────────────────────────────────────────────
+function openAIExport() {
+  var logs = filtered();
+  var lines = [];
+  lines.push('# INSIGHT Analytics Workbench — 세션 로그');
+  lines.push('# 생성: ' + new Date().toISOString());
+  lines.push('# 항목 수: ' + logs.length);
+  lines.push('');
+  lines.push('## 요약');
+
+  var errors = logs.filter(function(e){ return e.lv==='ERROR'; });
+  var warns  = logs.filter(function(e){ return e.lv==='WARN';  });
+  lines.push('- INFO: ' + logs.filter(function(e){ return e.lv==='INFO'; }).length);
+  lines.push('- WARN: ' + warns.length);
+  lines.push('- ERROR: ' + errors.length);
+  lines.push('');
+
+  if (errors.length > 0) {
+    lines.push('## 에러 목록');
+    errors.forEach(function(e) {
+      lines.push('[' + e.ts + '] [' + e.cat + '] ' + e.msg);
+      if (e.data) lines.push('  ' + JSON.stringify(e.data));
+    });
+    lines.push('');
+  }
+
+  lines.push('## 전체 로그');
+  logs.forEach(function(e) {
+    lines.push('[' + e.ts + '] [' + e.lv + '] [' + e.cat + '] ' + e.msg);
+    if (e.data) lines.push('    ' + JSON.stringify(e.data));
+  });
+
+  document.getElementById('aiTextarea').value = lines.join('\n');
+  document.getElementById('aiModal').classList.add('open');
+}
+function closeAIModal() {
+  document.getElementById('aiModal').classList.remove('open');
+}
+function closeIfOverlay(e) {
+  if (e.target === document.getElementById('aiModal')) closeAIModal();
+}
+function copyAIText() {
+  var ta = document.getElementById('aiTextarea');
+  ta.select();
+  try {
+    navigator.clipboard.writeText(ta.value).then(function() {
+      alert('클립보드에 복사되었습니다.');
+    });
+  } catch(e) {
+    document.execCommand('copy');
+    alert('클립보드에 복사되었습니다.');
+  }
+}
+
+// ── 파일 내보내기 ─────────────────────────────────────────────
+function datestamp() {
+  return new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+}
+function downloadBlob(content, fname, type) {
+  var blob = new Blob([content], {type: type});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+}
+function exportJSON() {
+  downloadBlob(JSON.stringify(filtered(), null, 2), 'insight-log-' + datestamp() + '.json', 'application/json');
+}
+function exportText() {
+  var lines = filtered().map(function(e) {
+    var l = '[' + e.ts + '] [' + e.lv + '] [' + e.cat + '] ' + e.msg;
+    if (e.data) l += '\n    ' + JSON.stringify(e.data);
+    return l;
+  });
+  downloadBlob(lines.join('\n'), 'insight-log-' + datestamp() + '.txt', 'text/plain');
+}
+
+// ── 테마 ──────────────────────────────────────────────────────
+function toggleTheme() {
+  var th = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', th);
+  document.getElementById('themeBtn').textContent = th === 'dark' ? '☀' : '☾';
+  try { localStorage.setItem('insight-log-theme', th); } catch(e) {}
+}
+(function(){
+  try {
+    var t = localStorage.getItem('insight-log-theme');
+    if (t) {
+      document.documentElement.setAttribute('data-theme', t);
+      document.getElementById('themeBtn').textContent = t === 'dark' ? '☀' : '☾';
+    }
+  } catch(e) {}
+})();
+
+// ── 유틸 ──────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function formatTs(iso) {
+  if (!iso) return '';
+  try {
+    var d = new Date(iso);
+    var pad = function(n){ return String(n).padStart(2,'0'); };
+    return d.getFullYear() + '-' +
+      pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' +
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  } catch(e) { return iso.slice(0,19); }
+}
+
+// ── 자동 새로고침 (10초) ──────────────────────────────────────
+setInterval(function() {
+  loadLogs();
+  refreshSessionFilter();
+  render();
+}, 10000);
+
+// ── 초기 실행 ─────────────────────────────────────────────────
+refreshLogs();
+</script>
+</body>
+</html>

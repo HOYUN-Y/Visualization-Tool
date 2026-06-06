@@ -136,7 +136,12 @@ LIMIT 10`;
     const [sql, setSql] = React.useState(DEFAULT_SQL);
     const [result, setResult] = React.useState(() => runSQL(DEFAULT_SQL));
     const taRef = React.useRef(null);
-    const run = () => setResult(runSQL(sql));
+    const run = () => {
+      window.LOG && window.LOG.info('sql', 'SQL executed', { sql: sql.trim().slice(0, 300) });
+      const res = runSQL(sql);
+      if (res.error) window.LOG && window.LOG.warn('sql', 'SQL error: ' + res.error, { sql: sql.trim().slice(0, 300) });
+      setResult(res);
+    };
     React.useEffect(() => { window.__sqlSet = (q) => setSql(q); return () => { delete window.__sqlSet; }; }, []);
     const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); run(); } };
 

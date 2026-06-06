@@ -275,17 +275,24 @@
     const featPool = numCols.filter((c) => c.key !== cfg.target);
 
     const train = () => {
-      let result;
       const feats = cfg.feats.filter((f) => featPool.find((c) => c.key === f));
-      if (cfg.task === "reg") result = regression(rows, cfg.target, feats, cfg.split);
-      else if (cfg.task === "clf") result = classification(rows, cfg.target, feats, cfg.split, cfg.k);
-      else result = kmeans(rows, feats.length >= 2 ? feats : numCols.slice(0, 2).map((c) => c.key), cfg.K);
+      window.LOG && window.LOG.info('ml', 'Train started', { task: cfg.task, target: cfg.target, feats, rows: rows.length });
+      let result;
+      try {
+        if (cfg.task === "reg") result = regression(rows, cfg.target, feats, cfg.split);
+        else if (cfg.task === "clf") result = classification(rows, cfg.target, feats, cfg.split, cfg.k);
+        else result = kmeans(rows, feats.length >= 2 ? feats : numCols.slice(0, 2).map((c) => c.key), cfg.K);
+      } catch (err) {
+        window.LOG && window.LOG.error('ml', 'Train failed: ' + err.message, { task: cfg.task, target: cfg.target, feats, stack: err.stack });
+        throw err;
+      }
 
       // push to history
       const score = result.kind === "reg" ? result.r2.toFixed(3)
         : result.kind === "clf" ? (result.acc * 100).toFixed(1) + "%"
         : result.inertia.toLocaleString();
       pushHistory({ task: cfg.task, target: cfg.target || null, feats, score, kind: result.kind });
+      window.LOG && window.LOG.info('ml', 'Train completed', { task: cfg.task, target: cfg.target, score, feats });
 
       actions.setUI({ ml: { ...cfg, result } });
     };

@@ -126,6 +126,7 @@
     const send = (q) => {
       if (!q.trim()) return;
       const intent = interpret(q);
+      window.LOG && window.LOG.info('ai', 'Ask Insight query', { q: q.trim(), intent: intent.kind });
       const res = runIntent(intent.kind, intent.tab);
       setLog((l) => [...l, { role: "user", text: q }, { role: "ai", text: res.text }]);
       setInput("");

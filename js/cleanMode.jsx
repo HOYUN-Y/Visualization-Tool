@@ -98,7 +98,10 @@
 
     React.useEffect(() => { if (!columns.find((c) => c.key === col)) setCol(columns[0] && columns[0].key); }, [activeId]);
 
-    const add = (op, params) => actions.addStep({ op, col, params });
+    const add = (op, params) => {
+      window.LOG && window.LOG.info('clean', 'Clean step added', { op, col, params });
+      actions.addStep({ op, col, params });
+    };
     const isNum = selCol && isNumType(selCol.type);
 
     return (
