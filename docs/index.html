@@ -1483,15 +1483,90 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
         </table>
       </div>
 
-      <h3>🔲 Phase 2 — 실사용 편의 기능 (예정)</h3>
+      <h3>✅ Phase 1.6 — Map 강화 (완료)</h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>항목</th><th>내용</th><th>난이도</th></tr></thead>
+          <thead><tr><th>항목</th><th>내용</th><th>관련 파일</th></tr></thead>
           <tbody>
-            <tr><td>파일 업로드</td><td>CSV / XLSX FileReader API 파싱 → <code>window.NODE.datasets</code> 주입</td><td><span class="tag accent">중</span></td></tr>
-            <tr><td>데이터 영속성</td><td>작업 상태(Store snapshot)를 localStorage에 직렬화/복원</td><td><span class="tag warn">고</span></td></tr>
-            <tr><td>Chart Recommendation</td><td>컬럼 카디널리티·타입 분석 후 최적 차트 제안</td><td><span class="tag accent">중</span></td></tr>
-            <tr><td>Export</td><td>차트 PNG (<code>echarts.getDataURL</code>), 보고서 PDF, 결과 CSV</td><td><span class="tag accent">중</span></td></tr>
+            <tr><td>Export / Import</td><td>차트 PNG (<code>echarts.getDataURL</code>), 현재 데이터 CSV 내보내기, CSV/JSON 파일 드래그앤드롭 임포트</td><td><code>js/shell.jsx</code>, <code>js/charts.jsx</code></td></tr>
+            <tr><td>World · GDP 탭</td><td>ECharts v4 CDN world.json 로드, 30개국 GDP/인구/성장률 choropleth</td><td><code>js/mapMode.jsx</code></td></tr>
+            <tr><td>Korea · 행정구역 탭</td><td>Highcharts map-collection GeoJSON (UTM52N 투영), 17 시도 choropleth + 84 시군구 버블맵, WGS84→HC 좌표 변환 함수 내장</td><td><code>js/mapMode.jsx</code>, <code>js/data.js</code></td></tr>
+            <tr><td>내 데이터 모드</td><td>임포트 데이터의 위경도 컬럼 자동 감지(lat/lon/위도/경도 패턴), 컬럼 선택 드롭다운, 한국 영역 좌표 필터링</td><td><code>js/mapMode.jsx</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>🔲 Phase 2 — 브라우저 단독 구현 가능 (예정)</h3>
+      <p>순수 JS로 구현 가능. 백엔드 불필요. 데이터 규모 ~10k 행까지 실용적.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>카테고리</th><th>항목</th><th>우선순위</th><th>배치 모드</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="4"><b>데이터 전처리</b><br/>(Clean 모드 확장)</td><td>Formula Column — JS 수식으로 파생 컬럼 생성</td><td><span class="tag warn">최우선</span></td><td>Clean</td></tr>
+            <tr><td>Dummy / Label Encoding</td><td><span class="tag warn">최우선</span></td><td>Clean</td></tr>
+            <tr><td>Standardization / Normalization (Z-Score, Min-Max)</td><td><span class="tag warn">최우선</span></td><td>Clean</td></tr>
+            <tr><td>Log / Box-Cox / Rank / Binning / Winsorizing</td><td><span class="tag accent">중요</span></td><td>Clean</td></tr>
+            <tr><td rowspan="4"><b>ML 모델 확장</b></td><td>Logistic Regression (단변량 / 다변량)</td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
+            <tr><td>Decision Tree, Naive Bayes</td><td><span class="tag accent">중요</span></td><td>ML</td></tr>
+            <tr><td>Confusion Matrix, ROC/AUC, Precision-Recall, Lift/Gain/KS Chart</td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
+            <tr><td>Feature Importance, Cross Validation (소규모)</td><td><span class="tag accent">중요</span></td><td>ML</td></tr>
+            <tr><td rowspan="2"><b>차원축소</b></td><td>PCA + Biplot + Scree Plot (순수 JS SVD)</td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
+            <tr><td>Factor Analysis</td><td><span class="tag ok">보통</span></td><td>Stats</td></tr>
+            <tr><td rowspan="3"><b>차트 확장</b><br/>(Chart 모드)</td><td>Auto Chart Recommendation (컬럼 타입 규칙 기반)</td><td><span class="tag accent">중요</span></td><td>Chart</td></tr>
+            <tr><td>Parallel Coordinates (ECharts parallel series 내장)</td><td><span class="tag accent">중요</span></td><td>Chart</td></tr>
+            <tr><td>Mosaic Plot, Pair Plot, Contour Plot, Bubble Matrix</td><td><span class="tag ok">보통</span></td><td>Chart</td></tr>
+            <tr><td rowspan="3"><b>분포 플랫폼</b><br/>(Stats 모드)</td><td>QQ Plot, Normal Fit</td><td><span class="tag accent">중요</span></td><td>Stats</td></tr>
+            <tr><td>Multi Variable Distribution View</td><td><span class="tag accent">중요</span></td><td>Stats</td></tr>
+            <tr><td>Outlier Visualization (Tukey 방식 박스플롯 강화)</td><td><span class="tag ok">보통</span></td><td>Stats</td></tr>
+            <tr><td rowspan="2"><b>시계열 기초</b><br/>(Stats 모드)</td><td>Moving Average, Exponential Smoothing, Seasonal Decomposition</td><td><span class="tag accent">중요</span></td><td>Stats</td></tr>
+            <tr><td>ACF / PACF (자기상관함수)</td><td><span class="tag accent">중요</span></td><td>Stats</td></tr>
+            <tr><td rowspan="2"><b>품질관리 SPC</b><br/>(신규 탭)</td><td>Control Charts — X-Bar, R, S, P, C, U Chart</td><td><span class="tag accent">중요</span></td><td>Stats 신규탭</td></tr>
+            <tr><td>Pareto Chart, Process Capability (Cp / Cpk / Pp / Ppk)</td><td><span class="tag accent">중요</span></td><td>Stats 신규탭</td></tr>
+            <tr><td rowspan="2"><b>군집 확장</b></td><td>Hierarchical Clustering + Dendrogram (&lt;5k 행)</td><td><span class="tag accent">중요</span></td><td>ML</td></tr>
+            <tr><td>DBSCAN (&lt;5k 행)</td><td><span class="tag ok">보통</span></td><td>ML</td></tr>
+            <tr><td rowspan="3"><b>고급 통계</b></td><td>Stepwise Regression, Variable Selection</td><td><span class="tag ok">보통</span></td><td>Stats</td></tr>
+            <tr><td>ANCOVA, Bootstrap</td><td><span class="tag ok">보통</span></td><td>Stats</td></tr>
+            <tr><td>Survival Analysis — Kaplan-Meier</td><td><span class="tag ok">보통</span></td><td>Stats</td></tr>
+            <tr><td rowspan="2"><b>DOE 기초</b><br/>(신규 탭)</td><td>Full / Fractional Factorial, CCD (Box-Behnken), Taguchi</td><td><span class="tag ok">보통</span></td><td>신규 DOE 탭</td></tr>
+            <tr><td>Prediction Profiler (모델 변수 인터랙티브 슬라이더)</td><td><span class="tag ok">보통</span></td><td>ML</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>⚠️ Phase 2 — 브라우저 가능하나 데이터 규모 제한</h3>
+      <p>구현은 가능하나 <b>5k 행 초과 시 실용성 저하</b>. 경고 메시지와 함께 제한적으로 지원.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>기능</th><th>제한 이유</th><th>실용 상한</th></tr></thead>
+          <tbody>
+            <tr><td>Random Forest</td><td>다수 트리 = O(n·d·T) CPU</td><td>~5k 행, 트리 10개 이하</td></tr>
+            <tr><td>DBSCAN</td><td>O(n²) naive 구현</td><td>~5k 행</td></tr>
+            <tr><td>t-SNE</td><td>반복 최적화 매우 느림</td><td>~3k 행</td></tr>
+            <tr><td>Gaussian Mixture Model</td><td>EM 수렴 반복 느림</td><td>~5k 행</td></tr>
+            <tr><td>Neural Network</td><td>TF.js CDN ~1.5MB 추가 로딩 필요</td><td>소규모 레이어 구조만</td></tr>
+            <tr><td>Pair Plot</td><td>d² 개 차트 동시 렌더링</td><td>~15 컬럼 이하</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>❌ Phase 3 이후 — 브라우저 단독 불가</h3>
+      <p>백엔드(Python / WASM) 또는 네이티브 라이브러리가 필요한 항목. Phase 3 FastAPI 전환 후 구현 가능.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>기능</th><th>불가 이유</th></tr></thead>
+          <tbody>
+            <tr><td>XGBoost / LightGBM</td><td>C++ 네이티브, 순수 JS 구현 없음</td></tr>
+            <tr><td>SVM</td><td>Quadratic Programming solver 필요 — JS 구현 없음</td></tr>
+            <tr><td>UMAP</td><td>신뢰할 수 있는 CDN 없음, 계산 비용 과대</td></tr>
+            <tr><td>SOM (Self Organizing Map)</td><td>복잡한 구현, JS 라이브러리 미성숙, CDN 없음</td></tr>
+            <tr><td>ARIMA / SARIMA</td><td>MLE 최적화 수치 불안정 — JS 생태계 미성숙, Box-Jenkins 식별 자동화 어려움</td></tr>
+            <tr><td>Prophet</td><td>Facebook Python/Stan 전용 — JS 포팅 없음</td></tr>
+            <tr><td>Bayesian Analysis (MCMC)</td><td>Markov Chain 샘플링 비용 — 브라우저에서 수분~수십분 소요</td></tr>
+            <tr><td>DOE Custom Design (D-optimal)</td><td>Coordinate Exchange 알고리즘 = 복잡 수치 최적화, 수렴 보장 어려움</td></tr>
+            <tr><td>Cox Proportional Hazards</td><td>Partial likelihood 최적화 복잡 — 생존분석 심화</td></tr>
+            <tr><td>Gradient Boosting (pure JS)</td><td>대용량 데이터 시 너무 느림 — XGBoost 없이 의미 없음</td></tr>
+            <tr><td>MANOVA</td><td>다변량 행렬 연산 + Wilks' Lambda 등 검정 — 순수 JS 구현 부재</td></tr>
           </tbody>
         </table>
       </div>
@@ -1504,7 +1579,8 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
             <tr><td>Frontend</td><td>React 18 UMD + Babel Standalone</td><td>Next.js + TypeScript + TailwindCSS + shadcn/ui</td></tr>
             <tr><td>상태 관리</td><td><code>window.Store</code> (커스텀 훅)</td><td>Zustand + TanStack Table + dnd-kit</td></tr>
             <tr><td>데이터 엔진</td><td>브라우저 내 순수 JS</td><td>FastAPI + DuckDB + Polars + Pandas</td></tr>
-            <tr><td>ML</td><td>커스텀 OLS/k-NN/KMeans</td><td>scikit-learn + statsmodels</td></tr>
+            <tr><td>ML</td><td>커스텀 OLS/k-NN/KMeans</td><td>scikit-learn + statsmodels + XGBoost</td></tr>
+            <tr><td>시계열</td><td>Moving Average (Phase 2 구현 예정)</td><td>Prophet + statsmodels ARIMA + NeuralProphet</td></tr>
             <tr><td>AI</td><td>규칙 기반 Insight Engine</td><td>OpenAI API / Ollama / LM Studio 연동</td></tr>
             <tr><td>워크플로우</td><td>단일 페이지</td><td>노드 기반 Analysis Pipeline Builder</td></tr>
           </tbody>
