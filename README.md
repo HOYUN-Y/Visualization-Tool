@@ -15,17 +15,49 @@
 
 ## 브랜드 아이덴티티
 
+> 상세 브랜드 스펙: [`docs/insight_Analytics_Brand_Spec_standalone.html`](docs/insight_Analytics_Brand_Spec_standalone.html)
+
+### 워드마크
+
 로고는 **`in`** + **`sight`** + ` Analytics` 세 요소로 구성됩니다.
 
 | 구성 | 색상 | 역할 |
 |---|---|---|
-| `in` | 기본 텍스트 (흰/다크) | 조용히 시작하는 전치사, 소문자로 겸손하게 |
-| `sight` | `#e8611a` 주황 | 브랜드 핵심 — 시각·통찰·발견 |
-| ` Analytics` | 흐린 회색 (소자 크기) | 기능 설명, 배경으로 물러남 |
+| `in` | `tx-hi` (흰/다크, `#E9EAEC`) | 조용히 시작하는 전치사 — 소문자로 겸손하게 |
+| `sight` | **Heritage Orange** `#E8611A` | 브랜드 핵심 — 시각·통찰·발견 |
+| ` Analytics` | `tx-faint` `#6E6E86` · `0.62em` | 기능 설명 — 배경으로 물러남 |
 
-> **컨셉:** "보다(See)"의 핵심 단어 **sight**를 주황으로 강조해 *데이터를 꿰뚫어 보는 시각*이라는 의미를 직관적으로 전달합니다.  
-> 소문자 로고타입은 부드럽고 현대적인 인상을 주며, `sight`의 주황만이 시선을 사로잡습니다.  
-> 주황(`#e8611a`)은 UI 전체의 accent 색이기도 하며, 경고·오류가 아닌 **집중·인사이트·발견**의 색으로 사용됩니다.
+**워드마크 HTML (표준 표기):**
+```html
+<span style="color:#E9EAEC">in</span><span style="color:#E8611A">sight</span><span style="color:#6E6E86;font-size:.62em"> Analytics</span>
+```
+
+**컴팩트 (좁은 공간):** `insight` — Analytics 생략  
+**단색/워터마크:** `insight Analytics` — 단일 색상
+
+### 브랜드 컬러
+
+| 이름 | 값 | 용도 |
+|---|---|---|
+| **Heritage Orange** | `#E8611A` / `oklch(0.70 0.17 47)` | 기본 accent · `sight` · 집중/발견 |
+| Orange Hi | `oklch(0.80 0.14 55)` | hover · 강조 텍스트 |
+| Orange Soft | `oklch(0.72 0.17 48 / .16)` | 선택 배경 · 뱃지 · 액티브 칩 |
+
+### 타이포그래피
+
+| 역할 | 폰트 | 굵기 |
+|---|---|---|
+| UI 전반 · 워드마크 · 본문 | IBM Plex Sans / IBM Plex Sans KR | 400 / 500 / 600 / 700 |
+| 수치 · 코드 · 토큰 · 필드 키 | IBM Plex Mono | tabular-nums |
+
+### 제품군
+
+| 제품 | 색상 | 역할 |
+|---|---|---|
+| **insight Analytics** Workbench | 🟠 주황 (sight) | 분석 · 시각화 |
+| insight **Data** hub | 🔵 블루 `#3F74E8` | 데이터 수집 · 공급 |
+
+> **컨셉:** "보다(See)"의 핵심 단어 **sight**를 주황으로 강조해 *데이터를 꿰뚫어 보는 시각*이라는 의미를 직관적으로 전달합니다. 소문자 워드마크는 부드럽고 현대적인 인상을 주며, `sight`의 주황만이 시선을 사로잡습니다.
 
 ---
 
