@@ -1,6 +1,6 @@
 # CHANGELOG
 
-All notable changes to INSIGHT Analytics Workbench are documented here.
+All notable changes to insight Analytics Workbench are documented here.
 
 ---
 
@@ -11,6 +11,43 @@ All notable changes to INSIGHT Analytics Workbench are documented here.
 - Logistic Regression, ROC/AUC, Confusion Matrix
 - SPC Control Charts (X-Bar/R/S/P/C/U), Process Capability (Cp/Cpk)
 - Moving Average, Exponential Smoothing, ACF/PACF
+
+---
+
+## [1.8.0] — 2026-06-07 — 브랜드 아이덴티티 정립 (Brand Spec v1.0)
+
+### Changed
+
+#### 워드마크 소문자화 (전 파일)
+- `INSIGHT Analytics` → `insight Analytics` — 소문자 워드마크로 전환
+  - `in` (tx-hi) + `sight` (Heritage Orange `#E8611A`) + ` Analytics` (tx-faint `#6E6E86`, 0.62em)
+  - 로딩 화면(`index.html` `.nl-name`), TopBar(`js/shell.jsx`), 문서 topbar-brand 모두 반영
+
+#### 로고 시스템 (`docs/logo.svg` · `css/app.css`)
+- `docs/logo.svg`: 폰트 → IBM Plex Sans, Analytics 크기 16px → 20px(0.62em), 색상 → `#6E6E86`
+- `css/app.css`: `.logo-an` — `font-size: 0.62em` (비율 기준), `color: var(--tx-faint)` (스펙 정정)
+- `css/tokens.css`: 헤더 주석 `NØDE` → `insight Analytics`, Heritage Orange oklch 값 명시
+
+#### 로고 마크업 분리 (`js/shell.jsx`)
+- TopBar 로고: `.logo-in` / `.logo-sight { color:var(--accent) }` / `.logo-an` 세 span 구조
+- `text-transform: uppercase` 제거
+
+### Added
+
+#### Brand Spec 문서 (`docs/insight_Analytics_Brand_Spec_standalone.html`)
+- 브랜드 스펙 단독 실행 HTML 파일 추가 (외부 의존 없음, v1.0 · 2026-06)
+- 워드마크 3종(표준/컴팩트/단색), 로고마크, 브랜드 컬러, 타이포그래피, 제품군 관계, 복사용 CSS 토큰 포함
+
+#### 브랜드 섹션 전면 갱신 (README · docs)
+- `README.md`: 워드마크 HTML 스니펫, Heritage Orange 컬러표, 타이포그래피표, 제품군표 추가
+- `docs/index.html`: 워드마크 4열 표(토큰/실제값), 컬러표(Heritage Orange/Hi/Soft/Hub Blue), 제품군표, HTML 코드 예시 추가
+- `docs/user-guide.html`: 동일 구조로 사용자 관점 재작성, Analytics 색상 `tx-lo` → `tx-faint` 정정
+
+### Technical Notes
+- **Heritage Orange**: `#E8611A` / `oklch(0.70 0.17 47)` — 기본 accent · `sight` 강조색
+- **형제 제품**: insight Data hub — Hub Blue `#3F74E8` / `oklch(0.62 0.15 250)` (참조용)
+- **Analytics 크기**: 워드마크 기준 0.62em — 이전 구현(0.5em) 대비 스펙 준수
+- `index.html` 스크립트 태그 전체에 `?v=170` 캐시 버스팅 쿼리 추가 (v1.7.0 포함 사항)
 
 ---
 
