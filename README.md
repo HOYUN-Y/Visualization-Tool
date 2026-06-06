@@ -5,7 +5,7 @@
 > Tableau의 시각화 + Power BI의 대시보드 + JMP의 통계 + Orange의 분석 흐름 + ChatGPT의 자연어 인터페이스를  
 > 하나의 로컬 웹 애플리케이션으로 통합한 개인용 데이터 분석 플랫폼
 
-![Status](https://img.shields.io/badge/Phase-1%20Complete-brightgreen)
+![Status](https://img.shields.io/badge/Phase-2%20JMP%20Complete-brightgreen)
 ![Stack](https://img.shields.io/badge/Stack-React%2018%20%2B%20ECharts%205-blue)
 ![No Build](https://img.shields.io/badge/Build-None%20(Browser--only)-lightgrey)
 
