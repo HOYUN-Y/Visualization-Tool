@@ -141,14 +141,20 @@ open http://localhost:8742
 - Map 모드 — Korea · 행정구역 탭 (시도 choropleth + 시군구 버블맵, WGS84→UTM52N 좌표 변환)
 - Map 모드 — 내 데이터 모드 (위경도 컬럼 자동 감지, 임포트 데이터를 지도에 직접 표시)
 
-### 🔲 Phase 2 — 브라우저 단독 구현 가능 (예정)
+### ✅ Phase 2 (1차) — Clean 모드 전처리 강화 (완료)
+- **Encoding**: Label Encode (문자→정수), Dummy Encode (One-Hot 0/1 컬럼)
+- **수치 변환**: Z-Score 표준화, Min-Max 정규화, Log(1+x), 순위(Rank)
+- **Outlier 처리**: Winsorize (상하 p% 클리핑), Binning (등폭 구간 범주화)
+- **Formula Column**: JS 수식으로 파생 컬럼 생성 (`row` 객체 + `Math.*` 접근)
+- 모든 op 파이프라인 Undo/Redo 지원
+
+### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
 
 > 순수 JS로 구현 가능. 백엔드 불필요. 데이터 규모 ~10k 행까지 실용적.
 
-**[최우선] 데이터 전처리 강화 (Clean 모드)**
-- Formula Column (JS 수식으로 파생 컬럼 생성)
-- Dummy / Label Encoding, Standardization, Normalization
-- Log / Box-Cox / Rank / Binning / Winsorizing Transformation
+**[최우선] ML 모델 확장 및 고급 전처리**
+- Box-Cox Transformation (lambda 최적화)
+- ~~Formula Column~~ ✅ ~~Dummy / Label Encoding~~ ✅ ~~Standardization / Normalization~~ ✅ ~~Log / Rank / Binning / Winsorizing~~ ✅
 
 **[최우선] ML 모델 확장**
 - Logistic Regression, Decision Tree, Naive Bayes
