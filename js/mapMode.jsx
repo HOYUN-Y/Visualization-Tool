@@ -228,12 +228,41 @@
     return [(easting-xoff)*sf+mX, mY+(northing-yoff)*sf];
   }
 
+  // Detect lat/lon/value columns from a dataset's column list
+  function detectGeoColumns(columns) {
+    const latPat = /^(lat|latitude|위도|y|y_coord|lat_y)$/i;
+    const lonPat = /^(lon|lng|longitude|경도|x|x_coord|lon_x|long)$/i;
+    const latCol = columns.find((c) => latPat.test(c.key));
+    const lonCol = columns.find((c) => lonPat.test(c.key));
+    const valCols = columns.filter((c) => c.type === "float" || c.type === "integer")
+      .filter((c) => c.key !== latCol?.key && c.key !== lonCol?.key);
+    return { latCol: latCol?.key || null, lonCol: lonCol?.key || null, valCols };
+  }
+
   function KoreaMapCenter() {
     const theme = useStore((s) => s.theme);
-    const [level, setLevel] = React.useState("province");  // "province" | "municipality"
+    const activeId = useStore((s) => s.activeId);
+    const [level, setLevel] = React.useState("province");  // "province" | "municipality" | "custom"
     const [metric, setMetric] = React.useState("pop_man");
     const [provGeo, setProvGeo] = React.useState(_koreaProvState);
     const [selProv, setSelProv] = React.useState(null);
+    // custom data controls
+    const [customLatCol, setCustomLatCol] = React.useState(null);
+    const [customLonCol, setCustomLonCol] = React.useState(null);
+    const [customValCol, setCustomValCol] = React.useState(null);
+    const [customLabelCol, setCustomLabelCol] = React.useState(null);
+
+    // Check active dataset for lat/lon columns → auto-suggest "내 데이터" mode
+    const { ds: activeDs, rows: activeRows } = derive.getActiveData(activeId);
+    const geoDetect = React.useMemo(() => detectGeoColumns(activeDs.columns || []), [activeId]);
+    const hasGeoData = !!(geoDetect.latCol && geoDetect.lonCol);
+
+    // Auto-populate column selectors when switching to custom or dataset changes
+    React.useEffect(() => {
+      if (geoDetect.latCol)  setCustomLatCol(geoDetect.latCol);
+      if (geoDetect.lonCol)  setCustomLonCol(geoDetect.lonCol);
+      if (geoDetect.valCols.length) setCustomValCol(geoDetect.valCols[0].key);
+    }, [activeId]);
 
     const metrics = level === "province" ? KOREA_PROV_METRICS : KOREA_MUN_METRICS;
     const m = metrics.find((x) => x.k === metric) || metrics[0];
@@ -337,7 +366,58 @@
       }]
     } : null;
 
-    const option = level === "province" ? provOption : munOption;
+    // ── Custom (사용자 데이터) option ──────────────────────────────────
+    const customOption = React.useMemo(() => {
+      if (provGeo !== "ok" || level !== "custom") return null;
+      if (!customLatCol || !customLonCol) return null;
+      const validRows = activeRows.filter((r) => {
+        const lat = r[customLatCol], lon = r[customLonCol];
+        return typeof lat === "number" && typeof lon === "number"
+          && lat >= 33 && lat <= 39 && lon >= 124 && lon <= 132; // Korea bounds
+      });
+      if (!validRows.length) return null;
+      const vals = customValCol ? validRows.map((r) => r[customValCol]).filter((v) => v != null) : [];
+      const vMin = vals.length ? Math.min(...vals) : 0;
+      const vMax = vals.length ? Math.max(...vals) : 1;
+      const szFn = vals.length
+        ? (v) => 6 + ((v - vMin) / (vMax - vMin + 1)) * 26
+        : () => 10;
+      const strCols = (activeDs.columns || []).filter((c) => c.type === "string");
+      const labelKey = customLabelCol || strCols[0]?.key || null;
+      return {
+        animation: false,
+        tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
+          formatter: (p) => {
+            const r = validRows[p.dataIndex]; if (!r) return p.name;
+            const label = labelKey ? r[labelKey] : `행 ${p.dataIndex+1}`;
+            const valLine = customValCol ? `<br/>${customValCol}: <b>${NODE.fmtNum(r[customValCol],1)}</b>` : "";
+            return `<b>${label}</b><br/>위도 ${r[customLatCol].toFixed(4)} / 경도 ${r[customLonCol].toFixed(4)}${valLine}`;
+          }
+        },
+        ...(vals.length ? { visualMap: { min: vMin, max: vMax, calculable: true, left:12, bottom:18, orient:"vertical",
+          itemHeight:120, text:[NODE.fmtNum(vMax,0), NODE.fmtNum(vMin,0)],
+          textStyle:{ color:c.text, fontSize:10 },
+          inRange:{ color:[Charts.resolveVar("--bg-3"), pal[0]] }, dimension: 2 } } : {}),
+        geo: { map: "korea_prov", roam: true, scaleLimit: { min:1, max:20 },
+          itemStyle: { areaColor: Charts.resolveVar("--bg-2"), borderColor: c.split, borderWidth: 0.5 },
+          emphasis: { disabled: true } },
+        series: [{
+          type: "scatter", coordinateSystem: "geo",
+          symbolSize: (val) => szFn(val[2]),
+          data: validRows.map((r) => {
+            const hc = wgs84ToHCKorea(r[customLonCol], r[customLatCol]);
+            return { value: [hc[0], hc[1], customValCol ? r[customValCol] : 0] };
+          }),
+          label: { show: validRows.length <= 50 && !!labelKey, formatter: (p) => {
+            const r = validRows[p.dataIndex]; return labelKey && r ? String(r[labelKey]) : "";
+          }, position: "right", color: c.text, fontSize: 9 },
+          itemStyle: { color: pal[0], opacity: 0.8, borderColor: c.bg, borderWidth: 1 },
+          encode: { value: 2 },
+        }]
+      };
+    }, [provGeo, level, activeId, customLatCol, customLonCol, customValCol, customLabelCol, theme]);
+
+    const option = level === "province" ? provOption : level === "custom" ? customOption : munOption;
     const geoReady = provGeo === "ok";
     const geoLoading = provGeo === "idle";
     const provList = provRows;
@@ -346,36 +426,71 @@
       ? { click: (p) => { if (p.name) { setSelProv(p.name); setLevel("municipality"); } } }
       : {};
 
+    const numCols = (activeDs.columns || []).filter((c) => c.type === "float" || c.type === "integer");
+    const strCols = (activeDs.columns || []).filter((c) => c.type === "string");
+    const allCols = activeDs.columns || [];
+    const selStyle = { fontSize:11, background:"var(--bg-2)", color:"var(--tx-mid)", border:"1px solid var(--line-strong)", borderRadius:"var(--r-sm)", padding:"2px 6px", cursor:"pointer" };
+
     return (
       <React.Fragment>
         <div className="phead">
           <span className="ttl" style={{ textTransform:"none", fontSize:"var(--fs-13)", letterSpacing:0, color:"var(--tx-hi)" }}>
             <Icon name="map" size={14} style={{ verticalAlign:"-2px", marginRight:6, color:"var(--accent)" }} />
-            Korea · {level === "province" ? "시도 (17)" : selProv ? selProv+" 시군구" : "시군구 전체"}
+            Korea · {level === "province" ? "시도 (17)" : level === "custom" ? "내 데이터" : selProv ? selProv+" 시군구" : "시군구 전체"}
           </span>
           <div className="seg" style={{ marginLeft:6 }}>
             <button className={level==="province"?"on":""} onClick={() => { setLevel("province"); setSelProv(null); }}>시도</button>
             <button className={level==="municipality"?"on":""} onClick={() => setLevel("municipality")}>시군구</button>
+            <button className={level==="custom"?"on":""} onClick={() => setLevel("custom")}
+              title={hasGeoData ? `${activeDs.short}에 위경도 컬럼 감지됨` : "위경도 컬럼이 있는 데이터셋을 임포트하면 활성화됩니다"}
+              style={{ color: hasGeoData ? "var(--accent)" : undefined }}>
+              내 데이터{hasGeoData ? " ✦" : ""}
+            </button>
           </div>
           <div className="spacer" />
           {level === "municipality" && (
-            <select value={selProv||""} onChange={(e) => setSelProv(e.target.value||null)}
-              style={{ fontSize:11, background:"var(--bg-2)", color:"var(--tx-mid)", border:"1px solid var(--line-strong)",
-                borderRadius:"var(--r-sm)", padding:"2px 6px", marginRight:6, cursor:"pointer" }}>
+            <select value={selProv||""} onChange={(e) => setSelProv(e.target.value||null)} style={{ ...selStyle, marginRight:6 }}>
               <option value="">전체 시도</option>
               {provList.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
             </select>
           )}
-          <div className="seg">
-            {metrics.map((x) => <button key={x.k} className={metric===x.k?"on":""} onClick={() => setMetric(x.k)}>{x.label}</button>)}
-          </div>
+          {level === "custom" ? (
+            <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
+              <span style={{ fontSize:10, color:"var(--tx-faint)" }}>위도</span>
+              <select value={customLatCol||""} onChange={(e) => setCustomLatCol(e.target.value||null)} style={selStyle}>
+                <option value="">— 선택 —</option>
+                {allCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+              <span style={{ fontSize:10, color:"var(--tx-faint)" }}>경도</span>
+              <select value={customLonCol||""} onChange={(e) => setCustomLonCol(e.target.value||null)} style={selStyle}>
+                <option value="">— 선택 —</option>
+                {allCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+              <span style={{ fontSize:10, color:"var(--tx-faint)" }}>값</span>
+              <select value={customValCol||""} onChange={(e) => setCustomValCol(e.target.value||null)} style={selStyle}>
+                <option value="">없음</option>
+                {numCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+              <span style={{ fontSize:10, color:"var(--tx-faint)" }}>라벨</span>
+              <select value={customLabelCol||""} onChange={(e) => setCustomLabelCol(e.target.value||null)} style={selStyle}>
+                <option value="">없음</option>
+                {strCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+              </select>
+            </div>
+          ) : (
+            <div className="seg">
+              {metrics.map((x) => <button key={x.k} className={metric===x.k?"on":""} onClick={() => setMetric(x.k)}>{x.label}</button>)}
+            </div>
+          )}
         </div>
         {geoLoading && <div className="map-note"><Icon name="info" size={12} /> 지도 로딩 중…</div>}
         {!geoLoading && !geoReady && <div className="map-note"><Icon name="info" size={12} /> 지도를 불러올 수 없습니다 (jsDelivr CDN 필요)</div>}
         {level === "province" && geoReady && <div className="map-note" style={{ background:"var(--accent-soft)", borderColor:"var(--accent)" }}><Icon name="bolt" size={12} /> 시도 클릭 → 해당 지역 시군구 드릴다운 · 시군구는 위치 버블로 표시</div>}
+        {level === "custom" && geoReady && !customLatCol && <div className="map-note"><Icon name="info" size={12} /> 위도·경도 컬럼을 선택하거나, 위경도가 포함된 데이터를 임포트하세요</div>}
+        {level === "custom" && geoReady && customLatCol && customLonCol && !customOption && <div className="map-note"><Icon name="info" size={12} /> 한국 영역(위도 33–39°, 경도 124–132°) 내 좌표가 없습니다</div>}
         <div className="vizcanvas" style={{ padding:0 }}>
           {geoReady && option
-            ? <EChart option={option} theme={theme+level+metric+(selProv||"")} onEvents={onEvents} style={{ height:"100%" }} />
+            ? <EChart option={option} theme={theme+level+metric+(selProv||"")+(customLatCol||"")+(customValCol||"")} onEvents={onEvents} style={{ height:"100%" }} />
             : <div className="empty"><div className="s">{geoLoading ? "지도 로딩 중…" : "지도를 불러올 수 없습니다"}</div></div>}
         </div>
       </React.Fragment>
