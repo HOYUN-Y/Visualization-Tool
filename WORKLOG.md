@@ -195,15 +195,45 @@ Visualization Tool/
 
 ---
 
+### Session 5 — 2026-06-07
+
+**작업 내용: Export / CSV Import / World Map 3종 구현**
+
+**수정 파일:**
+- `js/charts.jsx` — `lastInst` 추적, `downloadPNG()`, `downloadCSV()` 헬퍼 추가
+- `js/shell.jsx` — `ImportBtn` (CSV/TSV/JSON 드래그앤드롭 파서), `ExportBtn` (PNG/CSV 드롭다운) 구현, TopBar 교체
+- `js/data.js` — `WORLD_GDP` 데이터셋 추가 (30개국, 2023 IMF 명목 GDP)
+- `js/mapMode.jsx` — World Map 탭 추가 (WorldMapCenter choropleth + WorldPanel 랭킹), MapModeRoot 훅 구조 리팩터링
+
+**구현 상세:**
+
+| 기능 | 구현 내용 |
+|---|---|
+| PNG Export | `Charts.lastInst.getDataURL()` → `<a download>` 트리거, pixelRatio:2 |
+| CSV Export | `Store.derive.getActiveData()` → BOM없는 CSV Blob → `<a download>` |
+| CSV Import | FileReader + 인용부호 CSV 파서, 숫자 자동 감지, `NODE.datasets.push()` |
+| World Map | ECharts v4 CDN으로 world.json 로드, choropleth (GDP/Per Capita/Population/Growth) |
+
+**버그 수정:**
+- `Charts.lastInst = null` 전방 참조 → `window.Charts = { ..., lastInst: null }` 인라인 초기화로 해결
+- `window.MapMode()` 평면 함수 호출 내 `useState` → `MapModeRoot` 명명 컴포넌트로 훅 분리 (조건부 훅 위반 방지)
+- World map GeoJSON URL 404 (echarts v5에는 map 번들 없음) → `echarts@4.9.0` CDN으로 교체
+- `key={tab}` on `<Workspace>` → 탭 전환 시 fiber 동일성 혼동으로 인한 "Rendered more hooks" 오류 해결
+
+**검증 완료:**
+- ✅ Export 드롭다운: PNG / CSV 두 옵션 표시 확인
+- ✅ CSV Import: 드래그앤드롭 모달 표시 확인
+- ✅ Seoul 탭: 지구 choropleth 정상 렌더링
+- ✅ World · GDP 탭: 세계 choropleth (GDP/Per Capita 메트릭 전환 동작), 30개국 랭킹 패널
+
+---
+
 ## 🔧 다음 세션 작업 계획 (Phase 2)
 
 > `HANDOFF.md` §12 "Suggested next steps" 참고
 
-- [ ] **파일 업로드**: CSV/XLSX 파일 드래그앤드롭 파싱 → `NODE.datasets` 추가
 - [ ] **데이터 영속성**: `localStorage`에 Store 상태 직렬화/복원
-- [ ] **Export**: ECharts `getDataURL` → PNG, CSV/XLSX 내보내기
 - [ ] **SQL JOIN**: `sqlMode.jsx` 내 `runSQL` 엔진에 JOIN 지원 추가
-- [ ] **지도 오프라인**: GeoJSON 로컬 번들링 (Map 모드)
 - [ ] **Chart Recommendation Engine**: 선택한 컬럼 타입 조합 → 최적 차트 자동 추천
 - [ ] **Cross Filtering 강화**: Dashboard 내 차트 간 실시간 필터 연동
 - [ ] **FastAPI 백엔드**: DuckDB/Polars 엔진 연동 (Phase 3)
