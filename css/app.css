@@ -69,7 +69,7 @@ input, select { font-family: inherit; color: inherit; }
 .logo-text { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; line-height: 1; }
 .logo-in { color: var(--tx-hi); }
 .logo-sight { color: var(--accent); }
-.logo-an { font-size: 10px; font-weight: 400; color: var(--tx-lo); letter-spacing: 0.02em; }
+.logo-an { font-size: 0.62em; font-weight: 400; color: var(--tx-faint); letter-spacing: 0.02em; }
 .wb-name .v { font-size: var(--fs-13); font-weight: 600; color: var(--tx-hi); }
 
 .topbar-sep { width: 1px; height: 22px; background: var(--line); }
