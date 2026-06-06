@@ -40,8 +40,9 @@ open http://localhost:8742
 | **Chart** | Tableau 스타일 Dimension/Measure 셸프 → ECharts (8종 차트) |
 | **Map** | 서울 25구 단계구분도(Choropleth) + 버블맵 |
 | **Board** | 드래그/리사이즈 위젯 대시보드 + Cross Filtering |
-| **Stats** | 상관분석, T-Test, ANOVA, Chi-Square, 회귀분석 + 자동 해석 |
-| **ML** | 브라우저 내 AutoML: OLS 회귀, k-NN 분류, KMeans 군집 |
+| **Stats** | 상관분석, T-Test, ANOVA, Chi-Square, 회귀분석 + **Distribution 탭** (히스토그램+박스플롯+왜도/첨도) + **Analysis Builder** (자동 분석 유형 선택) + 자동 해석 패널 |
+| **ML** | 브라우저 내 AutoML: OLS 회귀, k-NN 분류, KMeans 군집 + **클래스별 Precision/Recall/F1** + **군집 특성표** + **모델 비교 이력** |
+| **Ask Insight** | 데이터셋 자동 프로파일 (IE.profileDataset) + 마지막 분석 결과 요약 + NL→차트/모드 전환 |
 
 ---
 
