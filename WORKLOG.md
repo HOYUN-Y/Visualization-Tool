@@ -130,6 +130,38 @@ Visualization Tool/
 
 ---
 
+---
+
+### Session 3 — 2026-06-06
+
+**작업 내용: 개발 도큐먼트 생성**
+
+**신규 파일:**
+- `docs/index.html` — 자기 완결형 HTML 개발 도큐먼트 (오프라인 동작, 외부 의존성 없음)
+
+**문서 포함 내용:**
+- 프로젝트 개요, 설계 철학, 기술 스택
+- 전체 아키텍처 & 스크립트 로드 순서
+- `data.js` — Dataset/Column 스키마, PRNG, 4개 데이터셋 설명
+- `store.jsx` — State 구조, Actions 전체 목록, derive/stat/aggFn API
+- `charts.jsx` — EChart 컴포넌트 Props, CSS 변수 해석 원리
+- `shell.jsx` / `app.jsx` — 셸 컴포넌트, MODES 배열
+- 8개 모드 모듈 개요 (dataMode, cleanMode, sqlMode, vizMode, mapMode, dashMode, statsMode, mlMode)
+- 아이콘 시스템, statsMath.js, tweaks.jsx, aiDrawer.jsx
+- 디자인 토큰 전체 (colors, typography, radius, density, 8색 팔레트 시각화)
+- CSS 파일 14개 담당 범위 & 주요 클래스
+- `window.*` 전역 변수 완전 목록 (30+ 개)
+- 핵심 개발 규칙 8가지 (번호 목록)
+- 로딩 화면 구현 상세
+- 차트 타입 레지스트리 21종 (그룹별, need 코드 포함)
+
+**특이사항:**
+- 사이드바 스크롤 연동 네비게이션 (현재 섹션 하이라이트)
+- 반응형 (860px 이하: 사이드바 숨김)
+- 프린트 스타일 적용
+
+---
+
 ## 🔧 다음 세션 작업 계획 (Phase 2)
 
 > `HANDOFF.md` §12 "Suggested next steps" 참고
