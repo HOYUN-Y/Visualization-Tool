@@ -55,7 +55,7 @@ open http://localhost:8742
 | **Clean** | 결측치/중복/이상치 처리, 컬럼 변환, Undo/Redo 파이프라인 |
 | **SQL** | 로컬 SQL 엔진 (SELECT/WHERE/GROUP BY/집계/ORDER/LIMIT) |
 | **Chart** | Tableau 스타일 Dimension/Measure 셸프 → ECharts (8종 차트) |
-| **Map** | 서울 25구 단계구분도(Choropleth) + 버블맵 |
+| **Map** | 3개 탭 — **Seoul · 구** (서울 25구 Choropleth + 버블맵) · **Korea · 행정구역** (17 시도 choropleth + 84 시군구 버블맵 + 내 데이터 모드) · **World · GDP** (30개국 choropleth) |
 | **Board** | 드래그/리사이즈 위젯 대시보드 + Cross Filtering |
 | **Stats** | 상관분석, T-Test, ANOVA, Chi-Square, 회귀분석 + **Distribution 탭** (히스토그램+박스플롯+왜도/첨도) + **Analysis Builder** (자동 분석 유형 선택) + 자동 해석 패널 |
 | **ML** | 브라우저 내 AutoML: OLS 회귀, k-NN 분류, KMeans 군집 + **클래스별 Precision/Recall/F1** + **군집 특성표** + **모델 비교 이력** |
