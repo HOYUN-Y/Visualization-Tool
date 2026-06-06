@@ -225,6 +225,57 @@
     },
   ];
 
+  // ── World GDP dataset (2023 nominal GDP, USD billion) ──────────────
+  const WORLD_GDP = [
+    { country: "United States", region: "Americas", gdp_bn: 26954, gdp_pc: 80412, pop_mn: 335, growth_pct: 2.5 },
+    { country: "China", region: "Asia", gdp_bn: 17786, gdp_pc: 12614, pop_mn: 1410, growth_pct: 5.2 },
+    { country: "Germany", region: "Europe", gdp_bn: 4430, gdp_pc: 52824, pop_mn: 84, growth_pct: -0.3 },
+    { country: "Japan", region: "Asia", gdp_bn: 4231, gdp_pc: 33834, pop_mn: 125, growth_pct: 1.9 },
+    { country: "India", region: "Asia", gdp_bn: 3730, gdp_pc: 2612, pop_mn: 1428, growth_pct: 7.8 },
+    { country: "United Kingdom", region: "Europe", gdp_bn: 3089, gdp_pc: 45295, pop_mn: 68, growth_pct: 0.1 },
+    { country: "France", region: "Europe", gdp_bn: 2924, gdp_pc: 44408, pop_mn: 68, growth_pct: 0.9 },
+    { country: "Italy", region: "Europe", gdp_bn: 2170, gdp_pc: 36812, pop_mn: 59, growth_pct: 0.7 },
+    { country: "Brazil", region: "Americas", gdp_bn: 2082, gdp_pc: 9673, pop_mn: 215, growth_pct: 2.9 },
+    { country: "Canada", region: "Americas", gdp_bn: 2090, gdp_pc: 53834, pop_mn: 39, growth_pct: 1.1 },
+    { country: "South Korea", region: "Asia", gdp_bn: 1709, gdp_pc: 33147, pop_mn: 52, growth_pct: 1.4 },
+    { country: "Australia", region: "Oceania", gdp_bn: 1693, gdp_pc: 64491, pop_mn: 26, growth_pct: 2.0 },
+    { country: "Russia", region: "Europe", gdp_bn: 1862, gdp_pc: 12888, pop_mn: 145, growth_pct: 3.6 },
+    { country: "Spain", region: "Europe", gdp_bn: 1581, gdp_pc: 32882, pop_mn: 48, growth_pct: 2.5 },
+    { country: "Mexico", region: "Americas", gdp_bn: 1323, gdp_pc: 10295, pop_mn: 128, growth_pct: 3.2 },
+    { country: "Indonesia", region: "Asia", gdp_bn: 1320, gdp_pc: 4788, pop_mn: 276, growth_pct: 5.1 },
+    { country: "Netherlands", region: "Europe", gdp_bn: 1092, gdp_pc: 62153, pop_mn: 18, growth_pct: 0.1 },
+    { country: "Saudi Arabia", region: "Middle East", gdp_bn: 1069, gdp_pc: 30436, pop_mn: 36, growth_pct: -0.9 },
+    { country: "Turkey", region: "Europe", gdp_bn: 1108, gdp_pc: 12762, pop_mn: 87, growth_pct: 4.5 },
+    { country: "Switzerland", region: "Europe", gdp_bn: 905, gdp_pc: 103093, pop_mn: 9, growth_pct: 0.7 },
+    { country: "Poland", region: "Europe", gdp_bn: 688, gdp_pc: 18258, pop_mn: 38, growth_pct: 0.4 },
+    { country: "Argentina", region: "Americas", gdp_bn: 640, gdp_pc: 13861, pop_mn: 46, growth_pct: -2.5 },
+    { country: "Sweden", region: "Europe", gdp_bn: 597, gdp_pc: 56901, pop_mn: 11, growth_pct: -0.1 },
+    { country: "Belgium", region: "Europe", gdp_bn: 593, gdp_pc: 50614, pop_mn: 12, growth_pct: 1.4 },
+    { country: "Thailand", region: "Asia", gdp_bn: 512, gdp_pc: 7278, pop_mn: 70, growth_pct: 1.9 },
+    { country: "Nigeria", region: "Africa", gdp_bn: 477, gdp_pc: 2184, pop_mn: 218, growth_pct: 2.7 },
+    { country: "Egypt", region: "Africa", gdp_bn: 396, gdp_pc: 3720, pop_mn: 106, growth_pct: 3.8 },
+    { country: "Vietnam", region: "Asia", gdp_bn: 430, gdp_pc: 4367, pop_mn: 98, growth_pct: 5.0 },
+    { country: "South Africa", region: "Africa", gdp_bn: 377, gdp_pc: 6192, pop_mn: 61, growth_pct: 0.6 },
+    { country: "Malaysia", region: "Asia", gdp_bn: 399, gdp_pc: 11993, pop_mn: 33, growth_pct: 3.8 },
+  ];
+
+  datasets.push({
+    id: "world_gdp",
+    name: "World_GDP_2023.csv",
+    short: "World_GDP",
+    icon: "map",
+    source: "IMF (2023)",
+    rows: WORLD_GDP,
+    columns: [
+      COL("country",     "country",     "string",  "dimension"),
+      COL("region",      "region",      "category","dimension"),
+      COL("gdp_bn",      "gdp_bn",      "float",   "measure", { unit: "USD bn", agg: "sum" }),
+      COL("gdp_pc",      "gdp_pc",      "float",   "measure", { unit: "USD", agg: "avg" }),
+      COL("pop_mn",      "pop_mn",      "float",   "measure", { unit: "M", agg: "sum" }),
+      COL("growth_pct",  "growth_pct",  "float",   "measure", { unit: "%", agg: "avg" }),
+    ],
+  });
+
   // ---- formatting helpers ----
   function fmtWon(v) {
     if (v == null || isNaN(v)) return "—";

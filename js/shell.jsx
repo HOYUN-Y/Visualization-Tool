@@ -14,6 +14,136 @@
     { id: "ml", label: "ML", icon: "ml" },
   ];
 
+  // ── Import modal ──────────────────────────────────────────────────
+  function ImportBtn() {
+    const [open, setOpen] = React.useState(false);
+    const fileRef = React.useRef(null);
+
+    function handleFiles(files) {
+      const file = files[0]; if (!file) return;
+      const ext = file.name.split(".").pop().toLowerCase();
+      if (!["csv", "tsv", "json"].includes(ext)) { alert("CSV / TSV / JSON 파일만 지원합니다."); return; }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          let rows, columns;
+          if (ext === "json") {
+            rows = JSON.parse(e.target.result);
+            if (!Array.isArray(rows)) throw new Error("JSON must be an array of objects");
+          } else {
+            const sep = ext === "tsv" ? "\t" : ",";
+            const lines = e.target.result.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(Boolean);
+            const parseRow = (line) => {
+              const cells = []; let cur = "", inQ = false;
+              for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '"' && !inQ) { inQ = true; }
+                else if (ch === '"' && inQ && line[i+1] === '"') { cur += '"'; i++; }
+                else if (ch === '"' && inQ) { inQ = false; }
+                else if (ch === sep && !inQ) { cells.push(cur); cur = ""; }
+                else cur += ch;
+              }
+              cells.push(cur); return cells;
+            };
+            const headers = parseRow(lines[0]);
+            rows = lines.slice(1).map((l) => {
+              const vals = parseRow(l);
+              const o = {};
+              headers.forEach((h, i) => {
+                const v = vals[i] !== undefined ? vals[i].trim() : "";
+                o[h.trim()] = v === "" ? null : isNaN(v) ? v : +v;
+              });
+              return o;
+            });
+          }
+          if (!rows.length) { alert("데이터가 비어 있습니다."); return; }
+          const sample = rows[0];
+          columns = Object.keys(sample).map((k) => {
+            const vals = rows.map((r) => r[k]).filter((v) => v != null);
+            const isNum = vals.length && vals.every((v) => typeof v === "number" && !isNaN(v));
+            return { key: k, label: k, type: isNum ? "float" : "string", role: isNum ? "measure" : "dimension", agg: isNum ? "sum" : null, unit: null, fmt: null };
+          });
+          const id = "upload_" + Date.now();
+          const ds = { id, name: file.name, short: file.name.replace(/\.[^.]+$/, ""), icon: "table", source: "Upload", rows, columns };
+          window.NODE.datasets.push(ds);
+          window.Store.actions.setActive(id);
+          window.LOG && window.LOG.info("import", "Loaded " + file.name + " — " + rows.length + " rows");
+          setOpen(false);
+        } catch (err) { alert("파일 파싱 실패: " + err.message); }
+      };
+      reader.readAsText(file, "UTF-8");
+    }
+
+    return (
+      <div style={{ position: "relative" }}>
+        <button className="btn ghost sm" onClick={() => setOpen(!open)}><Icon name="upload" size={13} /> Import</button>
+        {open && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setOpen(false)}>
+            <div style={{ position: "absolute", top: 48, left: "50%", transform: "translateX(-50%)", width: 340,
+              background: "var(--bg-2)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-lg)",
+              boxShadow: "var(--shadow-pop)", padding: 24 }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--tx-hi)", marginBottom: 16 }}>파일 가져오기</div>
+              <div style={{ border: "2px dashed var(--line-strong)", borderRadius: "var(--r-md)", padding: "28px 20px",
+                textAlign: "center", color: "var(--tx-faint)", cursor: "pointer", transition: "all .15s" }}
+                onClick={() => fileRef.current.click()}
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--accent-soft)"; }}
+                onDragLeave={(e) => { e.currentTarget.style.borderColor = ""; e.currentTarget.style.background = ""; }}
+                onDrop={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = ""; e.currentTarget.style.background = ""; handleFiles(e.dataTransfer.files); }}>
+                <Icon name="upload" size={24} style={{ marginBottom: 8, display: "block", margin: "0 auto 10px" }} />
+                <div style={{ fontSize: 13, color: "var(--tx-mid)", marginBottom: 4 }}>CSV / TSV / JSON 파일을 드롭하거나 클릭</div>
+                <div style={{ fontSize: 11 }}>첫 행을 헤더로 인식 · 숫자 자동 감지</div>
+              </div>
+              <input ref={fileRef} type="file" accept=".csv,.tsv,.json" style={{ display: "none" }} onChange={(e) => handleFiles(e.target.files)} />
+              <button className="btn ghost sm" style={{ marginTop: 14, width: "100%" }} onClick={() => setOpen(false)}>취소</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Export dropdown ───────────────────────────────────────────────
+  function ExportBtn() {
+    const [open, setOpen] = React.useState(false);
+    const activeId = useStore((s) => s.activeId);
+
+    function exportPNG() {
+      const ok = window.Charts.downloadPNG("insight-chart");
+      if (!ok) alert("내보낼 차트가 없습니다. Chart 모드에서 차트를 먼저 그려주세요.");
+      setOpen(false);
+      window.LOG && window.LOG.info("export", "PNG exported");
+    }
+    function exportCSV() {
+      const { ds, rows, columns } = window.Store.derive.getActiveData(activeId);
+      window.Charts.downloadCSV(rows, columns, ds.short);
+      setOpen(false);
+      window.LOG && window.LOG.info("export", "CSV exported — " + rows.length + " rows");
+    }
+
+    return (
+      <div style={{ position: "relative" }}>
+        <button className="btn ghost sm" onClick={() => setOpen(!open)}><Icon name="download" size={13} /> Export</button>
+        {open && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setOpen(false)}>
+            <div style={{ position: "absolute", top: 44, right: 140,
+              background: "var(--bg-2)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-md)",
+              boxShadow: "var(--shadow-pop)", minWidth: 168, overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ padding: "6px 0" }}>
+                <div style={{ padding: "4px 10px 6px", fontSize: 10, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--tx-faint)" }}>내보내기</div>
+                <button className="pi" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8, padding: "7px 14px" }} onClick={exportPNG}>
+                  <Icon name="image" size={13} /><span>차트 이미지 (PNG)</span>
+                </button>
+                <button className="pi" style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8, padding: "7px 14px" }} onClick={exportCSV}>
+                  <Icon name="table" size={13} /><span>현재 데이터 (CSV)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function TopBar() {
     const theme = useStore((s) => s.theme);
     const tweaks = useStore((s) => s.tweaks);
@@ -27,8 +157,8 @@
         </div>
         <div className="topbar-sep" />
         <button className="btn ghost sm"><Icon name="save" /> Save</button>
-        <button className="btn ghost sm"><Icon name="upload" /> Import</button>
-        <button className="btn ghost sm"><Icon name="download" /> Export</button>
+        <ImportBtn />
+        <ExportBtn />
         <div className="topbar-spacer" />
         <button className={"btn sm" + (aiOpen ? " primary" : "")} onClick={() => actions.setUI({ aiOpen: !aiOpen })}>
           <Icon name="ai" /> Ask Insight

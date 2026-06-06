@@ -43,12 +43,14 @@
     React.useEffect(() => {
       inst.current = echarts.init(ref.current, null, { renderer: "canvas" });
       if (group) inst.current.group = group;
+      Charts.lastInst = inst.current;
       const ro = new ResizeObserver(() => inst.current && inst.current.resize());
       ro.observe(ref.current);
-      return () => { ro.disconnect(); inst.current && inst.current.dispose(); };
+      return () => { ro.disconnect(); inst.current && inst.current.dispose(); if (Charts.lastInst === inst.current) Charts.lastInst = null; };
     }, []);
     React.useEffect(() => {
       if (!inst.current) return;
+      Charts.lastInst = inst.current;
       inst.current.setOption(option, true);
       if (onEvents) {
         inst.current.off("click");
@@ -58,5 +60,33 @@
     return <div ref={ref} className={className} style={{ width: "100%", height: "100%", ...style }} />;
   }
 
-  window.Charts = { resolveVar, palette, themeColors, baseGrid, EChart };
+  // ── Export helpers ───────────────────────────────────────────────
+  function downloadPNG(filename) {
+    const inst = Charts.lastInst;
+    if (!inst) return false;
+    try {
+      const url = inst.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: resolveVar("--bg-1") });
+      const a = document.createElement("a");
+      a.href = url; a.download = (filename || "chart") + ".png"; a.click();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function downloadCSV(rows, columns, filename) {
+    if (!rows || !rows.length) return false;
+    const cols = columns || Object.keys(rows[0]).map((k) => ({ key: k, label: k }));
+    const header = cols.map((c) => JSON.stringify(c.label)).join(",");
+    const body = rows.map((r) => cols.map((c) => {
+      const v = r[c.key]; if (v == null) return "";
+      return typeof v === "string" ? JSON.stringify(v) : v;
+    }).join(",")).join("\n");
+    const blob = new Blob([header + "\n" + body], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = (filename || "data") + ".csv"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  }
+
+  window.Charts = { resolveVar, palette, themeColors, baseGrid, EChart, downloadPNG, downloadCSV, lastInst: null };
 })();
