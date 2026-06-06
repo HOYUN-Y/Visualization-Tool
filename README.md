@@ -135,14 +135,80 @@ open http://localhost:8742
 - ML: **Model Comparison History** 테이블 (최근 10개 실행 비교)
 - Ask Insight 드로어: `IE.profileDataset()` 자동 실행 + 마지막 분석 결과 연동
 
-### 🔲 Phase 2 (예정)
-- 실제 파일 업로드 (CSV/XLSX 파싱)
-- localStorage 영속성
-- Chart Recommendation Engine
-- Export (PNG/PDF/CSV)
+### ✅ Phase 1.6 — Map 강화 (완료)
+- Export (PNG/CSV), CSV/JSON 파일 임포트 (드래그앤드롭)
+- Map 모드 — World · GDP choropleth 탭 추가
+- Map 모드 — Korea · 행정구역 탭 (시도 choropleth + 시군구 버블맵, WGS84→UTM52N 좌표 변환)
+- Map 모드 — 내 데이터 모드 (위경도 컬럼 자동 감지, 임포트 데이터를 지도에 직접 표시)
 
-### 🔲 Phase 3 (예정)
-- FastAPI + DuckDB 백엔드 연동
+### 🔲 Phase 2 — 브라우저 단독 구현 가능 (예정)
+
+> 순수 JS로 구현 가능. 백엔드 불필요. 데이터 규모 ~10k 행까지 실용적.
+
+**[최우선] 데이터 전처리 강화 (Clean 모드)**
+- Formula Column (JS 수식으로 파생 컬럼 생성)
+- Dummy / Label Encoding, Standardization, Normalization
+- Log / Box-Cox / Rank / Binning / Winsorizing Transformation
+
+**[최우선] ML 모델 확장**
+- Logistic Regression, Decision Tree, Naive Bayes
+- Confusion Matrix, ROC/AUC, Precision-Recall, Lift/Gain/KS Chart
+- Feature Importance, Cross Validation (소규모)
+
+**[최우선] PCA**
+- PCA + Biplot + Scree Plot (순수 JS SVD, <10k 행)
+
+**[중요] 차트 확장 (Chart 모드)**
+- Auto Chart Recommendation, Parallel Coordinates (ECharts 내장)
+- Mosaic Plot, Pair Plot, Contour Plot, Bubble Matrix
+
+**[중요] 분포 플랫폼 (Stats 모드)**
+- QQ Plot, Normal Fit, Multi Variable Distribution, Outlier Visualization
+
+**[중요] 시계열 기초 (Stats 모드)**
+- Moving Average, Exponential Smoothing, Seasonal Decomposition, ACF/PACF
+
+**[중요] 품질관리 SPC (신규 탭)**
+- Control Charts (X-Bar, R, S, P, C, U), Pareto Chart, Cp/Cpk/Pp/Ppk
+
+**[JMP 차별화] 고급 기능**
+- Hierarchical Clustering + Dendrogram (<5k 행)
+- DBSCAN (<5k 행)
+- Stepwise Regression, ANCOVA, Bootstrap
+- DOE 기초 (Full/Fractional Factorial, CCD, Taguchi, Prediction Profiler)
+
+### ⚠️ Phase 2 데이터 규모 제한 항목
+
+> 브라우저에서 구현은 가능하나 **5k 행 초과 시 실용성 저하**. 경고 메시지와 함께 제한적 지원.
+
+| 기능 | 제한 이유 | 실용 상한 |
+|---|---|---|
+| Random Forest | 다수 트리 = O(n·d·T) CPU | ~5k 행, ~10 트리 |
+| DBSCAN | O(n²) naive 구현 | ~5k 행 |
+| t-SNE | 반복 최적화 매우 느림 | ~3k 행 |
+| Gaussian Mixture Model | EM 수렴 느림 | ~5k 행 |
+| Factor Analysis | SVD 반복 계산 | ~10k 행 |
+| Neural Network | TF.js CDN (~1.5MB) 필요 | 소규모 아키텍처 |
+
+### ❌ Phase 3 이후 — 브라우저 단독 불가
+
+> 백엔드(Python/WASM) 또는 네이티브 라이브러리가 필요한 항목.
+
+| 기능 | 불가 이유 |
+|---|---|
+| XGBoost / LightGBM | C++ 네이티브, 순수 JS 구현 없음 |
+| SVM | Quadratic Programming solver 필요 |
+| UMAP | 신뢰할 CDN 없음, 계산 비용 과대 |
+| SOM | 복잡한 구현, CDN 없음 |
+| ARIMA / SARIMA | MLE 최적화 수치 불안정, JS 라이브러리 미성숙 |
+| Prophet | Facebook Python/Stan 전용 |
+| Bayesian Analysis (MCMC) | 샘플링 비용 — 브라우저에서 수분~수십분 |
+| DOE Custom Design (D-optimal) | Exchange 알고리즘 = 복잡 수치 최적화 |
+| Survival Analysis (Cox) | Partial likelihood 최적화 복잡 |
+| Gradient Boosting | 대용량 데이터 시 너무 느림 |
+
+### 🔲 Phase 3 — 프로덕션 스택 전환
+- FastAPI + DuckDB 백엔드 → 위 ❌ 항목 모두 구현 가능
 - Next.js TypeScript 포팅
 - Analysis Pipeline Builder (노드 기반 워크플로우)
 - AI Analytics Assistant (실제 LLM 연동)
