@@ -162,6 +162,39 @@ Visualization Tool/
 
 ---
 
+### Session 4 — 2026-06-06
+
+**작업 내용: JMP 통계 기능 강화 (Phase 1.5)**
+
+**신규 파일:**
+- `js/insightEngine.js` — 규칙 기반 자동 해석 엔진 (`window.IE`), plain JS IIFE (non-JSX)
+
+**수정 파일:**
+- `js/statsMath.js` — `skewness(a)`, `kurtosis(a)` 추가, `window.SM` exports 확장
+- `js/statsMode.jsx` — 전체 재작성: Distribution 탭 + Analysis Builder 탭 추가, InterpretationPanel + NextStepPanel 컴포넌트, DescTable에 왜도/첨도 컬럼
+- `js/mlMode.jsx` — 전체 재작성: 클래스별 P/R/F1 테이블, 군집 특성 표, Model History 테이블, window.NODE.mlHistory/lastAnalysisResult
+- `js/aiDrawer.jsx` — 전체 재작성: IE.profileDataset 자동 실행, Last Analysis Result 섹션, 인텐트 라우팅 확장
+- `css/stats.css` — Interpretation/NextStep/AnalysisBuilder 스타일 추가
+- `css/ml.css` — clf-metrics, model-comparison-table 스타일 추가
+- `index.html` — insightEngine.js 스크립트 태그 추가
+- `docs/index.html`, `README.md`, `HANDOFF.md`, `WORKLOG.md`, `CHANGELOG.md` — 문서 업데이트
+
+**구현된 JMP 기능:**
+- Distribution Platform: 히스토그램 + 수평 박스플롯 + 8개 통계 카드 (왜도/첨도)
+- Analysis Builder: 컬럼 타입 자동 감지 → 최적 분석 자동 선택
+- 규칙 기반 자동 해석 (Interpretation 패널) + 다음 분석 제안 (Next Step 패널)
+- 클래스별 Precision/Recall/F1 + 군집 특성 표 + 모델 비교 이력 (최근 10개)
+- Ask Insight 자동 프로파일링 + 마지막 분석 결과 연동
+
+**검증 완료:**
+- Stats 모드 8개 탭 (Descriptive/Distribution/Correlation/T-Test/ANOVA/Chi-Square/Regression/Analysis Builder)
+- Distribution 탭: seoul_txns price_manwon 히스토그램 + 박스플롯, 왜도 0.89, 첨도 0.27
+- Analysis Builder: OLS 회귀 실행 → R²=0.550, 계수 테이블, 산점도 표시
+- ML 분류: 70.3% 정확도, Macro F1=0.542, 클래스별 P/R/F1 테이블
+- Ask Insight: seoul_txns 프로파일 5개 인사이트, Last Analysis Result 표시
+
+---
+
 ## 🔧 다음 세션 작업 계획 (Phase 2)
 
 > `HANDOFF.md` §12 "Suggested next steps" 참고
