@@ -52,7 +52,7 @@ open http://localhost:8742
 | 모드 | 기능 |
 |---|---|
 | **Data** | 데이터셋 탐색기 + 고밀도 데이터 그리드 + 자동 프로파일링 |
-| **Clean** | 결측치/중복/이상치 처리, 컬럼 변환, Undo/Redo 파이프라인 |
+| **Clean** | 결측치/중복/이상치 처리 · 컬럼 변환 · **Encoding** (Label/Dummy) · **수치 변환** (Z-Score/Min-Max/Log/Rank/Winsorize/Binning) · **Formula Column** (JS 수식 파생 컬럼) · Undo/Redo 파이프라인 |
 | **SQL** | 로컬 SQL 엔진 (SELECT/WHERE/GROUP BY/집계/ORDER/LIMIT) |
 | **Chart** | Tableau 스타일 Dimension/Measure 셸프 → ECharts (8종 차트) |
 | **Map** | 3개 탭 — **Seoul · 구** (서울 25구 Choropleth + 버블맵) · **Korea · 행정구역** (17 시도 choropleth + 84 시군구 버블맵 + 내 데이터 모드) · **World · GDP** (30개국 choropleth) |
