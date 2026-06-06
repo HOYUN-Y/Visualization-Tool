@@ -968,7 +968,45 @@ e.dataTransfer.<span class="fn">getData</span>(<span class="str">"application/no
 
     <section id="mode-map">
       <h2>Map 모드 — <code>mapMode.jsx</code></h2>
-      <p>대한민국 서울 choropleth 지도. ECharts Map 시리즈 + 서울 GeoJSON (CDN). 오프라인 시 버블맵으로 폴백합니다.</p>
+      <p>3개 탭으로 구성된 지도 시각화 모드. ECharts Map/Scatter 시리즈 + GeoJSON CDN. <code>MapModeRoot</code> 컴포넌트가 탭 상태를 관리하고, 탭 전환 시 <code>key={tab}</code>으로 Workspace를 강제 리마운트(hooks 위반 방지)합니다.</p>
+
+      <h3>탭 구성</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>탭 ID</th><th>컴포넌트</th><th>데이터 소스</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>seoul</code></td><td><code>MapCenter</code> / <code>MapPanel</code></td><td><code>district_stats</code> (12행)</td><td>서울 25구 Choropleth (GeoJSON CDN) + 버블맵 폴백. 메트릭: 평균가/㎡당가/거래량.</td></tr>
+            <tr><td><code>korea</code></td><td><code>KoreaMapCenter</code> / <code>KoreaPanel</code></td><td><code>korea_provinces</code> (17행) / <code>korea_municipalities</code> (84행)</td><td>17 시도 choropleth + 시군구 버블맵. 시도 클릭 → 드릴다운. 내 데이터 모드.</td></tr>
+            <tr><td><code>world</code></td><td><code>WorldMapCenter</code> / <code>WorldPanel</code></td><td><code>world_gdp</code> (30행)</td><td>30개국 GDP/인구/성장률 choropleth. ECharts v4 CDN world.json.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Korea 탭 — 핵심 기술 사항</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>항목</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>GeoJSON CDN</td><td><code>cdn.jsdelivr.net/npm/@highcharts/map-collection@2.0.1/countries/kr/kr-all.geo.json</code><br/>영문 properties.name → 한국어 리맵 후 <code>echarts.registerMap("korea_prov")</code></td></tr>
+            <tr><td>좌표계 주의</td><td>Highcharts GeoJSON은 WGS84가 아닌 <strong>UTM Zone 52N 투영좌표</strong> 사용 (<code>[2560, -431]</code> 형식)<br/>→ Scatter overlay 시 반드시 <code>wgs84ToHCKorea(lon, lat)</code> 변환 필요</td></tr>
+            <tr><td><code>wgs84ToHCKorea(lon, lat)</code></td><td>WGS84 → UTM52N (풀 공식) → Highcharts JSON 좌표<br/>변환식: <code>jsonX = (E−xoff)×sf+mX</code>, <code>jsonY = mY+(N−yoff)×sf</code><br/>sf = scale(0.001170) × jsonres(15.5) = 0.018129</td></tr>
+            <tr><td>모듈 캐시</td><td><code>_koreaProvState</code> 모듈 레벨 변수 — 탭 전환 간 GeoJSON 재요청 방지</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>내 데이터 모드 (Korea 탭)</h3>
+      <p>임포트한 데이터셋의 위경도 컬럼을 감지해 한국 지도 위에 scatter 버블로 표시합니다.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>항목</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td><code>detectGeoColumns(columns)</code></td><td>컬럼명 패턴 매칭: lat/latitude/위도/y/y_coord (위도), lon/lng/longitude/경도/x/x_coord (경도)<br/>감지 시 헤더 탭에 <strong>✦</strong> 배지 표시, 드롭다운에 자동 입력</td></tr>
+            <tr><td>좌표 필터</td><td>한국 영역(위도 33–39°, 경도 124–132°) 외 좌표 자동 제외</td></tr>
+            <tr><td>컬럼 선택</td><td>위도·경도·값(버블 크기)·라벨 4개 드롭다운. 50행 이하 시 라벨 자동 표시.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section id="mode-dash">

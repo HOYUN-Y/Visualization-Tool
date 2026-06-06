@@ -5,10 +5,53 @@ All notable changes to INSIGHT Analytics Workbench are documented here.
 ---
 
 ## [Unreleased] — Phase 2 (예정)
-- CSV/XLSX 파일 업로드 및 파싱
+- Formula Column, Dummy/Label Encoding, Standardization/Normalization 등 전처리 강화
 - localStorage 영속성
-- Chart Recommendation Engine
-- Export (PNG/PDF/CSV)
+- Auto Chart Recommendation
+- PCA + Biplot + Scree Plot
+- Logistic Regression, ROC/AUC, Confusion Matrix
+- SPC Control Charts (X-Bar/R/S/P/C/U), Process Capability (Cp/Cpk)
+- Moving Average, Exponential Smoothing, ACF/PACF
+
+---
+
+## [1.6.0] — 2026-06-07 — Map 강화 + Export/Import
+
+### Added
+
+#### Export / Import
+- **Export 드롭다운** (`js/shell.jsx`): 차트 PNG (`echarts.getDataURL`, pixelRatio:2) + 현재 데이터 CSV 내보내기
+- **Import 모달** (`js/shell.jsx`): CSV / TSV / JSON 파일 드래그앤드롭 또는 클릭 업로드. 헤더 자동 파싱, 숫자 컬럼 자동 감지, `window.NODE.datasets`에 주입.
+
+#### Map 모드 — World · GDP 탭
+- ECharts v4 CDN (`echarts@4.9.0/map/json/world.json`)으로 world GeoJSON 로드
+- 30개국 choropleth: GDP(명목) / Per Capita / Population / Growth 4개 메트릭
+- 우측 패널: 국가별 순위 바차트
+
+#### Map 모드 — Korea · 행정구역 탭
+- Highcharts map-collection CDN (`@highcharts/map-collection@2.0.1`) 한국 GeoJSON 로드
+  - properties.name 영문 → 한국어 리맵 후 `echarts.registerMap("korea_prov")`
+- **시도 뷰**: 17개 시도 choropleth (인구/인구밀도/면적/GRDP), 시도 클릭 → 시군구 드릴다운
+- **시군구 뷰**: 84개 주요 시군구 버블 오버레이. 시도 필터 드롭다운.
+  - `wgs84ToHCKorea(lon, lat)` 함수: WGS84 → UTM Zone 52N → Highcharts 투영좌표 변환 (Highcharts GeoJSON이 UTM52N 좌표계 사용 — WGS84 아님)
+- 우측 패널: 시도/시군구 인구 순위 바차트 + 권역별 인구 집계
+
+#### Map 모드 — 내 데이터 모드 (Korea 탭)
+- `detectGeoColumns()`: 활성 데이터셋 컬럼명 패턴 매칭으로 위도/경도 컬럼 자동 감지
+  - 위도 패턴: `lat / latitude / 위도 / y / y_coord`
+  - 경도 패턴: `lon / lng / longitude / 경도 / x / x_coord`
+- 감지 시 탭에 **✦** 배지 표시, 드롭다운에 자동 입력
+- 위도·경도·값·라벨 4개 컬럼 선택 드롭다운
+- 한국 영역(위도 33–39°, 경도 124–132°) 외 좌표 자동 필터링
+- 50개 이하 포인트 시 라벨 자동 표시
+
+### Fixed
+- Map 탭 전환 시 "Rendered more hooks than during previous render" 오류 → `<Workspace key={tab}>` 강제 리마운트로 해결
+- World GeoJSON 404 (ECharts v5에 map 번들 없음) → `echarts@4.9.0` CDN으로 교체
+
+### Technical Notes
+- 한국 시도 GeoJSON CDN 조사 결과: `southkorea-maps` (GitHub raw → 404, jsDelivr → 403), `echarts@4` south-korea → 404. **Highcharts map-collection npm CDN만 정상 동작**.
+- Highcharts GeoJSON 좌표계: UTM Zone 52N 투영좌표 (`hc-transform`: scale=0.001170, jsonres=15.5, xoffset=114507.65, yoffset=4275280.76)
 
 ---
 

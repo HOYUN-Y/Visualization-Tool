@@ -472,7 +472,7 @@ svg[aria-hidden="true"] { display: none; }
     <div class="mode-tile">
       <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-map"></use></svg></div>
       <div class="mt-name">Map</div>
-      <div class="mt-desc">서울 25구 단계구분도 + 버블맵</div>
+      <div class="mt-desc">Seoul · Korea · World — 3개 탭 지도 시각화 + 내 데이터 임포트</div>
     </div>
     <div class="mode-tile">
       <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-dashboard"></use></svg></div>
@@ -889,29 +889,65 @@ LIMIT 5</pre>
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="mode-map">
   <h2><svg class="icon" style="margin-right:8px;vertical-align:middle"><use href="#i-map"></use></svg>Map 모드 — 지도</h2>
-  <p>서울 25개 구의 데이터를 지리적으로 시각화합니다. <code>district_stats</code> 데이터셋을 자동으로 사용합니다.</p>
+  <p>3개 탭으로 구성된 지도 시각화 모드입니다. 탭마다 별도의 데이터와 지도 범위를 사용합니다.</p>
 
-  <h3>지도 타입</h3>
   <div class="cards">
     <div class="card">
-      <div class="card-title">단계구분도 (Choropleth)</div>
-      <div class="card-body">구 경계를 색상 농도로 표현. 인터넷 연결 시 서울 GeoJSON을 CDN에서 불러옵니다.</div>
+      <div class="card-title">Seoul · 구</div>
+      <div class="card-body">서울 25개 구 단계구분도 + 버블맵. 인터넷 연결 시 GeoJSON CDN에서 지도 경계를 불러옵니다. 오프라인에서는 버블맵으로 자동 전환됩니다.</div>
     </div>
     <div class="card">
-      <div class="card-title">버블맵 (Bubble Map)</div>
-      <div class="card-body">위경도 좌표 기반 원형 마커. 오프라인에서도 항상 동작합니다.</div>
+      <div class="card-title">Korea · 행정구역</div>
+      <div class="card-body">17개 시도 choropleth + 84개 주요 시군구 버블맵. 시도 클릭 시 해당 지역 시군구로 드릴다운됩니다.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">World · GDP</div>
+      <div class="card-body">30개국 GDP · 인구 · 성장률 choropleth. 국가별 순위가 우측 패널에 표시됩니다.</div>
     </div>
   </div>
 
-  <h3>지표 선택</h3>
+  <h3>Seoul · 구 탭</h3>
+  <h4>지표 선택</h4>
   <ul>
     <li><strong>₩/m²</strong> — 평균 ㎡당 가격</li>
     <li><strong>Price</strong> — 평균 거래가격</li>
     <li><strong>Txns</strong> — 거래량</li>
   </ul>
-
-  <h3>구 선택 (Cross Filtering)</h3>
+  <h4>구 선택 (Cross Filtering)</h4>
   <p>지도에서 구를 클릭하면 해당 구가 선택되어 우측 패널에 상세 정보가 표시됩니다. 이 선택은 Dashboard 모드에서 Cross Filter로도 작동합니다.</p>
+
+  <h3>Korea · 행정구역 탭</h3>
+  <h4>시도 (Choropleth) 뷰</h4>
+  <ul>
+    <li>17개 시도를 색상 농도로 표현. 지표: <strong>인구</strong> / <strong>인구밀도</strong> / <strong>면적</strong> / <strong>GRDP</strong></li>
+    <li>시도를 클릭하면 해당 시도의 시군구 버블맵 뷰로 자동 드릴다운됩니다.</li>
+  </ul>
+  <h4>시군구 (버블맵) 뷰</h4>
+  <ul>
+    <li>84개 주요 시군구를 버블로 표시. 버블 크기 = 인구 규모.</li>
+    <li>상단 드롭다운으로 특정 시도만 필터링할 수 있습니다.</li>
+    <li>지표: <strong>인구</strong> / <strong>인구밀도</strong> / <strong>면적</strong></li>
+  </ul>
+  <h4>내 데이터 뷰</h4>
+  <p>위경도 컬럼이 포함된 데이터를 임포트하면 한국 지도 위에 직접 표시할 수 있습니다.</p>
+  <ul>
+    <li>임포트한 데이터에 <code>lat</code> · <code>lon</code> · <code>위도</code> · <code>경도</code> 등의 컬럼이 있으면 탭에 <strong>✦</strong> 배지가 나타납니다.</li>
+    <li>위도 · 경도 · 값(버블 크기) · 라벨 컬럼을 각각 드롭다운으로 선택합니다.</li>
+    <li>한국 영역(위도 33–39°, 경도 124–132°) 내의 좌표만 표시됩니다.</li>
+    <li>포인트가 50개 이하이면 라벨이 자동으로 표시됩니다.</li>
+  </ul>
+
+  <div class="alert tip">
+    <strong>💡 내 데이터 활용 예시</strong><br/>
+    지점별 매출·방문자 수 CSV (위도/경도/매출액 컬럼 포함) → Import → Korea · 행정구역 탭 → 내 데이터 ✦ → 매출 버블맵 완성
+  </div>
+
+  <h3>World · GDP 탭</h3>
+  <ul>
+    <li>지표: <strong>GDP</strong> (명목, 십억 달러) / <strong>Per Capita</strong> (1인당 GDP) / <strong>Population</strong> (인구) / <strong>Growth</strong> (성장률 %)</li>
+    <li>국가 위에 마우스를 올리면 상세 수치가 툴팁으로 표시됩니다.</li>
+    <li>우측 패널에서 상위 30개국 순위를 확인할 수 있습니다.</li>
+  </ul>
 </section>
 
 <!-- ══════════════════════════════════════════════════════ -->
