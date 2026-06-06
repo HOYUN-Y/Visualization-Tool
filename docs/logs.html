@@ -57,7 +57,8 @@ body {
   z-index: 100;
 }
 .tb-brand { font-size: 15px; font-weight: 700; color: var(--tx-hi); letter-spacing: .04em; }
-.tb-brand span { color: var(--accent); }
+.tb-brand .sight { color: var(--accent); }
+.tb-brand .analytics { font-size: 11px; font-weight: 400; color: var(--tx-lo); margin-left: 2px; }
 .tb-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
 .tb-sub { font-size: 11px; color: var(--tx-lo); text-transform: uppercase; letter-spacing: .1em; }
 .tb-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
@@ -222,7 +223,7 @@ body {
 
 <!-- Topbar -->
 <div class="topbar">
-  <div class="tb-brand">INSIGHT <span>Analytics</span></div>
+  <div class="tb-brand">IN<span class="sight">SIGHT</span><span class="analytics">Analytics</span></div>
   <div class="tb-sep"></div>
   <div class="tb-sub">세션 로그 뷰어</div>
   <div class="tb-right">

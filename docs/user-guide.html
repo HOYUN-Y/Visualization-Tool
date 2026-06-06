@@ -90,7 +90,8 @@ pre code { background: none; border: none; padding: 0; }
   z-index: 1000;
 }
 .topbar-brand { font-size: 17px; font-weight: 700; letter-spacing: .05em; color: var(--tx-hi); }
-.topbar-brand span { color: var(--accent); }
+.topbar-brand .sight { color: var(--accent); }
+.topbar-brand .analytics { font-size: 12px; font-weight: 400; color: var(--tx-lo); margin-left: 2px; }
 .topbar-sub { font-size: 11px; color: var(--tx-lo); letter-spacing: .1em; text-transform: uppercase; }
 .topbar-sep { flex: 1; }
 .topbar-badge {
@@ -360,7 +361,7 @@ svg[aria-hidden="true"] { display: none; }
 
 <!-- ── Topbar ── -->
 <div class="topbar">
-  <div class="topbar-brand">INSIGHT Analytics</div>
+  <div class="topbar-brand">IN<span class="sight">SIGHT</span><span class="analytics">Analytics</span></div>
   <div class="topbar-sep"></div>
   <div class="topbar-sub">사용자 가이드</div>
   <div class="topbar-sep"></div>

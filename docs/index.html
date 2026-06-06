@@ -85,7 +85,8 @@ hr { border: none; border-top: 1px solid var(--line); margin: 32px 0; }
 .topbar-brand {
   font-size: 17px; font-weight: 700; letter-spacing: .05em; color: var(--tx-hi);
 }
-.topbar-brand span { color: var(--accent); }
+.topbar-brand .sight { color: var(--accent); }
+.topbar-brand .analytics { font-size: 12px; font-weight: 400; color: var(--tx-lo); margin-left: 2px; }
 .topbar-sub { font-size: 11px; color: var(--tx-lo); letter-spacing: .1em; text-transform: uppercase; }
 .topbar-sep { flex: 1; }
 .topbar-badge {
@@ -296,7 +297,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
 
 <!-- ── Topbar ── -->
 <div class="topbar">
-  <div class="topbar-brand">INSIGHT Analytics</div>
+  <div class="topbar-brand">IN<span class="sight">SIGHT</span><span class="analytics">Analytics</span></div>
   <div class="topbar-sep"></div>
   <div class="topbar-sub">Developer Documentation</div>
   <div class="topbar-sep"></div>
