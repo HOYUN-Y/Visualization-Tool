@@ -4,7 +4,17 @@
   const Icon = window.Icon, NODE = window.NODE, Charts = window.Charts;
   const EChart = Charts.EChart;
 
-  const GEO_URL = "https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json";
+  const GEO_URL      = "https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json";
+  // Highcharts map-collection (npm CDN) — province level only; municipality uses bubble overlay
+  const KOREA_PROV_URL = "https://cdn.jsdelivr.net/npm/@highcharts/map-collection@2.0.1/countries/kr/kr-all.geo.json";
+  // English→Korean name map for Highcharts GeoJSON properties
+  const KOREA_HC_NAME = {
+    "Seoul":"서울특별시","Busan":"부산광역시","Daegu":"대구광역시","Incheon":"인천광역시",
+    "Gwangju":"광주광역시","Daejeon":"대전광역시","Ulsan":"울산광역시","Sejong":"세종특별자치시",
+    "Gyeonggi":"경기도","Gangwon":"강원특별자치도","North Chungcheong":"충청북도","South Chungcheong":"충청남도",
+    "North Jeolla":"전라북도","South Jeolla":"전라남도","North Gyeongsang":"경상북도",
+    "South Gyeongsang":"경상남도","Jeju":"제주특별자치도",
+  };
   const WORLD_GEO_URL = "https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/json/world.json";
   const METRICS = [
     { k: "avg_price_per_m2", label: "₩/m²", fmt: (v) => NODE.fmtNum(v, 0) + "만" },
@@ -18,8 +28,9 @@
     { k: "growth_pct", label: "Growth", fmt: (v) => (v > 0 ? "+" : "") + v.toFixed(1) + "%" },
   ];
 
-  let _geoState = "idle"; // idle | ok | fail (module-level cache)
-  let _worldGeoState = "idle";
+  let _geoState = "idle";       // idle | ok | fail
+  let _koreaProvState = "idle"; // province GeoJSON (Highcharts, names remapped to Korean)
+  let _worldGeoState  = "idle";
 
   function MapCenter() {
     const theme = useStore((s) => s.theme);
@@ -146,6 +157,290 @@
     );
   }
 
+  // ── Korea Map ────────────────────────────────────────────────────
+  const KOREA_PROV_METRICS = [
+    { k: "pop_man",     label: "인구",   fmt: (v) => NODE.fmtNum(v,0)+"만명" },
+    { k: "pop_density", label: "인구밀도", fmt: (v) => NODE.fmtNum(v,0)+"명/km²" },
+    { k: "area_km2",    label: "면적",   fmt: (v) => NODE.fmtNum(v,0)+"km²" },
+    { k: "gdp_tr",      label: "GRDP",  fmt: (v) => NODE.fmtNum(v,0)+"조" },
+  ];
+  const KOREA_MUN_METRICS = [
+    { k: "pop_man",     label: "인구",   fmt: (v) => NODE.fmtNum(v,0)+"만명" },
+    { k: "pop_density", label: "인구밀도", fmt: (v) => NODE.fmtNum(v,0)+"명/km²" },
+    { k: "area_km2",    label: "면적",   fmt: (v) => NODE.fmtNum(v,0)+"km²" },
+  ];
+
+  // Province names mapping for filtering municipalities
+  const PROV_SHORT = {
+    "서울특별시":"서울","경기도":"경기","인천광역시":"인천","부산광역시":"부산",
+    "대구광역시":"대구","대전광역시":"대전","광주광역시":"광주","울산광역시":"울산",
+    "세종특별자치시":"세종","경상남도":"경남","경상북도":"경북","충청남도":"충남",
+    "충청북도":"충북","전라남도":"전남","전라북도":"전북",
+    "강원특별자치도":"강원","제주특별자치도":"제주",
+  };
+
+  // municipality lat/lon (approximate centroids for bubble overlay)
+  const MUN_LATLON = {
+    "강남구":[37.517,127.047],"송파구":[37.514,127.106],"서초구":[37.483,127.032],"강서구":[37.551,126.849],
+    "노원구":[37.654,127.056],"관악구":[37.479,126.952],"은평구":[37.619,126.923],"강북구":[37.637,127.025],
+    "영등포구":[37.526,126.896],"성북구":[37.589,127.017],"마포구":[37.566,126.901],"용산구":[37.532,126.990],
+    "중구":[37.563,126.998],"종로구":[37.573,126.979],"동대문구":[37.574,127.040],"성동구":[37.563,127.036],
+    "광진구":[37.538,127.082],"강동구":[37.530,127.123],"중랑구":[37.606,127.093],"도봉구":[37.669,127.047],
+    "동작구":[37.512,126.940],"구로구":[37.495,126.888],"금천구":[37.457,126.895],"양천구":[37.516,126.866],
+    "서대문구":[37.579,126.937],
+    "수원시":[37.264,127.029],"고양시":[37.659,126.832],"용인시":[37.241,127.177],"성남시":[37.420,127.127],
+    "화성시":[37.200,126.831],"부천시":[37.504,126.766],"남양주시":[37.636,127.216],"안산시":[37.321,126.831],
+    "안양시":[37.394,126.957],"평택시":[37.000,126.997],"시흥시":[37.380,126.803],"파주시":[37.760,126.780],
+    "김포시":[37.615,126.716],"의정부시":[37.738,127.034],
+    "연수구":[37.410,126.678],"부평구":[37.508,126.722],"남동구":[37.447,126.731],"서구":[37.546,126.668],
+    "미추홀구":[37.467,126.651],
+    "해운대구":[35.163,129.162],"부산진구":[35.164,129.053],"북구":[35.197,128.991],"사상구":[35.149,128.992],
+    "금정구":[35.243,129.092],
+    "달서구":[35.829,128.532],"수성구":[35.858,128.630],
+    "창원시":[35.228,128.681],"김해시":[35.234,128.882],"진주시":[35.180,128.107],"양산시":[35.334,129.038],
+    "거제시":[34.880,128.621],
+    "포항시":[36.019,129.343],"구미시":[36.119,128.344],"경주시":[35.856,129.225],"안동시":[36.568,128.729],
+    "천안시":[36.806,127.152],"아산시":[36.789,127.002],"당진시":[36.890,126.626],
+    "청주시":[36.642,127.489],"충주시":[36.991,127.925],"제천시":[37.133,128.191],
+    "여수시":[34.761,127.662],"순천시":[34.949,127.487],"목포시":[34.812,126.393],
+    "전주시":[35.821,127.148],"익산시":[35.948,126.954],"군산시":[35.967,126.736],
+    "원주시":[37.342,127.920],"춘천시":[37.882,127.729],"강릉시":[37.751,128.876],"동해시":[37.524,129.114],
+    "유성구":[36.362,127.357],
+    "광산구":[35.139,126.793],"북구":[35.174,126.912],
+    "제주시":[33.500,126.531],"서귀포시":[33.254,126.560],
+  };
+
+  // Convert WGS84 lat/lon → UTM Zone 52N → Highcharts projected coords
+  // (Highcharts map-collection GeoJSON uses UTM52N projected space, NOT WGS84)
+  function wgs84ToHCKorea(lon, lat) {
+    const a=6378137.0,f=1/298.257223563,k0=0.9996;
+    const e2=2*f-f*f, ep2=e2/(1-e2);
+    const lon0=129*Math.PI/180;
+    const latR=lat*Math.PI/180, lonR=lon*Math.PI/180;
+    const Nv=a/Math.sqrt(1-e2*Math.sin(latR)**2);
+    const T=Math.tan(latR)**2, C=ep2*Math.cos(latR)**2;
+    const Av=Math.cos(latR)*(lonR-lon0);
+    const e4=e2*e2, e6=e4*e2;
+    const M=a*((1-e2/4-3*e4/64-5*e6/256)*latR-(3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*latR)+(15*e4/256+45*e6/1024)*Math.sin(4*latR)-(35*e6/3072)*Math.sin(6*latR));
+    const northing=k0*(M+Nv*Math.tan(latR)*(Av**2/2+(5-T+9*C+4*C**2)*Av**4/24+(61-58*T+T**2+600*C-330*ep2)*Av**6/720));
+    const easting=k0*Nv*(Av+(1-T+C)*Av**3/6+(5-18*T+T**2+72*C-58*ep2)*Av**5/120)+500000;
+    const xoff=114507.650342,yoff=4275280.75883,sf=0.00116959721971*15.5,mX=-999,mY=9851;
+    return [(easting-xoff)*sf+mX, mY+(northing-yoff)*sf];
+  }
+
+  function KoreaMapCenter() {
+    const theme = useStore((s) => s.theme);
+    const [level, setLevel] = React.useState("province");  // "province" | "municipality"
+    const [metric, setMetric] = React.useState("pop_man");
+    const [provGeo, setProvGeo] = React.useState(_koreaProvState);
+    const [selProv, setSelProv] = React.useState(null);
+
+    const metrics = level === "province" ? KOREA_PROV_METRICS : KOREA_MUN_METRICS;
+    const m = metrics.find((x) => x.k === metric) || metrics[0];
+
+    // fetch province GeoJSON and remap English names → Korean
+    React.useEffect(() => {
+      if (_koreaProvState === "ok") { setProvGeo("ok"); return; }
+      if (_koreaProvState === "fail") { setProvGeo("fail"); return; }
+      let alive = true;
+      fetch(KOREA_PROV_URL).then((r) => r.json()).then((gj) => {
+        if (!alive) return;
+        // remap feature names from English to Korean
+        gj.features.forEach((f) => {
+          const engName = f.properties && f.properties.name;
+          if (engName && KOREA_HC_NAME[engName]) f.properties.name = KOREA_HC_NAME[engName];
+        });
+        echarts.registerMap("korea_prov", gj);
+        _koreaProvState = "ok"; setProvGeo("ok");
+      }).catch(() => { if (!alive) return; _koreaProvState = "fail"; setProvGeo("fail"); });
+      return () => { alive = false; };
+    }, []);
+
+    const c = Charts.themeColors(); const pal = Charts.palette();
+
+    // reset metric if not valid for current level
+    React.useEffect(() => {
+      const keys = metrics.map((x) => x.k);
+      if (!keys.includes(metric)) setMetric(keys[0]);
+    }, [level]);
+
+    const provDs = NODE.datasets.find((d) => d.id === "korea_provinces");
+    const munDs  = NODE.datasets.find((d) => d.id === "korea_municipalities");
+    const provRows = provDs ? provDs.rows : [];
+    let munRows  = munDs ? munDs.rows : [];
+    if (selProv) munRows = munRows.filter((r) => r.province === selProv);
+
+    const rows = level === "province" ? provRows : munRows;
+    const vals = rows.map((r) => r[metric]).filter((v) => v != null);
+    const minV = vals.length ? Math.min(...vals) : 0;
+    const maxV = vals.length ? Math.max(...vals) : 1;
+
+    const visualMap = {
+      min: minV, max: maxV, calculable: true, left: 12, bottom: 18, orient: "vertical",
+      itemHeight: 120, text: [m.fmt(maxV), m.fmt(minV)],
+      textStyle: { color: c.text, fontSize: 10 },
+      inRange: { color: [Charts.resolveVar("--bg-3"), pal[0]] },
+    };
+
+    // Province choropleth option
+    const provOption = provGeo === "ok" ? {
+      animation: false,
+      tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
+        formatter: (p) => {
+          const row = provRows.find((r) => r.name === p.name);
+          if (!row) return `<b>${p.name}</b><br/>데이터 없음`;
+          return `<b>${p.name}</b><br/>인구: <b>${NODE.fmtNum(row.pop_man,0)}만명</b><br/>인구밀도: <b>${NODE.fmtNum(row.pop_density,0)}명/km²</b><br/>면적: <b>${NODE.fmtNum(row.area_km2,0)} km²</b><br/>GRDP: <b>${NODE.fmtNum(row.gdp_tr,0)}조원</b>`;
+        }
+      },
+      visualMap,
+      series: [{
+        type: "map", map: "korea_prov", roam: true, scaleLimit: { min: 1, max: 10 },
+        data: provRows.map((r) => ({ name: r.name, value: r[metric] })),
+        label: { show: true, color: c.text, fontSize: 8.5, fontFamily: "IBM Plex Sans" },
+        itemStyle: { borderColor: c.bg, borderWidth: 0.5 },
+        emphasis: { label: { show: true, color: c.textHi, fontSize: 10 }, itemStyle: { areaColor: pal[0] } },
+        select: { itemStyle: { areaColor: Charts.resolveVar("--accent-hi") }, label: { color: "#fff" } },
+      }]
+    } : null;
+
+    // Municipality bubble overlay on province map background
+    const munSizes = munRows.map((r) => r.pop_man);
+    const sMin = munSizes.length ? Math.min(...munSizes) : 0;
+    const sMax = munSizes.length ? Math.max(...munSizes) : 1;
+    const sz = (v) => 8 + ((v - sMin) / (sMax - sMin + 1)) * 28;
+
+    const munOption = provGeo === "ok" ? {
+      animation: false,
+      tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
+        formatter: (p) => {
+          const row = munRows[p.dataIndex];
+          if (!row) return p.name;
+          return `<b>${row.name}</b><br/><span style="color:var(--tx-faint)">${row.province}</span><br/>인구: <b>${NODE.fmtNum(row.pop_man,0)}만명</b><br/>인구밀도: <b>${NODE.fmtNum(row.pop_density,0)}명/km²</b><br/>면적: <b>${NODE.fmtNum(row.area_km2,0)} km²</b>`;
+        }
+      },
+      visualMap: { ...visualMap, dimension: 2 },
+      geo: { map: "korea_prov", roam: true, scaleLimit: { min: 1, max: 10 },
+        itemStyle: { areaColor: Charts.resolveVar("--bg-2"), borderColor: c.split, borderWidth: 0.5 },
+        emphasis: { disabled: true } },
+      series: [{
+        type: "scatter", coordinateSystem: "geo",
+        symbolSize: (val) => sz(val[2]),
+        data: munRows.map((r) => {
+          const ll = MUN_LATLON[r.name] || [37.5, 127.0]; // [lat, lon]
+          // Highcharts GeoJSON uses UTM52N projected coords; convert WGS84→HC
+          const hc = wgs84ToHCKorea(ll[1], ll[0]);
+          return { name: r.name, value: [hc[0], hc[1], r[metric]] };
+        }),
+        label: { show: munRows.length < 20, formatter: "{b}", position: "right", color: c.text, fontSize: 9 },
+        itemStyle: { opacity: 0.85, borderColor: c.bg, borderWidth: 1 },
+        encode: { value: 2 },
+      }]
+    } : null;
+
+    const option = level === "province" ? provOption : munOption;
+    const geoReady = provGeo === "ok";
+    const geoLoading = provGeo === "idle";
+    const provList = provRows;
+
+    const onEvents = level === "province"
+      ? { click: (p) => { if (p.name) { setSelProv(p.name); setLevel("municipality"); } } }
+      : {};
+
+    return (
+      <React.Fragment>
+        <div className="phead">
+          <span className="ttl" style={{ textTransform:"none", fontSize:"var(--fs-13)", letterSpacing:0, color:"var(--tx-hi)" }}>
+            <Icon name="map" size={14} style={{ verticalAlign:"-2px", marginRight:6, color:"var(--accent)" }} />
+            Korea · {level === "province" ? "시도 (17)" : selProv ? selProv+" 시군구" : "시군구 전체"}
+          </span>
+          <div className="seg" style={{ marginLeft:6 }}>
+            <button className={level==="province"?"on":""} onClick={() => { setLevel("province"); setSelProv(null); }}>시도</button>
+            <button className={level==="municipality"?"on":""} onClick={() => setLevel("municipality")}>시군구</button>
+          </div>
+          <div className="spacer" />
+          {level === "municipality" && (
+            <select value={selProv||""} onChange={(e) => setSelProv(e.target.value||null)}
+              style={{ fontSize:11, background:"var(--bg-2)", color:"var(--tx-mid)", border:"1px solid var(--line-strong)",
+                borderRadius:"var(--r-sm)", padding:"2px 6px", marginRight:6, cursor:"pointer" }}>
+              <option value="">전체 시도</option>
+              {provList.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
+            </select>
+          )}
+          <div className="seg">
+            {metrics.map((x) => <button key={x.k} className={metric===x.k?"on":""} onClick={() => setMetric(x.k)}>{x.label}</button>)}
+          </div>
+        </div>
+        {geoLoading && <div className="map-note"><Icon name="info" size={12} /> 지도 로딩 중…</div>}
+        {!geoLoading && !geoReady && <div className="map-note"><Icon name="info" size={12} /> 지도를 불러올 수 없습니다 (jsDelivr CDN 필요)</div>}
+        {level === "province" && geoReady && <div className="map-note" style={{ background:"var(--accent-soft)", borderColor:"var(--accent)" }}><Icon name="bolt" size={12} /> 시도 클릭 → 해당 지역 시군구 드릴다운 · 시군구는 위치 버블로 표시</div>}
+        <div className="vizcanvas" style={{ padding:0 }}>
+          {geoReady && option
+            ? <EChart option={option} theme={theme+level+metric+(selProv||"")} onEvents={onEvents} style={{ height:"100%" }} />
+            : <div className="empty"><div className="s">{geoLoading ? "지도 로딩 중…" : "지도를 불러올 수 없습니다"}</div></div>}
+        </div>
+      </React.Fragment>
+    );
+  }
+
+  function KoreaPanel() {
+    const [level, setLevel] = React.useState("province");
+    const [selProv, setSelProv] = React.useState(null);
+    const provDs = NODE.datasets.find((d) => d.id === "korea_provinces");
+    const munDs  = NODE.datasets.find((d) => d.id === "korea_municipalities");
+    const provRows = provDs ? [...provDs.rows].sort((a,b)=>b.pop_man-a.pop_man) : [];
+    const munRows  = munDs ? [...munDs.rows] : [];
+    const filteredMun = selProv ? munRows.filter((r)=>r.province===selProv) : munRows;
+    const sortedMun = [...filteredMun].sort((a,b)=>b.pop_man-a.pop_man).slice(0,30);
+    const maxPop = level==="province"
+      ? Math.max(...provRows.map((r)=>r.pop_man))
+      : Math.max(...sortedMun.map((r)=>r.pop_man));
+
+    return (
+      <div className="mappanel">
+        <div className="cp-block">
+          <div style={{ display:"flex", gap:6, marginBottom:8 }}>
+            <div className="seg" style={{ flex:1 }}>
+              <button className={level==="province"?"on":""} style={{ flex:1 }} onClick={()=>setLevel("province")}>시도</button>
+              <button className={level==="municipality"?"on":""} style={{ flex:1 }} onClick={()=>setLevel("municipality")}>시군구</button>
+            </div>
+          </div>
+          {level === "municipality" && (
+            <select value={selProv||""} onChange={(e)=>setSelProv(e.target.value||null)}
+              style={{ width:"100%", fontSize:11, background:"var(--bg-2)", color:"var(--tx-mid)",
+                border:"1px solid var(--line-strong)", borderRadius:"var(--r-sm)", padding:"4px 6px",
+                marginBottom:8, cursor:"pointer" }}>
+              <option value="">전체 시도</option>
+              {provRows.map((p)=><option key={p.name} value={p.name}>{p.name}</option>)}
+            </select>
+          )}
+          <div className="cp-blocktitle">인구 순위 ({level==="province"?"시도":"시군구"})</div>
+          <div className="maprank">
+            {(level==="province" ? provRows : sortedMun).map((r,i)=>(
+              <div key={r.name} className="mr-row">
+                <span className="mr-rank mono">{i+1}</span>
+                <span className="mr-name" style={{ fontSize:11 }}>{r.name}</span>
+                <span className="mr-bar"><span style={{ width:(r.pop_man/maxPop*100)+"%" }} /></span>
+                <span className="mr-val mono">{NODE.fmtNum(r.pop_man,0)}만</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        {level === "province" && (
+          <div className="cp-block">
+            <div className="cp-blocktitle">권역별 인구</div>
+            {["수도권","영남","충청","호남","강원","제주"].map((reg)=>{
+              const total = provRows.filter((r)=>r.region===reg).reduce((s,r)=>s+r.pop_man,0);
+              return <div key={reg} className="kv"><span className="k">{reg}</span><span className="v mono">{NODE.fmtNum(total,0)}만명</span></div>;
+            })}
+          </div>
+        )}
+        <div className="cp-block">
+          <div className="cf-info"><Icon name="bolt" size={14} /><div>시도를 클릭하면 해당 지역으로 드릴다운됩니다. 시군구 뷰에서 시도 필터로 특정 지역만 볼 수 있습니다.</div></div>
+        </div>
+      </div>
+    );
+  }
+
   // ── World Map ────────────────────────────────────────────────────
   function WorldMapCenter() {
     const theme = useStore((s) => s.theme);
@@ -257,16 +552,23 @@
 
   // ── Root component — tab switcher ───────────────────────────────
   // Rendered as <MapModeRoot /> by window.MapMode so hooks work correctly
+  const MAP_TABS = [
+    { id: "seoul", label: "Seoul · 구" },
+    { id: "korea", label: "Korea · 행정구역" },
+    { id: "world", label: "World · GDP" },
+  ];
+
   function MapModeRoot() {
     const [tab, setTab] = React.useState("seoul");
-    const center = tab === "seoul" ? <MapCenter /> : <WorldMapCenter />;
-    const right   = tab === "seoul" ? <MapPanel /> : <WorldPanel />;
-    const rtitle  = tab === "seoul" ? "Districts" : "Countries";
+    let center, right, rtitle;
+    if (tab === "seoul")  { center = <MapCenter />;      right = <MapPanel />;   rtitle = "Districts"; }
+    else if (tab === "korea") { center = <KoreaMapCenter />; right = <KoreaPanel />; rtitle = "Korea"; }
+    else                  { center = <WorldMapCenter />; right = <WorldPanel />; rtitle = "Countries"; }
 
     const tabBar = (
       <div style={{ background: "var(--bg-1)", borderBottom: "1px solid var(--line)",
         display: "flex", gap: 0, padding: "0 10px", flexShrink: 0 }}>
-        {[{ id: "seoul", label: "Seoul · Korea" }, { id: "world", label: "World · GDP" }].map((t) => (
+        {MAP_TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             style={{ padding: "7px 14px", fontSize: 12, fontWeight: 600, background: "none", border: "none",
               borderBottom: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent",

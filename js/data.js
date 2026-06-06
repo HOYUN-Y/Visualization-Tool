@@ -276,6 +276,160 @@
     ],
   });
 
+  // ── Korea Provinces dataset (시도, 2023) ───────────────────────────
+  // GeoJSON name property matches these exactly (southkorea-maps kostat format)
+  const KOREA_PROVINCES = [
+    { name:"서울특별시",   region:"수도권", pop_man:942,  area_km2:605,   pop_density:15580, gdp_tr:486 },
+    { name:"경기도",       region:"수도권", pop_man:1363, area_km2:10171, pop_density:1340,  gdp_tr:510 },
+    { name:"인천광역시",   region:"수도권", pop_man:295,  area_km2:1063,  pop_density:2775,  gdp_tr:98  },
+    { name:"부산광역시",   region:"영남",   pop_man:333,  area_km2:770,   pop_density:4325,  gdp_tr:98  },
+    { name:"경상남도",     region:"영남",   pop_man:330,  area_km2:10540, pop_density:313,   gdp_tr:120 },
+    { name:"경상북도",     region:"영남",   pop_man:261,  area_km2:19031, pop_density:137,   gdp_tr:115 },
+    { name:"대구광역시",   region:"영남",   pop_man:236,  area_km2:884,   pop_density:2670,  gdp_tr:57  },
+    { name:"울산광역시",   region:"영남",   pop_man:111,  area_km2:1062,  pop_density:1045,  gdp_tr:76  },
+    { name:"충청남도",     region:"충청",   pop_man:212,  area_km2:8226,  pop_density:258,   gdp_tr:100 },
+    { name:"충청북도",     region:"충청",   pop_man:160,  area_km2:7407,  pop_density:216,   gdp_tr:65  },
+    { name:"대전광역시",   region:"충청",   pop_man:146,  area_km2:540,   pop_density:2704,  gdp_tr:44  },
+    { name:"세종특별자치시",region:"충청",  pop_man:39,   area_km2:465,   pop_density:839,   gdp_tr:14  },
+    { name:"전라남도",     region:"호남",   pop_man:184,  area_km2:12344, pop_density:149,   gdp_tr:64  },
+    { name:"전라북도",     region:"호남",   pop_man:178,  area_km2:8069,  pop_density:221,   gdp_tr:52  },
+    { name:"광주광역시",   region:"호남",   pop_man:143,  area_km2:501,   pop_density:2854,  gdp_tr:39  },
+    { name:"강원특별자치도",region:"강원",  pop_man:154,  area_km2:16875, pop_density:91,    gdp_tr:48  },
+    { name:"제주특별자치도",region:"제주",  pop_man:67,   area_km2:1849,  pop_density:362,   gdp_tr:22  },
+  ];
+
+  datasets.push({
+    id: "korea_provinces", name: "Korea_Provinces_2023.csv", short: "Korea_시도",
+    icon: "map", source: "통계청 (2023)",
+    rows: KOREA_PROVINCES,
+    columns: [
+      COL("name",        "시도명",   "string",  "dimension"),
+      COL("region",      "권역",     "category","dimension"),
+      COL("pop_man",     "인구(만)", "float",   "measure", { unit:"만명", agg:"sum" }),
+      COL("area_km2",    "면적",     "float",   "measure", { unit:"km²", agg:"sum" }),
+      COL("pop_density", "인구밀도", "float",   "measure", { unit:"명/km²", agg:"avg" }),
+      COL("gdp_tr",      "GRDP",    "float",   "measure", { unit:"조원", agg:"sum" }),
+    ],
+  });
+
+  // ── Korea Municipalities dataset (시군구 주요 도시, 2023) ──────────
+  // name 필드 = GeoJSON properties.name (southkorea-maps 시군구 레이어)
+  const KOREA_MUNICIPALITIES = [
+    // 서울
+    { name:"강남구",   province:"서울특별시", type:"자치구", pop_man:54,  area_km2:40,   pop_density:13500 },
+    { name:"송파구",   province:"서울특별시", type:"자치구", pop_man:66,  area_km2:34,   pop_density:19400 },
+    { name:"서초구",   province:"서울특별시", type:"자치구", pop_man:43,  area_km2:47,   pop_density:9100  },
+    { name:"강서구",   province:"서울특별시", type:"자치구", pop_man:58,  area_km2:41,   pop_density:14100 },
+    { name:"노원구",   province:"서울특별시", type:"자치구", pop_man:51,  area_km2:35,   pop_density:14500 },
+    { name:"관악구",   province:"서울특별시", type:"자치구", pop_man:49,  area_km2:29,   pop_density:16800 },
+    { name:"은평구",   province:"서울특별시", type:"자치구", pop_man:47,  area_km2:30,   pop_density:15600 },
+    { name:"강북구",   province:"서울특별시", type:"자치구", pop_man:30,  area_km2:23,   pop_density:13100 },
+    { name:"영등포구", province:"서울특별시", type:"자치구", pop_man:38,  area_km2:24,   pop_density:15800 },
+    { name:"성북구",   province:"서울특별시", type:"자치구", pop_man:44,  area_km2:25,   pop_density:17500 },
+    { name:"마포구",   province:"서울특별시", type:"자치구", pop_man:38,  area_km2:24,   pop_density:15700 },
+    { name:"용산구",   province:"서울특별시", type:"자치구", pop_man:22,  area_km2:22,   pop_density:10100 },
+    { name:"중구",     province:"서울특별시", type:"자치구", pop_man:13,  area_km2:10,   pop_density:13100 },
+    { name:"종로구",   province:"서울특별시", type:"자치구", pop_man:15,  area_km2:24,   pop_density:6200  },
+    { name:"동대문구", province:"서울특별시", type:"자치구", pop_man:35,  area_km2:14,   pop_density:24400 },
+    { name:"성동구",   province:"서울특별시", type:"자치구", pop_man:30,  area_km2:17,   pop_density:17700 },
+    { name:"광진구",   province:"서울특별시", type:"자치구", pop_man:35,  area_km2:17,   pop_density:20900 },
+    { name:"강동구",   province:"서울특별시", type:"자치구", pop_man:46,  area_km2:24,   pop_density:19100 },
+    { name:"중랑구",   province:"서울특별시", type:"자치구", pop_man:40,  area_km2:18,   pop_density:22100 },
+    { name:"도봉구",   province:"서울특별시", type:"자치구", pop_man:33,  area_km2:20,   pop_density:16300 },
+    { name:"동작구",   province:"서울특별시", type:"자치구", pop_man:39,  area_km2:16,   pop_density:24100 },
+    { name:"구로구",   province:"서울특별시", type:"자치구", pop_man:42,  area_km2:20,   pop_density:21100 },
+    { name:"금천구",   province:"서울특별시", type:"자치구", pop_man:23,  area_km2:13,   pop_density:17600 },
+    { name:"양천구",   province:"서울특별시", type:"자치구", pop_man:47,  area_km2:18,   pop_density:26600 },
+    { name:"서대문구", province:"서울특별시", type:"자치구", pop_man:31,  area_km2:18,   pop_density:17300 },
+    // 경기
+    { name:"수원시",   province:"경기도", type:"시", pop_man:118, area_km2:121,  pop_density:9750  },
+    { name:"고양시",   province:"경기도", type:"시", pop_man:107, area_km2:268,  pop_density:3990  },
+    { name:"용인시",   province:"경기도", type:"시", pop_man:108, area_km2:591,  pop_density:1828  },
+    { name:"성남시",   province:"경기도", type:"시", pop_man:92,  area_km2:142,  pop_density:6479  },
+    { name:"화성시",   province:"경기도", type:"시", pop_man:93,  area_km2:688,  pop_density:1351  },
+    { name:"부천시",   province:"경기도", type:"시", pop_man:80,  area_km2:53,   pop_density:15094 },
+    { name:"남양주시", province:"경기도", type:"시", pop_man:73,  area_km2:458,  pop_density:1594  },
+    { name:"안산시",   province:"경기도", type:"시", pop_man:65,  area_km2:149,  pop_density:4362  },
+    { name:"안양시",   province:"경기도", type:"시", pop_man:55,  area_km2:58,   pop_density:9482  },
+    { name:"평택시",   province:"경기도", type:"시", pop_man:57,  area_km2:452,  pop_density:1261  },
+    { name:"시흥시",   province:"경기도", type:"시", pop_man:52,  area_km2:135,  pop_density:3852  },
+    { name:"파주시",   province:"경기도", type:"시", pop_man:49,  area_km2:673,  pop_density:728   },
+    { name:"김포시",   province:"경기도", type:"시", pop_man:48,  area_km2:276,  pop_density:1739  },
+    { name:"의정부시", province:"경기도", type:"시", pop_man:44,  area_km2:82,   pop_density:5366  },
+    // 인천
+    { name:"연수구",   province:"인천광역시", type:"자치구", pop_man:38, area_km2:58,  pop_density:6551 },
+    { name:"부평구",   province:"인천광역시", type:"자치구", pop_man:48, area_km2:32,  pop_density:15000 },
+    { name:"남동구",   province:"인천광역시", type:"자치구", pop_man:51, area_km2:57,  pop_density:8947 },
+    { name:"서구",     province:"인천광역시", type:"자치구", pop_man:57, area_km2:145, pop_density:3931 },
+    { name:"미추홀구", province:"인천광역시", type:"자치구", pop_man:40, area_km2:25,  pop_density:16000 },
+    // 부산
+    { name:"해운대구", province:"부산광역시", type:"자치구", pop_man:41, area_km2:51, pop_density:8039 },
+    { name:"부산진구", province:"부산광역시", type:"자치구", pop_man:36, area_km2:30, pop_density:12000 },
+    { name:"북구",     province:"부산광역시", type:"자치구", pop_man:30, area_km2:39, pop_density:7692 },
+    { name:"사상구",   province:"부산광역시", type:"자치구", pop_man:22, area_km2:36, pop_density:6111 },
+    { name:"금정구",   province:"부산광역시", type:"자치구", pop_man:23, area_km2:65, pop_density:3538 },
+    // 대구
+    { name:"달서구",   province:"대구광역시", type:"자치구", pop_man:57, area_km2:62, pop_density:9193 },
+    { name:"북구",     province:"대구광역시", type:"자치구", pop_man:45, area_km2:94, pop_density:4787 },
+    { name:"수성구",   province:"대구광역시", type:"자치구", pop_man:44, area_km2:77, pop_density:5714 },
+    // 경남
+    { name:"창원시",   province:"경상남도", type:"시", pop_man:102, area_km2:747, pop_density:1365 },
+    { name:"김해시",   province:"경상남도", type:"시", pop_man:55,  area_km2:463, pop_density:1188 },
+    { name:"진주시",   province:"경상남도", type:"시", pop_man:35,  area_km2:712, pop_density:492  },
+    { name:"양산시",   province:"경상남도", type:"시", pop_man:35,  area_km2:483, pop_density:725  },
+    { name:"거제시",   province:"경상남도", type:"시", pop_man:24,  area_km2:403, pop_density:596  },
+    // 경북
+    { name:"포항시",   province:"경상북도", type:"시", pop_man:50, area_km2:1128, pop_density:443 },
+    { name:"구미시",   province:"경상북도", type:"시", pop_man:41, area_km2:616,  pop_density:665 },
+    { name:"경주시",   province:"경상북도", type:"시", pop_man:25, area_km2:1324, pop_density:189 },
+    { name:"안동시",   province:"경상북도", type:"시", pop_man:16, area_km2:1522, pop_density:105 },
+    // 충남
+    { name:"천안시",   province:"충청남도", type:"시", pop_man:65, area_km2:636, pop_density:1022 },
+    { name:"아산시",   province:"충청남도", type:"시", pop_man:32, area_km2:542, pop_density:590  },
+    { name:"당진시",   province:"충청남도", type:"시", pop_man:17, area_km2:696, pop_density:244  },
+    // 충북
+    { name:"청주시",   province:"충청북도", type:"시", pop_man:84, area_km2:940, pop_density:894 },
+    { name:"충주시",   province:"충청북도", type:"시", pop_man:21, area_km2:984, pop_density:213 },
+    { name:"제천시",   province:"충청북도", type:"시", pop_man:13, area_km2:883, pop_density:147 },
+    // 전남
+    { name:"여수시",   province:"전라남도", type:"시", pop_man:27, area_km2:512, pop_density:527 },
+    { name:"순천시",   province:"전라남도", type:"시", pop_man:28, area_km2:910, pop_density:308 },
+    { name:"목포시",   province:"전라남도", type:"시", pop_man:22, area_km2:47,  pop_density:4681 },
+    // 전북
+    { name:"전주시",   province:"전라북도", type:"시", pop_man:64, area_km2:206, pop_density:3107 },
+    { name:"익산시",   province:"전라북도", type:"시", pop_man:27, area_km2:507, pop_density:533  },
+    { name:"군산시",   province:"전라북도", type:"시", pop_man:26, area_km2:396, pop_density:657  },
+    // 강원
+    { name:"원주시",   province:"강원특별자치도", type:"시", pop_man:35, area_km2:868, pop_density:403 },
+    { name:"춘천시",   province:"강원특별자치도", type:"시", pop_man:28, area_km2:1116,pop_density:251 },
+    { name:"강릉시",   province:"강원특별자치도", type:"시", pop_man:21, area_km2:1040,pop_density:202 },
+    { name:"동해시",   province:"강원특별자치도", type:"시", pop_man:9,  area_km2:180, pop_density:500 },
+    // 대전
+    { name:"유성구",   province:"대전광역시", type:"자치구", pop_man:36, area_km2:177, pop_density:2034 },
+    { name:"서구",     province:"대전광역시", type:"자치구", pop_man:50, area_km2:95,  pop_density:5263 },
+    // 광주
+    { name:"광산구",   province:"광주광역시", type:"자치구", pop_man:41, area_km2:222, pop_density:1847 },
+    { name:"서구",     province:"광주광역시", type:"자치구", pop_man:29, area_km2:47,  pop_density:6170 },
+    { name:"북구",     province:"광주광역시", type:"자치구", pop_man:44, area_km2:100, pop_density:4400 },
+    // 제주
+    { name:"제주시",   province:"제주특별자치도", type:"시", pop_man:49, area_km2:977, pop_density:501 },
+    { name:"서귀포시", province:"제주특별자치도", type:"시", pop_man:18, area_km2:875, pop_density:206 },
+  ];
+
+  datasets.push({
+    id: "korea_municipalities", name: "Korea_시군구_2023.csv", short: "Korea_시군구",
+    icon: "map", source: "통계청 (2023)",
+    rows: KOREA_MUNICIPALITIES,
+    columns: [
+      COL("name",        "시군구명",  "string",  "dimension"),
+      COL("province",    "시도",      "category","dimension"),
+      COL("type",        "구분",      "category","dimension"),
+      COL("pop_man",     "인구(만)",  "float",   "measure", { unit:"만명", agg:"sum" }),
+      COL("area_km2",    "면적",      "float",   "measure", { unit:"km²", agg:"sum" }),
+      COL("pop_density", "인구밀도",  "float",   "measure", { unit:"명/km²", agg:"avg" }),
+    ],
+  });
+
   // ---- formatting helpers ----
   function fmtWon(v) {
     if (v == null || isNaN(v)) return "—";
