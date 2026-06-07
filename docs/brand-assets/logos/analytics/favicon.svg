@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="insight Analytics mark">
+  <rect width="64" height="64" rx="16" fill="#e76709"></rect>
+  <g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 16 V48 H48"></path>
+    <polyline points="22,42 32,30 38,36 48,22"></polyline>
+  </g>
+  <circle cx="48" cy="22" r="3.6" fill="#fff"></circle>
+</svg>

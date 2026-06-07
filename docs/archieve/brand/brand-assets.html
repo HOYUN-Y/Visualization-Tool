@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>insight Analytics — Logo & Favicon Assets</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-0:oklch(0.20 0.008 250); --bg-1:oklch(0.235 0.008 250); --bg-2:oklch(0.275 0.009 250); --bg-3:oklch(0.32 0.010 250);
+    --line:oklch(1 0 0 / 0.09); --line-2:oklch(1 0 0 / 0.055); --line-strong:oklch(1 0 0 / 0.16);
+    --tx-hi:oklch(0.93 0.004 250); --tx-mid:oklch(0.72 0.006 250); --tx-lo:oklch(0.56 0.006 250); --tx-faint:oklch(0.44 0.006 250);
+    --accent:#e8611a; --accent-hi:oklch(0.80 0.14 55); --accent-soft:oklch(0.72 0.17 48 / 0.16); --accent-line:oklch(0.72 0.17 48 / 0.50);
+    --font-ui:"IBM Plex Sans","IBM Plex Sans KR",system-ui,sans-serif; --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+    --r-sm:4px; --r-md:8px; --r-lg:12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  ::selection { background:var(--accent-soft); }
+  body { background:var(--bg-0); color:var(--tx-hi); font-family:var(--font-ui); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:880px; margin:0 auto; padding:64px 32px 120px; }
+  .eyebrow { font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--tx-faint); }
+  h1 { font-size:32px; font-weight:700; letter-spacing:-0.5px; margin:14px 0 10px; }
+  .sub { font-size:13px; color:var(--tx-lo); margin-bottom:8px; }
+  section { margin-top:56px; }
+  h2 { font-size:13px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--tx-lo); padding-top:22px; border-top:1px solid var(--line-2); margin-bottom:18px; }
+  .note { font-size:12.5px; color:var(--tx-lo); line-height:1.7; margin-top:14px; }
+  .note b { color:var(--tx-mid); }
+  .accent-tx { color:var(--accent); font-weight:600; }
+
+  /* asset stage */
+  .stage { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .tile { border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden; }
+  .tile .canvas { display:flex; align-items:center; justify-content:center; min-height:150px; padding:30px; }
+  .tile .canvas.dark { background:var(--bg-1); }
+  .tile .canvas.light { background:#f4f4f5; }
+  .tile .canvas.orange { background:var(--accent); }
+  .tile .foot { display:flex; align-items:center; gap:8px; padding:9px 14px; border-top:1px solid var(--line-2); background:var(--bg-0); }
+  .tile .foot .lbl { font-size:11.5px; color:var(--tx-lo); }
+  .tile .foot .file { margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--tx-faint); }
+
+  .logomark { width:96px; height:96px; }
+  .logomark img, .lock img { display:block; }
+
+  /* favicon sizes row */
+  .favrow { display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap; background:var(--bg-1); border:1px solid var(--line); border-radius:var(--r-md); padding:26px 28px; }
+  .favitem { display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .favitem img { image-rendering:auto; border-radius:22%; }
+  .favitem .cap { font-family:var(--font-mono); font-size:11px; color:var(--tx-lo); }
+  /* simulated browser tab */
+  .tabsim { display:flex; align-items:center; gap:8px; background:var(--bg-2); border:1px solid var(--line); border-radius:8px 8px 0 0; padding:8px 14px; width:230px; margin-top:18px; }
+  .tabsim img { width:16px; height:16px; }
+  .tabsim .t { font-size:12px; color:var(--tx-mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tabsim .x { margin-left:auto; color:var(--tx-faint); font-size:13px; }
+
+  /* wordmark live (font) */
+  .wm-live { font-size:40px; font-weight:700; letter-spacing:-1px; }
+  .wm-live .in { color:var(--tx-hi); } .wm-live .sight { color:var(--accent); }
+  .wm-live .an { color:var(--tx-faint); font-weight:600; font-size:0.62em; }
+
+  .files { border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  th { background:var(--bg-2); text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--tx-lo); padding:9px 14px; border-bottom:1px solid var(--line); }
+  td { padding:10px 14px; font-size:13px; color:var(--tx-mid); border-bottom:1px solid var(--line-2); }
+  tr:last-child td { border-bottom:none; }
+  td b { color:var(--tx-hi); } td .mono { font-family:var(--font-mono); font-size:12px; color:var(--tx-hi); }
+  td .use { color:var(--tx-lo); font-size:12px; }
+
+  pre { background:var(--bg-1); border:1px solid var(--line); border-radius:var(--r-md); padding:16px 20px; overflow-x:auto; font-family:var(--font-mono); font-size:12.5px; line-height:1.8; color:var(--tx-mid); margin-top:12px; }
+  pre .c { color:var(--tx-faint); } pre .k { color:var(--accent-hi); } pre .s { color:oklch(0.62 0.13 155); }
+
+  @media (max-width:720px){ .stage{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">insight Analytics · 로고 &amp; 파비콘</div>
+  <h1>Logo &amp; Favicon Assets</h1>
+  <div class="sub">브랜드 스펙의 "The Insight Point" 마크 기준. 모든 파일은 <span class="accent-tx">brand/</span> 폴더에 있습니다.</div>
+
+  <!-- Logomark -->
+  <section>
+    <h2>로고마크 — logomark.svg</h2>
+    <div class="stage">
+      <div class="tile"><div class="canvas dark"><span class="logomark"><img src="logomark.svg" width="96" height="96" alt="logomark on dark"/></span></div><div class="foot"><span class="lbl">다크 배경</span><span class="file">logomark.svg</span></div></div>
+      <div class="tile"><div class="canvas light"><span class="logomark"><img src="logomark.svg" width="96" height="96" alt="logomark on light"/></span></div><div class="foot"><span class="lbl">라이트 배경</span><span class="file">logomark.svg</span></div></div>
+    </div>
+    <p class="note"><b>The Insight Point</b> — 축 위로 상승하는 데이터 궤적이 하나의 초점으로 수렴. 주황 배경(반경 23%) + 흰색 스트로크는 다크/라이트 공통으로 동일하게 사용합니다. 벡터라 무한 확대 가능.</p>
+  </section>
+
+  <!-- Favicon -->
+  <section>
+    <h2>파비콘 — favicon.svg · .ico · .png</h2>
+    <div class="favrow">
+      <div class="favitem"><img src="favicon-16.png" width="16" height="16" alt="16"/><span class="cap">16px</span></div>
+      <div class="favitem"><img src="favicon-32.png" width="32" height="32" alt="32"/><span class="cap">32px</span></div>
+      <div class="favitem"><img src="favicon-48.png" width="48" height="48" alt="48"/><span class="cap">48px</span></div>
+      <div class="favitem"><img src="apple-touch-icon.png" width="64" height="64" alt="180"/><span class="cap">180px · apple</span></div>
+      <div class="favitem"><img src="favicon-512.png" width="84" height="84" alt="512"/><span class="cap">512px · PWA</span></div>
+    </div>
+    <div class="tabsim">
+      <img src="favicon-32.png" alt=""/>
+      <span class="t">insight Analytics Workbench</span>
+      <span class="x">×</span>
+    </div>
+    <p class="note">작은 크기(16·32px)에서도 축·궤적·초점이 읽히도록 favicon.svg는 로고마크보다 스트로크를 살짝 굵게(40 vs 34) 조정한 별도 버전입니다. <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent-hi)">favicon.svg</code>를 우선 사용하고, 구형 브라우저용으로 <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent-hi)">favicon.ico</code>(16/32/48 내장)를 함께 둡니다.</p>
+  </section>
+
+  <!-- Wordmark / lockup -->
+  <section>
+    <h2>워드마크 &amp; 가로 로크업</h2>
+    <div class="stage">
+      <div class="tile"><div class="canvas dark"><span class="wm-live"><span class="in">in</span><span class="sight">sight</span><span class="an"> Analytics</span></span></div><div class="foot"><span class="lbl">워드마크 (live text)</span><span class="file">wordmark.svg</span></div></div>
+      <div class="tile"><div class="canvas dark"><span class="lock" style="display:flex;align-items:center;gap:14px"><img src="logomark.svg" width="52" height="52" alt=""/><span class="wm-live" style="font-size:30px"><span class="in">in</span><span class="sight">sight</span><span class="an"> Analytics</span></span></span></div><div class="foot"><span class="lbl">마크 + 워드마크</span><span class="file">lockup-horizontal.svg</span></div></div>
+    </div>
+    <p class="note">워드마크 SVG는 IBM Plex Sans <b>700</b>(in·sight) + <b>600</b>(Analytics) 텍스트로 구성됩니다. 폰트가 없는 환경(인쇄·외부 임베드)에서는 텍스트를 <b>아웃라인(path)으로 변환</b>해 사용하세요.</p>
+  </section>
+
+  <!-- Files -->
+  <section>
+    <h2>파일 목록</h2>
+    <div class="files">
+      <table>
+        <thead><tr><th>파일</th><th>용도</th></tr></thead>
+        <tbody>
+          <tr><td><span class="mono">favicon.svg</span></td><td class="use">기본 파비콘 (벡터, 모던 브라우저 우선)</td></tr>
+          <tr><td><span class="mono">favicon.ico</span></td><td class="use">레거시 파비콘 — 16·32·48px 내장</td></tr>
+          <tr><td><span class="mono">favicon-16/32/48.png</span></td><td class="use">개별 비트맵 파비콘</td></tr>
+          <tr><td><span class="mono">apple-touch-icon.png</span></td><td class="use">iOS 홈 화면 아이콘 (180px)</td></tr>
+          <tr><td><span class="mono">favicon-192/512.png</span></td><td class="use">PWA / Android manifest 아이콘</td></tr>
+          <tr><td><span class="mono">logomark.svg</span></td><td class="use">앱 레일·헤더·범용 마크</td></tr>
+          <tr><td><span class="mono">wordmark.svg</span></td><td class="use">텍스트 워드마크 (단독)</td></tr>
+          <tr><td><span class="mono">lockup-horizontal.svg</span></td><td class="use">마크 + 워드마크 가로 조합</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Head snippet -->
+  <section>
+    <h2>HTML &lt;head&gt; 적용</h2>
+    <pre><span class="c">&lt;!-- 모던 브라우저: SVG 우선, ico 폴백 --&gt;</span>
+<span class="k">&lt;link</span> rel=<span class="s">"icon"</span> type=<span class="s">"image/svg+xml"</span> href=<span class="s">"/brand/favicon.svg"</span><span class="k">&gt;</span>
+<span class="k">&lt;link</span> rel=<span class="s">"icon"</span> type=<span class="s">"image/x-icon"</span> href=<span class="s">"/brand/favicon.ico"</span> sizes=<span class="s">"any"</span><span class="k">&gt;</span>
+<span class="k">&lt;link</span> rel=<span class="s">"icon"</span> type=<span class="s">"image/png"</span> sizes=<span class="s">"32x32"</span> href=<span class="s">"/brand/favicon-32.png"</span><span class="k">&gt;</span>
+<span class="k">&lt;link</span> rel=<span class="s">"apple-touch-icon"</span> href=<span class="s">"/brand/apple-touch-icon.png"</span><span class="k">&gt;</span></pre>
+    <pre><span class="c">/* PWA manifest.json — icons */</span>
+<span class="s">"icons"</span>: [
+  { <span class="s">"src"</span>: <span class="s">"/brand/favicon-192.png"</span>, <span class="s">"sizes"</span>: <span class="s">"192x192"</span>, <span class="s">"type"</span>: <span class="s">"image/png"</span> },
+  { <span class="s">"src"</span>: <span class="s">"/brand/favicon-512.png"</span>, <span class="s">"sizes"</span>: <span class="s">"512x512"</span>, <span class="s">"type"</span>: <span class="s">"image/png"</span> }
+]</pre>
+  </section>
+
+</div>
+</body>
+</html>

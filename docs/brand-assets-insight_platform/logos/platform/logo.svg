@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" fill="none" role="img" aria-label="insight platform logo">
+  <g><rect width="64" height="64" rx="16" fill="#3050aa"></rect>
+  <g stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round">
+    <line x1="32" y1="32" x2="32.0" y2="16.0"></line>
+    <line x1="32" y1="32" x2="45.9" y2="40.0"></line>
+    <line x1="32" y1="32" x2="18.1" y2="40.0"></line>
+  </g>
+  <g fill="#3050aa" stroke="#fff" stroke-width="3.4">
+    <circle cx="32.0" cy="16.0" r="4.2"></circle>
+    <circle cx="45.9" cy="40.0" r="4.2"></circle>
+    <circle cx="18.1" cy="40.0" r="4.2"></circle>
+  </g>
+  <circle cx="32" cy="32" r="7.5" fill="#fff"></circle></g>
+  <text x="84" y="42" font-family="&#39;IBM Plex Sans&#39;,&#39;IBM Plex Sans KR&#39;,system-ui,sans-serif" font-weight="600" letter-spacing="-0.4"><tspan fill="#1b1f27" font-size="30">in</tspan><tspan fill="#26418d" font-size="30">sight</tspan><tspan fill="#6b7280" font-size="19"> platform</tspan></text>
+</svg>

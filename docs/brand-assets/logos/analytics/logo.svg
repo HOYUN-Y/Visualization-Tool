@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 64" fill="none" role="img" aria-label="insight Analytics logo">
+  <g><rect width="64" height="64" rx="16" fill="#e76709"></rect>
+  <g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16 16 V48 H48"></path>
+    <polyline points="22,42 32,30 38,36 48,22"></polyline>
+  </g>
+  <circle cx="48" cy="22" r="3.6" fill="#fff"></circle></g>
+  <text x="84" y="42" font-family="&#39;IBM Plex Sans&#39;,&#39;IBM Plex Sans KR&#39;,system-ui,sans-serif" font-weight="600" letter-spacing="-0.4"><tspan fill="#1b1f27" font-size="30">in</tspan><tspan fill="#26418d" font-size="30">sight</tspan><tspan fill="#c95200" font-size="19"> Analytics</tspan></text>
+</svg>

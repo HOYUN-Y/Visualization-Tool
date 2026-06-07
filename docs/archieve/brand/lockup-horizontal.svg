@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="180" viewBox="0 0 760 180" role="img" aria-label="insight Analytics logo lockup">
+  
+  
+  <g transform="translate(20,30) scale(0.234)">
+    <rect x="0" y="0" width="512" height="512" rx="118" fill="#E8611A"></rect>
+    <g fill="none" stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M150 132 V380 H392"></path>
+      <path d="M188 330 L262 256 L312 286 L388 178" stroke-opacity="0.92"></path>
+    </g>
+    <circle cx="388" cy="178" r="40" fill="#FFFFFF"></circle>
+  </g>
+  
+  <text x="176" y="116" font-size="76" font-weight="700" letter-spacing="-1.5">
+    <tspan fill="#E9EAEC">in</tspan><tspan fill="#E8611A">sight</tspan><tspan dx="5" font-size="48" font-weight="600" fill="#6E6E86">Analytics</tspan>
+  </text>
+</svg>
