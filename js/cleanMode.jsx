@@ -26,13 +26,19 @@
       case "winsorize": return [`Winsorize ${s.params && s.params.p != null ? s.params.p : 5}%`, c];
       case "binning": return [`Binning (${s.params && s.params.bins ? s.params.bins : 5} bins)`, c];
       case "formula": return [`Formula: ${s.params.name}`, s.params.expr];
+      case "set_cell": return [`Edit cell → ${s.params.value === "" || s.params.value == null ? "null" : s.params.value}`, c];
+      case "drop_rows": return [`Delete ${(s.rids || []).length} row${(s.rids || []).length > 1 ? "s" : ""}`, ""];
+      case "add_row": return [`Add row`, ""];
+      case "add_col": return [`Add column`, s.params.key];
+      case "reorder_cols": return [`Reorder columns`, ""];
       default: return [s.op, c];
     }
   }
   const OP_ICON = { drop_missing: "x", fill_mean: "plus", fill_median: "plus", fill_mode: "plus",
     drop_duplicates: "duplicate", remove_outliers: "filter", rename: "text", replace: "redo", change_type: "layers",
     label_encode: "layers", dummy_encode: "layers", drop_col: "x", standardize: "bolt", normalize: "bolt",
-    log_transform: "bolt", rank_transform: "bolt", winsorize: "filter", binning: "filter", formula: "bolt" };
+    log_transform: "bolt", rank_transform: "bolt", winsorize: "filter", binning: "filter", formula: "bolt",
+    set_cell: "edit", drop_rows: "trash", add_row: "plus", add_col: "plus", reorder_cols: "move" };
 
   function CleanCenter() {
     const activeId = useStore((s) => s.activeId);
@@ -42,7 +48,7 @@
       const missing = {}; let totalMissing = 0;
       for (const c of columns) { const m = stat.missing(rows.map((r) => r[c.key])); if (m) { missing[c.key] = m; totalMissing += m; } }
       const seen = new Set(); let dups = 0;
-      for (const r of rows) { const k = JSON.stringify(r); if (seen.has(k)) dups++; else seen.add(k); }
+      for (const r of rows) { const { __rid, ...rest } = r; const k = JSON.stringify(rest); if (seen.has(k)) dups++; else seen.add(k); }
       let outliers = 0, outCol = null;
       for (const c of columns) if (isNumType(c.type) && c.role === "measure") {
         const cs = derive.colStats(rows, c.key); const iqr = cs.q3 - cs.q1; const lo = cs.q1 - 1.5 * iqr, hi = cs.q3 + 1.5 * iqr;
