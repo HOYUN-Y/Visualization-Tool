@@ -22,6 +22,8 @@
     sort: '<path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 5v15"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     x: '<path d="M18 6L6 18M6 6l12 12"/>',
+    edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
     chevR: '<path d="M9 6l6 6-6 6"/>',
     chevD: '<path d="M6 9l6 6 6-6"/>',
     upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',

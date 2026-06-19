@@ -84,7 +84,27 @@
     const activeId = useStore((s) => s.activeId);
     const tab = useStore((s) => s.ui.dataTab);
     const selCol = useStore((s) => s.ui.selCol);
+    const cl = useStore((s) => s.clean[s.activeId]);
+    const [editMode, setEditMode] = React.useState(false);
     const { rows, columns } = derive.getActiveData(activeId);
+
+    const uniqKey = (base) => {
+      const keys = new Set(columns.map((c) => c.key)); let k = base, i = 1;
+      while (keys.has(k)) k = base + "_" + (++i);
+      return k;
+    };
+    const editHandlers = {
+      onCell: (rid, key, val) => actions.editCell(rid, key, val),
+      onDeleteRows: (rids) => actions.deleteRows(rids),
+      onAddRow: () => actions.addRow({}),
+      onAddCol: () => actions.addColumn({ key: uniqKey("new_col"), type: "string" }),
+      onInsertCol: (at) => actions.addColumn({ key: uniqKey("new_col"), type: "string", at }),
+      onRename: (key, to) => actions.addStep({ op: "rename", col: key, params: { to } }),
+      onChangeType: (key, t) => actions.addStep({ op: "change_type", col: key, params: { to: t } }),
+      onDeleteCol: (key) => actions.addStep({ op: "drop_col", col: key }),
+      onReorder: (order) => actions.reorderCols(order),
+    };
+    const nSteps = cl ? cl.cursor : 0;
 
     return (
       <React.Fragment>
@@ -97,10 +117,27 @@
             ))}
           </div>
           <div className="spacer" />
+          {tab === "preview" && (
+            <React.Fragment>
+              {editMode && nSteps > 0 && (
+                <span className="meta" style={{ marginRight: 6, fontFamily: "var(--font-mono)", color: "var(--tx-lo)", fontSize: "var(--fs-11)" }}>{nSteps} edit{nSteps > 1 ? "s" : ""}</span>
+              )}
+              {editMode && (
+                <React.Fragment>
+                  <button className="iconbtn" title="Undo" disabled={!cl || cl.cursor === 0} onClick={() => actions.undo()}><Icon name="undo" size={14} /></button>
+                  <button className="iconbtn" title="Redo" disabled={!cl || cl.cursor >= cl.steps.length} onClick={() => actions.redo()}><Icon name="redo" size={14} /></button>
+                </React.Fragment>
+              )}
+              <button className={"btn sm " + (editMode ? "primary" : "ghost")} style={{ marginRight: 8 }} onClick={() => setEditMode((v) => !v)}>
+                <Icon name="edit" size={12} /> {editMode ? "Editing" : "Edit"}
+              </button>
+            </React.Fragment>
+          )}
           <span className="badge" style={{ marginRight: 8 }}><Icon name="bolt" size={11} /> auto-profiled</span>
         </div>
         {tab === "preview"
-          ? <DataGrid columns={columns} rows={rows} selCol={selCol} onSelectCol={(k) => actions.setUI({ selCol: k })} />
+          ? <DataGrid columns={columns} rows={rows} selCol={selCol} onSelectCol={(k) => actions.setUI({ selCol: k })}
+              editable={editMode} edit={editHandlers} />
           : <ProfilingGrid columns={columns} rows={rows} selCol={selCol} />}
       </React.Fragment>
     );

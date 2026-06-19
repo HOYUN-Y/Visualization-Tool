@@ -15,10 +15,10 @@
       const top3 = dArr.slice(0, 3).reduce((s, x) => s + x[1], 0);
       out.push({ icon: "kpi", text: `Top 3 districts make up **${(top3 / n * 100).toFixed(0)}%** of market activity — a concentrated market.` });
     }
-    const priceByD = {}; for (const r of rows) { (priceByD[r.district] = priceByD[r.district] || []).push(r.price_manwon); }
-    const avgD = Object.entries(priceByD).map(([d, a]) => [d, stat.mean(a)]).sort((a, b) => b[1] - a[1]);
+    const priceByD = {}; for (const r of rows) { if (r.district == null || r.district === "") continue; (priceByD[r.district] = priceByD[r.district] || []).push(r.price_manwon); }
+    const avgD = Object.entries(priceByD).map(([d, a]) => [d, stat.mean(a)]).filter((x) => x[1] != null).sort((a, b) => b[1] - a[1]);
     if (avgD.length) out.push({ icon: "trend", text: `**${avgD[0][0]}** has the highest average price at **${NODE.fmtWon(avgD[0][1])}**, ${(avgD[0][1] / avgD[avgD.length - 1][1]).toFixed(1)}× that of ${avgD[avgD.length - 1][0]}.` });
-    const ppmBy = {}; for (const r of rows) { const y = r.txn_date.slice(0, 4); if (r.price_per_m2) (ppmBy[y] = ppmBy[y] || []).push(r.price_per_m2); }
+    const ppmBy = {}; for (const r of rows) { const y = r.txn_date != null ? String(r.txn_date).slice(0, 4) : null; if (y && r.price_per_m2) (ppmBy[y] = ppmBy[y] || []).push(r.price_per_m2); }
     if (ppmBy["2022"] && ppmBy["2024"]) {
       const g = (stat.mean(ppmBy["2024"]) / stat.mean(ppmBy["2022"]) - 1) * 100;
       out.push({ icon: "line", text: `Average ₩/m² ${g >= 0 ? "rose" : "fell"} **${Math.abs(g).toFixed(1)}%** from 2022 to 2024, after a mid-period dip.` });
@@ -111,7 +111,7 @@
     const { rows } = derive.getActiveData("seoul_txns");
     const [log, setLog] = React.useState([]);
     const [input, setInput] = React.useState("");
-    const insights = React.useMemo(() => buildInsights(rows), [rows]);
+    const insights = React.useMemo(() => { try { return buildInsights(rows); } catch (_) { return []; } }, [rows]);
 
     // Auto-profile using Insight Engine
     const profile = React.useMemo(() => {

@@ -107,6 +107,40 @@ table.grid tbody tr:hover td.frozen { background: var(--bg-2); }
 .checkbox.on { background: var(--accent); border-color: var(--accent); color: #1a0f06; }
 .checkbox svg { width: 11px; height: 11px; }
 
+/* ---- editing affordances (editable grid) ---- */
+.th-grip { color: var(--tx-faint); display: inline-flex; cursor: grab; margin-right: -2px; }
+table.grid thead th[draggable="true"] { cursor: grab; }
+table.grid thead th.drop-target { box-shadow: inset 2px 0 0 var(--accent); }
+table.grid thead th.drop-target .th-inner { background: var(--accent-soft); }
+.th-rename { width: 100%; min-width: 80px; height: 22px; padding: 0 6px; font-size: var(--fs-12);
+  font-weight: 600; color: var(--tx-hi); background: var(--bg-0); border: 1px solid var(--accent);
+  border-radius: var(--r-sm); outline: none; }
+
+/* row index cell in edit mode: number + delete button */
+.col-idx.editable { cursor: pointer; }
+.idx-edit { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; width: 100%; }
+.idx-edit .row-del { opacity: 0; display: inline-flex; cursor: pointer; color: var(--tx-faint); border-radius: 3px; }
+table.grid tbody tr:hover .idx-edit .row-del { opacity: 1; }
+.idx-edit .row-del:hover { color: var(--neg); }
+table.grid tbody tr.rowsel td { background: var(--accent-soft); }
+table.grid tbody tr.rowsel td.col-idx { color: var(--accent-hi); }
+table.grid tbody tr.rowsel:hover td { background: color-mix(in oklch, var(--accent-soft), var(--bg-hover)); }
+
+/* editable cell hover + inline input */
+table.grid tbody td.editable { cursor: cell; }
+table.grid tbody td.editing { padding: 0; }
+.cell-input { width: 100%; height: var(--row-h); padding: 0 8px; font-size: var(--fs-12);
+  color: var(--tx-hi); background: var(--bg-0); border: 1.5px solid var(--accent);
+  outline: none; font-family: inherit; }
+.cell-input:focus { box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* bottom edit bar */
+.grid-editbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 36px; padding: 0 10px; border-top: 1px solid var(--line); background: var(--bg-1); }
+.grid-editbar .meta { font-size: var(--fs-11); color: var(--tx-lo); font-family: var(--font-mono); }
+.btn.danger { background: var(--neg-soft, oklch(0.55 0.18 25 / 0.16)); color: var(--neg); border-color: transparent; }
+.btn.danger:hover { background: oklch(0.55 0.18 25 / 0.26); }
+
 /* active filter chips bar */
 .filterchips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .fchip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 4px 0 8px;

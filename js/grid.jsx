@@ -60,7 +60,10 @@
   }
 
   // ---- DataGrid ----
-  function DataGrid({ columns, rows, selCol, onSelectCol, pageSize = 100, compact, idStart = 1 }) {
+  // editable: enables JMP/Excel-style editing. `edit` provides callbacks:
+  //   { onCell(rid,key,val), onDeleteRows(rids), onAddRow(), onAddCol(),
+  //     onRename(key,to), onChangeType(key,type), onInsertCol(atIndex), onDeleteCol(key), onReorder(orderKeys) }
+  function DataGrid({ columns, rows, selCol, onSelectCol, pageSize = 100, compact, idStart = 1, editable = false, edit = null }) {
     const [sort, setSort] = React.useState(null);     // {key,dir}
     const [hidden, setHidden] = React.useState(() => new Set());
     const [frozen, setFrozen] = React.useState(() => new Set());
@@ -69,8 +72,44 @@
     const [filters, setFilters] = React.useState({}); // {key: {kind:'in', set} | {kind:'range', min,max}}
     const [menu, setMenu] = React.useState(null);      // {key, rect}
     const [filterMenu, setFilterMenu] = React.useState(null);
+    // editing state
+    const [cellEdit, setCellEdit] = React.useState(null); // {rid, key}
+    const [cellVal, setCellVal] = React.useState("");
+    const [headEdit, setHeadEdit] = React.useState(null); // key being renamed
+    const [headVal, setHeadVal] = React.useState("");
+    const [selRows, setSelRows] = React.useState(() => new Set()); // selected __rid
+    const [dragKey, setDragKey] = React.useState(null);   // column being dragged
+    const [dragOver, setDragOver] = React.useState(null); // column hovered during drag
 
     const visCols = columns.filter((c) => !hidden.has(c.key));
+
+    // commit / cancel cell edit
+    const startCell = (rid, key, cur) => { setCellEdit({ rid, key }); setCellVal(cur == null ? "" : String(cur)); };
+    const commitCell = () => { if (cellEdit) { edit.onCell(cellEdit.rid, cellEdit.key, cellVal); setCellEdit(null); } };
+    const startHead = (key, cur) => { setHeadEdit(key); setHeadVal(cur); setMenu(null); };
+    const commitHead = () => { if (headEdit) { const t = headVal.trim(); if (t && t !== headEdit) edit.onRename(headEdit, t); setHeadEdit(null); } };
+    // reorder: move fromKey before toKey within full column order
+    const doReorder = (fromKey, toKey) => {
+      if (!fromKey || fromKey === toKey) return;
+      const order = columns.map((c) => c.key);
+      order.splice(order.indexOf(fromKey), 1);
+      order.splice(order.indexOf(toKey), 0, fromKey);
+      edit.onReorder(order);
+    };
+
+    // Delete key removes selected rows
+    React.useEffect(() => {
+      if (!editable) return;
+      const h = (e) => {
+        if ((e.key === "Delete" || e.key === "Backspace") && selRows.size && !cellEdit && !headEdit) {
+          const tag = document.activeElement && document.activeElement.tagName;
+          if (tag === "INPUT" || tag === "TEXTAREA") return;
+          e.preventDefault(); edit.onDeleteRows([...selRows]); setSelRows(new Set());
+        }
+      };
+      document.addEventListener("keydown", h);
+      return () => document.removeEventListener("keydown", h);
+    }, [editable, selRows, cellEdit, headEdit]);
 
     // color maps for category cols
     const cmaps = React.useMemo(() => {
@@ -173,46 +212,103 @@
                 {visCols.map((c) => {
                   const tb = typeShort(c.type);
                   const fr = frozen.has(c.key);
+                  const editingHead = editable && headEdit === c.key;
                   return (
-                    <th key={c.key} className={(selCol === c.key ? "sel " : "") + (fr ? "frozen" : "")}
-                      style={fr ? { left: 46 } : undefined}>
-                      <div className="th-inner" onClick={() => { onSelectCol && onSelectCol(c.key); toggleSort(c.key); }}>
-                        <span className={"th-type " + tb.cls}>{tb.label}</span>
-                        <span className="th-name">{c.label}</span>
-                        {sort && sort.key === c.key && (
-                          <span className="th-sort"><Icon name="chevD" size={12} style={{ transform: sort.dir === "asc" ? "rotate(180deg)" : "none" }} /></span>
-                        )}
-                        <span className="th-menu" onClick={(e) => openMenu(e, c.key)}><Icon name="dots" size={14} /></span>
-                      </div>
+                    <th key={c.key} className={(selCol === c.key ? "sel " : "") + (fr ? "frozen" : "") + (editable && dragOver === c.key ? " drop-target" : "")}
+                      style={fr ? { left: 46 } : undefined}
+                      draggable={editable && !editingHead && !fr}
+                      onDragStart={editable ? (e) => { setDragKey(c.key); e.dataTransfer.effectAllowed = "move"; } : undefined}
+                      onDragOver={editable && dragKey ? (e) => { e.preventDefault(); if (dragOver !== c.key) setDragOver(c.key); } : undefined}
+                      onDragLeave={editable ? () => setDragOver((k) => k === c.key ? null : k) : undefined}
+                      onDrop={editable && dragKey ? (e) => { e.preventDefault(); doReorder(dragKey, c.key); setDragKey(null); setDragOver(null); } : undefined}
+                      onDragEnd={editable ? () => { setDragKey(null); setDragOver(null); } : undefined}>
+                      {editingHead ? (
+                        <div className="th-inner" style={{ cursor: "text" }}>
+                          <input className="th-rename" autoFocus value={headVal}
+                            onChange={(e) => setHeadVal(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") commitHead(); else if (e.key === "Escape") setHeadEdit(null); }}
+                            onBlur={commitHead} />
+                        </div>
+                      ) : (
+                        <div className="th-inner" onClick={() => { onSelectCol && onSelectCol(c.key); toggleSort(c.key); }}
+                          onDoubleClick={editable ? (e) => { e.stopPropagation(); startHead(c.key, c.label); } : undefined}>
+                          {editable && <span className="th-grip" title="Drag to reorder"><Icon name="move" size={11} /></span>}
+                          <span className={"th-type " + tb.cls}>{tb.label}</span>
+                          <span className="th-name">{c.label}</span>
+                          {sort && sort.key === c.key && (
+                            <span className="th-sort"><Icon name="chevD" size={12} style={{ transform: sort.dir === "asc" ? "rotate(180deg)" : "none" }} /></span>
+                          )}
+                          <span className="th-menu" onClick={(e) => openMenu(e, c.key)}><Icon name="dots" size={14} /></span>
+                        </div>
+                      )}
                     </th>
                   );
                 })}
               </tr>
             </thead>
             <tbody>
-              {pageRows.map((r, i) => (
-                <tr key={i}>
-                  <td className="col-idx">{pg * pageSize + i + idStart}</td>
+              {pageRows.map((r, i) => {
+                const rid = r.__rid;
+                const rowSel = editable && rid != null && selRows.has(rid);
+                return (
+                <tr key={editable && rid != null ? rid : i} className={rowSel ? "rowsel" : ""}>
+                  <td className={"col-idx" + (editable ? " editable" : "")}
+                    onClick={editable && rid != null ? (e) => {
+                      setSelRows((p) => { const n = new Set(p); n.has(rid) ? n.delete(rid) : n.add(rid); return n; });
+                    } : undefined}>
+                    {editable ? (
+                      <span className="idx-edit">
+                        <span className="idx-num">{pg * pageSize + i + idStart}</span>
+                        <span className="row-del" title="Delete row" onClick={(e) => { e.stopPropagation(); edit.onDeleteRows([rid]); setSelRows((p) => { const n = new Set(p); n.delete(rid); return n; }); }}><Icon name="x" size={11} /></span>
+                      </span>
+                    ) : (pg * pageSize + i + idStart)}
+                  </td>
                   {visCols.map((c) => {
-                    const f = fmtCell(r[c.key], c);
                     const fr = frozen.has(c.key);
-                    const cls = [f.cls === "num" ? "num" : "", selCol === c.key ? "sel" : "", fr ? "frozen" : ""].filter(Boolean).join(" ");
                     const style = fr ? { left: 46 } : undefined;
-                    if (f.isNull) return <td key={c.key} className={cls} style={style}><span className="cell-null">null</span></td>;
+                    const editingCell = editable && cellEdit && cellEdit.rid === rid && cellEdit.key === c.key;
+                    if (editingCell) {
+                      return <td key={c.key} className={"editing" + (fr ? " frozen" : "")} style={style}>
+                        <input className="cell-input" autoFocus value={cellVal}
+                          onChange={(e) => setCellVal(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") commitCell(); else if (e.key === "Escape") setCellEdit(null); }}
+                          onBlur={commitCell} />
+                      </td>;
+                    }
+                    const f = fmtCell(r[c.key], c);
+                    const cls = [f.cls === "num" ? "num" : "", selCol === c.key ? "sel" : "", fr ? "frozen" : "", editable ? "editable" : ""].filter(Boolean).join(" ");
+                    const dbl = editable && rid != null ? () => startCell(rid, c.key, r[c.key]) : undefined;
+                    if (f.isNull) return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}><span className="cell-null">null</span></td>;
                     if (c.type === "category" && cmaps[c.key]) {
-                      return <td key={c.key} className={cls} style={style}><span className="cell-cat" style={{ "--swatch": cmaps[c.key][r[c.key]] || "var(--tx-faint)" }}>{f.text}</span></td>;
+                      return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}><span className="cell-cat" style={{ "--swatch": cmaps[c.key][r[c.key]] || "var(--tx-faint)" }}>{f.text}</span></td>;
                     }
                     if (f.cls === "num" && extents[c.key] && c.role === "measure") {
                       const [lo, hi] = extents[c.key]; const pct = hi > lo ? Math.max(2, ((f.num - lo) / (hi - lo)) * 100) : 0;
-                      return <td key={c.key} className={cls + " databar"} style={style}><span className="fill" style={{ width: pct + "%" }} /><span className="val">{f.text}</span></td>;
+                      return <td key={c.key} className={cls + " databar"} style={style} onDoubleClick={dbl}><span className="fill" style={{ width: pct + "%" }} /><span className="val">{f.text}</span></td>;
                     }
-                    return <td key={c.key} className={cls} style={style}>{f.text}</td>;
+                    return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}>{f.text}</td>;
                   })}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
+
+        {editable && (
+          <div className="grid-editbar">
+            <button className="btn ghost sm" onClick={() => edit.onAddRow()}><Icon name="plus" size={12} /> Add row</button>
+            <button className="btn ghost sm" onClick={() => edit.onAddCol()}><Icon name="plus" size={12} /> Add column</button>
+            <div className="spacer" style={{ flex: 1 }} />
+            {selRows.size > 0 && (
+              <React.Fragment>
+                <span className="meta">{selRows.size} selected</span>
+                <button className="btn danger sm" onClick={() => { edit.onDeleteRows([...selRows]); setSelRows(new Set()); }}><Icon name="trash" size={12} /> Delete</button>
+                <button className="btn ghost sm" onClick={() => setSelRows(new Set())}>Clear</button>
+              </React.Fragment>
+            )}
+          </div>
+        )}
 
         {menu && (
           <Popover anchor={menu.rect} onClose={() => setMenu(null)}>
@@ -224,6 +320,22 @@
               <Icon name="pin" /> {frozen.has(menu.key) ? "Unfreeze" : "Freeze column"}
             </div>
             <div className="pi" onClick={() => { setHidden((p) => new Set(p).add(menu.key)); setMenu(null); }}><Icon name="eyeoff" /> Hide column</div>
+            {editable && (
+              <React.Fragment>
+                <div className="sep" />
+                <div className="pi" onClick={() => startHead(menu.key, (columns.find((c) => c.key === menu.key) || {}).label || menu.key)}><Icon name="edit" /> Rename…</div>
+                <div className="ph">Change type</div>
+                {[["string", "Text"], ["integer", "Integer"], ["float", "Decimal"], ["category", "Category"], ["datetime", "Date"]].map(([t, lbl]) => (
+                  <div className="pi" key={t} onClick={() => { edit.onChangeType(menu.key, t); setMenu(null); }} style={{ paddingLeft: 18 }}>
+                    <span className={"th-type " + typeShort(t).cls} style={{ minWidth: 26, textAlign: "center" }}>{typeShort(t).label}</span> {lbl}
+                  </div>
+                ))}
+                <div className="sep" />
+                <div className="pi" onClick={() => { edit.onInsertCol(columns.findIndex((c) => c.key === menu.key)); setMenu(null); }}><Icon name="plus" /> Insert left</div>
+                <div className="pi" onClick={() => { edit.onInsertCol(columns.findIndex((c) => c.key === menu.key) + 1); setMenu(null); }}><Icon name="plus" /> Insert right</div>
+                <div className="pi danger" onClick={() => { edit.onDeleteCol(menu.key); setMenu(null); }}><Icon name="trash" /> Delete column</div>
+              </React.Fragment>
+            )}
           </Popover>
         )}
         {filterMenu && (
