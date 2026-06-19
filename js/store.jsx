@@ -5,6 +5,19 @@
 (function () {
   const D = window.NODE.datasets;
 
+  // ---------- stable hidden row id (__rid) for editing ----------
+  // Every source row gets a monotonic __rid so cell/row edit steps can target
+  // rows reliably despite grid sort/filter/page and pipeline reordering.
+  // __rid is NOT a column (never rendered) and survives {...r} clones.
+  let _ridSeq = 1;
+  function nextRid() { return _ridSeq++; }
+  function ensureRids(ds) {
+    if (!ds || ds.__rid_tagged) return ds;
+    for (const r of ds.rows) { if (r.__rid == null) r.__rid = _ridSeq++; }
+    ds.__rid_tagged = true;
+    return ds;
+  }
+
   const initial = {
     theme: "dark",
     mode: "data",
@@ -99,7 +112,7 @@
         case "fill_mean": { const m = stat.mean(rows.map((r) => r[s.col])); rows.forEach((r) => { if (r[s.col] == null || r[s.col] === "") r[s.col] = NODE.round(m, 1); }); break; }
         case "fill_median": { const m = stat.median(rows.map((r) => r[s.col])); rows.forEach((r) => { if (r[s.col] == null || r[s.col] === "") r[s.col] = m; }); break; }
         case "fill_mode": { const m = stat.mode(rows.map((r) => r[s.col])); rows.forEach((r) => { if (r[s.col] == null || r[s.col] === "") r[s.col] = m; }); break; }
-        case "drop_duplicates": { const seen = new Set(); rows = rows.filter((r) => { const k = JSON.stringify(r); if (seen.has(k)) return false; seen.add(k); return true; }); break; }
+        case "drop_duplicates": { const seen = new Set(); rows = rows.filter((r) => { const { __rid, ...rest } = r; const k = JSON.stringify(rest); if (seen.has(k)) return false; seen.add(k); return true; }); break; }
         case "remove_outliers": { const cs = colStats(rows, s.col); const iqr = cs.q3 - cs.q1; const lo = cs.q1 - 1.5 * iqr, hi = cs.q3 + 1.5 * iqr; rows = rows.filter((r) => { const v = r[s.col]; return v == null || (v >= lo && v <= hi); }); break; }
         case "rename": { rows.forEach((r) => { r[s.params.to] = r[s.col]; if (s.params.to !== s.col) delete r[s.col]; }); columns = columns.map((c) => c.key === s.col ? { ...c, key: s.params.to, label: s.params.to } : c); break; }
         case "replace": { rows.forEach((r) => { if (r[s.col] != null && String(r[s.col]) === s.params.from) r[s.col] = s.params.to; }); break; }
@@ -186,6 +199,54 @@
           }
           break;
         }
+        // ---- Phase 3: Direct editing (row-targeted by __rid) ----
+        case "set_cell": {
+          const col = columns.find((c) => c.key === s.col);
+          let v = s.params.value;
+          if (col && (col.type === "integer" || col.type === "float")) {
+            if (v === "" || v == null) v = null;
+            else { const n = Number(v); if (!Number.isNaN(n)) v = col.type === "integer" ? Math.round(n) : n; }
+          }
+          const r = rows.find((row) => row.__rid === s.rid);
+          if (r) r[s.col] = v;
+          break;
+        }
+        case "drop_rows": {
+          const set = new Set(s.rids || []);
+          rows = rows.filter((r) => !set.has(r.__rid));
+          break;
+        }
+        case "add_row": {
+          const nr = { ...(s.params.row || {}) };
+          if (nr.__rid == null) nr.__rid = s.params.rid;
+          columns.forEach((c) => { if (!(c.key in nr)) nr[c.key] = null; });
+          rows.push(nr);
+          break;
+        }
+        case "add_col": {
+          const key = s.params.key;
+          const type = s.params.type || "string";
+          const role = s.params.role || ((type === "integer" || type === "float") ? "measure" : "dimension");
+          const def = s.params.default !== undefined ? s.params.default : null;
+          if (!columns.find((c) => c.key === key)) {
+            const col = { key, label: s.params.label || key, type, role };
+            const at = s.params.at;
+            if (typeof at === "number" && at >= 0 && at <= columns.length) columns.splice(at, 0, col);
+            else columns.push(col);
+          }
+          rows.forEach((r) => { if (!(key in r)) r[key] = def; });
+          break;
+        }
+        case "reorder_cols": {
+          const order = s.params.order;
+          if (Array.isArray(order)) {
+            const map = new Map(columns.map((c) => [c.key, c]));
+            const next = order.map((k) => map.get(k)).filter(Boolean);
+            columns.forEach((c) => { if (!order.includes(c.key)) next.push(c); });
+            columns = next;
+          }
+          break;
+        }
         default: break;
       }
     }
@@ -193,7 +254,7 @@
   }
 
   // active (cleaned) dataset
-  function getDataset(id) { return D.find((d) => d.id === (id || state.activeId)); }
+  function getDataset(id) { return ensureRids(D.find((d) => d.id === (id || state.activeId))); }
   function getClean(id) { id = id || state.activeId; return state.clean[id] || { steps: [], cursor: 0 }; }
   function getActiveData(id) {
     id = id || state.activeId;
@@ -246,6 +307,13 @@
     redo: () => setState((s) => { const id = s.activeId; const cur = s.clean[id]; if (!cur || cur.cursor >= cur.steps.length) return s; return { ...s, clean: { ...s.clean, [id]: { ...cur, cursor: cur.cursor + 1 } } }; }),
     gotoStep: (i) => setState((s) => { const id = s.activeId; const cur = s.clean[id]; if (!cur) return s; return { ...s, clean: { ...s.clean, [id]: { ...cur, cursor: i } } }; }),
     clearSteps: () => setState((s) => ({ ...s, clean: { ...s.clean, [s.activeId]: { steps: [], cursor: 0 } } })),
+
+    // direct editing (all routed through addStep → undo/redo + step log for free)
+    editCell: (rid, col, value) => actions.addStep({ op: "set_cell", rid, col, params: { value } }),
+    deleteRows: (rids) => actions.addStep({ op: "drop_rows", rids: Array.isArray(rids) ? rids : [rids] }),
+    addRow: (row) => actions.addStep({ op: "add_row", params: { row: row || {}, rid: nextRid() } }),
+    addColumn: (def) => actions.addStep({ op: "add_col", params: def || {} }),
+    reorderCols: (order) => actions.addStep({ op: "reorder_cols", params: { order } }),
 
     // viz
     setViz: (patch) => setState((s) => ({ ...s, viz: { ...s.viz, ...patch } })),

@@ -74,7 +74,7 @@
 
   function downloadCSV(rows, columns, filename) {
     if (!rows || !rows.length) return false;
-    const cols = columns || Object.keys(rows[0]).map((k) => ({ key: k, label: k }));
+    const cols = columns || Object.keys(rows[0]).filter((k) => k !== "__rid").map((k) => ({ key: k, label: k }));
     const header = cols.map((c) => JSON.stringify(c.label)).join(",");
     const body = rows.map((r) => cols.map((c) => {
       const v = r[c.key]; if (v == null) return "";
