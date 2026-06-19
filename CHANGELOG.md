@@ -14,6 +14,45 @@ All notable changes to insight Analytics Workbench are documented here.
 
 ---
 
+## [1.9.0] — 2026-06-19 — 데이터 직접 편집 (JMP/Excel 스타일)
+
+> Data 모드 그리드에서 임포트한 데이터를 직접 편집. 모든 편집은 기존 **비파괴 스텝 파이프라인**에 기록되어 undo/redo·스텝 로그·원본 보존이 그대로 적용된다.
+
+### Added
+
+#### 데이터 편집 엔진 (`js/store.jsx`)
+- **숨김 행 ID `__rid`**: 모든 원본 행에 단조 증가 정수 ID를 지연 태깅(`getDataset` 길목 — 빌드인/CSV/SQL 전부 커버). `columns`에 미포함되어 그리드에 표시되지 않으며, 정렬·필터·페이징·파이프라인 재배열과 무관하게 행을 안정적으로 지목.
+- `applySteps` 신규 op 5종:
+  - `set_cell` — 셀 값 변경 (`__rid` 지목, 열 타입에 맞춰 형변환)
+  - `drop_rows` — 행 삭제 (단일/다중, `__rid` 배열)
+  - `add_row` — 새 행 추가 (새 `__rid` 부여)
+  - `add_col` — 빈/기본값 열 추가 (삽입 위치 `at` 지원)
+  - `reorder_cols` — 열 순서 재배치 (key 순서 배열)
+- store 액션 `editCell·deleteRows·addRow·addColumn·reorderCols` (전부 `addStep` 래퍼 → undo/redo 자동)
+
+#### 편집 가능 그리드 (`js/grid.jsx` · `js/dataMode.jsx` · `css/grid.css`)
+- **Edit 토글** (Data 툴바): 평소 읽기전용, 토글 시 편집 모드 + Undo/Redo 버튼·편집 카운터
+- **셀 인라인 편집**: 더블클릭 → 입력 → Enter/blur 커밋, Esc 취소
+- **헤더**: 더블클릭 rename, 컨텍스트 메뉴 확장(Rename / Change type / Insert left·right / Delete column), **드래그앤드롭 열 순서 변경**
+- **행 거터**: 클릭 다중선택, hover × 삭제, Del 키 일괄 삭제
+- **하단 바**: Add row · Add column · 선택 행 Delete/Clear
+- `DataGrid`는 `editable` prop으로 게이팅 — Clean/SQL 사용처는 영향 없음(읽기전용 유지)
+- `edit`/`trash` 아이콘 추가 (`js/icons.jsx`)
+
+#### Clean 모드 통합 (`js/cleanMode.jsx`)
+- Data 모드 편집 이력이 Clean 모드 **PIPELINE 로그**에 라벨·아이콘으로 표시 (`stepLabel`/`OP_ICON`에 5종 추가)
+
+### Fixed
+- **`__rid` 누출 방지**: 전체 행 `JSON.stringify` 기반 중복 제거/카운트(`store.jsx` drop_duplicates, `cleanMode.jsx` dup 카드)에서 `__rid` 제외 — 미수정 시 모든 행이 고유로 판정되어 중복 탐지가 무력화되는 문제 해결
+- **AIDrawer 견고성**: 편집으로 생긴 `null` `txn_date`·빈 행에 `buildInsights`가 크래시하던 버그 수정 (null 가드 + try/catch + null district 그룹 제외). AIDrawer는 항상 마운트되어 seoul 데이터 인사이트를 계산하므로, 빈 행 추가 시 앱 전체가 다운되던 문제
+- CSV export 시 `__rid` 누출 방어 (`js/charts.jsx`)
+
+### Technical Notes
+- 모든 편집은 `state.clean[id].steps`에 기록 → 단일 비파괴 파이프라인으로 정리/편집 일원화
+- `index.html` 캐시 버전 `?v=170` → `?v=175` (CSS 링크에도 버전 쿼리 추가)
+
+---
+
 ## [1.8.0] — 2026-06-07 — 브랜드 아이덴티티 정립 (Brand Spec v1.0)
 
 ### Changed

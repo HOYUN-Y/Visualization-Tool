@@ -452,7 +452,7 @@ svg[aria-hidden="true"] { display: none; }
     <div class="mode-tile">
       <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-data"></use></svg></div>
       <div class="mt-name">Data</div>
-      <div class="mt-desc">데이터셋 탐색, 컬럼 프로파일링, 분포 확인</div>
+      <div class="mt-desc">데이터셋 탐색, 컬럼 프로파일링, 분포 확인, 직접 편집</div>
     </div>
     <div class="mode-tile">
       <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-clean"></use></svg></div>
@@ -736,6 +736,26 @@ svg[aria-hidden="true"] { display: none; }
     <li><strong>범주형 컬럼</strong>: 상위 값 목록 + 빈도 막대</li>
     <li><strong>날짜형 컬럼</strong>: 날짜 범위 + 월별 분포</li>
   </ul>
+
+  <h3>데이터 직접 편집 <span class="tag accent">v1.9.0</span></h3>
+  <p>스프레드시트처럼 데이터를 직접 고칠 수 있습니다. 우측 상단의 <strong>Edit</strong> 버튼을 누르면 편집 모드로 전환됩니다(평소엔 실수 방지를 위해 읽기전용). 편집 모드에서는 <strong>Undo/Redo</strong> 버튼이 함께 나타납니다.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>하고 싶은 것</th><th>방법</th></tr></thead>
+      <tbody>
+        <tr><td><strong>값 고치기</strong></td><td>셀을 <strong>더블클릭</strong> → 입력 → Enter로 저장 (Esc로 취소). 숫자 열은 자동으로 숫자로 변환됩니다.</td></tr>
+        <tr><td><strong>피처명(열 이름) 바꾸기</strong></td><td>열 헤더를 <strong>더블클릭</strong>하거나, 헤더 ▾ 메뉴 → <strong>Rename</strong></td></tr>
+        <tr><td><strong>열 타입 바꾸기</strong></td><td>헤더 ▾ 메뉴 → <strong>Change type</strong> (Text / Integer / Decimal / Category / Date)</td></tr>
+        <tr><td><strong>열 순서 바꾸기</strong></td><td>열 헤더를 <strong>드래그</strong>하여 원하는 위치에 놓기</td></tr>
+        <tr><td><strong>열 추가 / 삭제</strong></td><td>하단 <strong>Add column</strong> 버튼, 또는 헤더 메뉴 → Insert left·right / Delete column</td></tr>
+        <tr><td><strong>행 삭제</strong></td><td>행 번호에 마우스를 올리면 나타나는 <strong>×</strong>, 또는 행 번호를 클릭해 여러 행 선택 후 <strong>Delete</strong> 키 / 하단 Delete 버튼</td></tr>
+        <tr><td><strong>행 추가</strong></td><td>하단 <strong>Add row</strong> 버튼 (빈 행이 추가되어 셀을 채울 수 있음)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="alert tip">
+    <div><strong>💡 안심하고 편집하세요.</strong> 모든 편집은 원본을 건드리지 않고 <strong>되돌릴 수 있는 단계</strong>로 기록됩니다. 편집 이력은 <strong>Clean 모드의 파이프라인</strong>에서도 그대로 확인·되돌리기 할 수 있어, 정제 작업과 직접 편집이 하나의 흐름으로 관리됩니다.</div>
+  </div>
 </section>
 
 <!-- ══════════════════════════════════════════════════════ -->
@@ -1695,6 +1715,22 @@ LIMIT 5</pre>
     <div class="card ok">
       <div class="card-title"><svg class="icon icon-sm"><use href="#i-bolt"></use></svg>Formula Column</div>
       <div class="card-body">JS 수식으로 파생 컬럼 즉시 생성. row 객체로 모든 컬럼 접근.</div>
+    </div>
+  </div>
+
+  <h3>✅ Phase 2 (1.5차) — 데이터 직접 편집 <span class="tag accent">v1.9.0</span></h3>
+  <div class="cards">
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-data"></use></svg>셀 · 행 편집</div>
+      <div class="card-body">셀 더블클릭 인라인 편집 · 행 추가 · 다중선택 삭제(Del 키).</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-data"></use></svg>열 편집</div>
+      <div class="card-body">열 추가·삭제 · 피처명 변경 · 타입 변경 · 헤더 드래그 순서 변경.</div>
+    </div>
+    <div class="card ok">
+      <div class="card-title"><svg class="icon icon-sm"><use href="#i-clean"></use></svg>비파괴 통합</div>
+      <div class="card-body">모든 편집이 Undo/Redo 가능한 단계로 기록 · Clean 모드 파이프라인에 통합 표시.</div>
     </div>
   </div>
 

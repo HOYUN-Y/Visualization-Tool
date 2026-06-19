@@ -921,22 +921,43 @@ root.<span class="fn">render</span>(&lt;App /&gt;);</code></pre>
     <!-- ═══════════════════ MODES ═══════════════════ -->
     <section id="mode-data">
       <h2>Data 모드 — <code>dataMode.jsx</code></h2>
-      <p>데이터셋 탐색, 미리보기, 컬럼 프로파일링을 제공합니다.</p>
+      <p>데이터셋 탐색, 미리보기, 컬럼 프로파일링, <strong>직접 편집</strong>(v1.9.0)을 제공합니다.</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>컴포넌트</th><th>설명</th></tr></thead>
           <tbody>
             <tr><td><code>window.DatasetTree</code></td><td>좌측 데이터셋 목록. 클릭 시 <code>actions.setActive()</code> 호출</td></tr>
-            <tr><td><code>window.DataCenter</code></td><td>중앙 패널: Preview / Profile / Profiling 탭</td></tr>
+            <tr><td><code>window.DataCenter</code></td><td>중앙 패널: Preview / Profiling 탭 + <code>Edit</code> 토글 (편집 모드)</td></tr>
             <tr><td><code>window.ColumnProfile</code></td><td>우측: 선택 컬럼 상세 통계 + 미니 히스토그램</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <h3>직접 편집 (JMP/Excel 스타일)</h3>
+      <p>Data Preview 그리드에서 <code>Edit</code> 토글을 켜면 임포트한 데이터를 직접 편집할 수 있습니다. 모든 편집은 <code>set_cell</code>·<code>drop_rows</code>·<code>add_row</code>·<code>add_col</code>·<code>reorder_cols</code> 스텝으로 발행되어 Clean 모드의 비파괴 파이프라인에 통합됩니다(Undo/Redo·스텝 로그 공유).</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>편집</th><th>인터랙션</th><th>발행 op</th></tr></thead>
+          <tbody>
+            <tr><td>셀 값 변경</td><td>셀 더블클릭 → 입력 → Enter/blur 커밋, Esc 취소</td><td><code>set_cell</code></td></tr>
+            <tr><td>피처명 변경</td><td>헤더 더블클릭 또는 메뉴 → Rename</td><td><code>rename</code></td></tr>
+            <tr><td>타입 변경</td><td>헤더 메뉴 → Change type</td><td><code>change_type</code></td></tr>
+            <tr><td>열 삽입/삭제</td><td>헤더 메뉴 → Insert left·right / Delete column, 하단 Add column</td><td><code>add_col</code> / <code>drop_col</code></td></tr>
+            <tr><td>열 순서 변경</td><td>헤더 드래그앤드롭</td><td><code>reorder_cols</code></td></tr>
+            <tr><td>행 삭제</td><td>행 번호 hover × · 다중선택 + Del 키 · 하단 Delete</td><td><code>drop_rows</code></td></tr>
+            <tr><td>행 추가</td><td>하단 Add row</td><td><code>add_row</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="alert tip">
+        <svg class="icon"><use href="#i-insight"></use></svg>
+        <div><code>DataGrid</code>는 <code>editable</code> prop으로 편집 기능을 게이팅합니다. Clean·SQL 모드의 그리드는 <code>editable=false</code>(기본)로 읽기전용을 유지합니다. 편집은 Data 모드 + 활성 데이터셋에서만 활성화됩니다.</div>
       </div>
     </section>
 
     <section id="mode-clean">
       <h2>Clean 모드 — <code>cleanMode.jsx</code></h2>
-      <p>비파괴적 데이터 클리닝. 원본 데이터를 보존하고 스텝 배열로 변환을 관리합니다. v1.7.0부터 인코딩 · 수치변환 · Formula Column 등 ML 전처리 op가 추가되었습니다.</p>
+      <p>비파괴적 데이터 클리닝. 원본 데이터를 보존하고 스텝 배열로 변환을 관리합니다. v1.7.0부터 인코딩 · 수치변환 · Formula Column 등 ML 전처리 op가, v1.9.0부터 Data 모드 직접 편집 op(<code>set_cell</code> 등)가 추가되어 동일 파이프라인에 통합 표시됩니다.</p>
       <div class="alert tip">
         <svg class="icon"><use href="#i-insight"></use></svg>
         <div>모든 클리닝 작업은 Store의 <code>clean[datasetId].steps[]</code>에 기록되며, <code>cursor</code>로 undo/redo 지원. 원본 <code>rows</code>는 절대 수정되지 않습니다.</div>
@@ -951,7 +972,7 @@ root.<span class="fn">render</span>(&lt;App /&gt;);</code></pre>
             <tr><td><code>fill_mean</code></td><td>숫자 컬럼</td><td>—</td><td>결측값 → 평균으로 채우기</td></tr>
             <tr><td><code>fill_median</code></td><td>숫자 컬럼</td><td>—</td><td>결측값 → 중앙값으로 채우기</td></tr>
             <tr><td><code>fill_mode</code></td><td>컬럼</td><td>—</td><td>결측값 → 최빈값으로 채우기</td></tr>
-            <tr><td><code>drop_duplicates</code></td><td>전체</td><td>—</td><td>중복 행 제거 (JSON.stringify 비교)</td></tr>
+            <tr><td><code>drop_duplicates</code></td><td>전체</td><td>—</td><td>중복 행 제거 (<code>__rid</code> 제외 JSON.stringify 비교)</td></tr>
             <tr><td><code>remove_outliers</code></td><td>숫자 컬럼</td><td>—</td><td>IQR × 1.5 기준 이상치 행 삭제</td></tr>
             <tr><td><code>rename</code></td><td>컬럼</td><td><code>{ to }</code></td><td>컬럼 key·label 변경</td></tr>
             <tr><td><code>replace</code></td><td>컬럼</td><td><code>{ from, to }</code></td><td>문자열 값 치환</td></tr>
@@ -966,8 +987,21 @@ root.<span class="fn">render</span>(&lt;App /&gt;);</code></pre>
             <tr><td><code>winsorize</code></td><td>숫자 컬럼</td><td><code>{ p }</code></td><td>p/100 ~ (1-p/100) 분위수 범위로 클리핑 (기본 p=5)</td></tr>
             <tr><td><code>binning</code></td><td>숫자 컬럼</td><td><code>{ bins }</code></td><td>등폭 N구간 → <code>col_bin</code> category 컬럼 추가</td></tr>
             <tr><td><code>formula</code></td><td>—</td><td><code>{ name, expr }</code></td><td>JS 수식으로 파생 컬럼 생성 (<code>row</code> 객체 + <code>Math</code> 접근)</td></tr>
+            <tr><td colspan="4" style="background:var(--bg-2);font-weight:600;">직접 편집 (v1.9.0 — Data 모드 그리드에서 발행)</td></tr>
+            <tr><td><code>set_cell</code></td><td>셀 (<code>__rid</code>)</td><td><code>{ value }</code></td><td>단일 셀 값 변경. 열 타입(integer/float)에 맞춰 형변환</td></tr>
+            <tr><td><code>drop_rows</code></td><td>행 (<code>__rid[]</code>)</td><td>—</td><td><code>rids</code> 배열에 해당하는 행 삭제 (단일/다중)</td></tr>
+            <tr><td><code>add_row</code></td><td>—</td><td><code>{ row, rid }</code></td><td>새 행 추가. 새 <code>__rid</code> 부여, 누락 컬럼은 null</td></tr>
+            <tr><td><code>add_col</code></td><td>—</td><td><code>{ key, type, role?, default?, at? }</code></td><td>새 컬럼 추가. <code>at</code> 인덱스에 삽입 가능</td></tr>
+            <tr><td><code>reorder_cols</code></td><td>전체</td><td><code>{ order }</code></td><td>컬럼 key 순서 배열대로 재배치 (목록 외 컬럼은 뒤에 보존)</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <h3>숨김 행 ID — <code>__rid</code></h3>
+      <p>직접 편집(<code>set_cell</code>/<code>drop_rows</code>)은 특정 행을 지목해야 하지만, 그리드 정렬·필터·페이징과 파이프라인의 행 재배열 때문에 "n번째 행" 방식은 불안정합니다. 이를 위해 <code>getDataset()</code> 길목에서 모든 원본 행에 단조 증가 정수 <code>__rid</code>를 지연 태깅합니다 (빌드인 · CSV import · SQL 결과 전부 커버).</p>
+      <div class="alert tip">
+        <svg class="icon"><use href="#i-insight"></use></svg>
+        <div><code>__rid</code>는 <code>columns</code>에 포함되지 않아 그리드·차트·CSV에 노출되지 않으며, <code>{...r}</code> 전개 복제로 파이프라인을 통과합니다. 전체 행 <code>JSON.stringify</code> 기반 중복 제거(<code>drop_duplicates</code>, Clean 모드 dup 카운트)에서는 반드시 <code>__rid</code>를 구조분해로 제외해야 합니다 — 누락 시 모든 행이 고유로 판정됩니다.</div>
       </div>
 
       <h3>Formula Column — 보안 모델</h3>
@@ -1644,6 +1678,21 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
           </tbody>
         </table>
       </div>
+
+      <h3>✅ Phase 2 (1.5차) — 데이터 직접 편집 (완료, v1.9.0)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>카테고리</th><th>항목</th><th>op 키</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2"><b>셀/행 편집</b></td><td>셀 값 인라인 편집 (타입 형변환)</td><td><code>set_cell</code></td><td><code>__rid</code> 지목</td></tr>
+            <tr><td>행 추가 / 다중선택 삭제</td><td><code>add_row</code> · <code>drop_rows</code></td><td>Del 키 일괄 삭제</td></tr>
+            <tr><td rowspan="3"><b>열 편집</b></td><td>열 추가 / 삭제</td><td><code>add_col</code> · <code>drop_col</code></td><td>삽입 위치 지정 가능</td></tr>
+            <tr><td>피처명 · 타입 변경</td><td><code>rename</code> · <code>change_type</code></td><td>헤더 메뉴/더블클릭</td></tr>
+            <tr><td>열 순서 변경</td><td><code>reorder_cols</code></td><td>헤더 드래그앤드롭</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Data 모드 그리드 인라인 편집. 숨김 행 ID <code>__rid</code>로 안정적 행 지목, 모든 편집을 비파괴 스텝으로 기록 → Undo/Redo + Clean 모드 PIPELINE 통합.</p>
 
       <h3>🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)</h3>
       <p>순수 JS로 구현 가능. 백엔드 불필요. 데이터 규모 ~10k 행까지 실용적.</p>
