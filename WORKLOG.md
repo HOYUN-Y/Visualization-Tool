@@ -267,6 +267,57 @@ Visualization Tool/
 
 ---
 
+### Session 7 — 2026-06-19 (계획 수립, 착수 전)
+
+**목표: 임포트 데이터 직접 편집 기능 (JMP/Excel 스타일)**
+
+> Data 모드 그리드에서 셀 편집·행/열 추가·삭제·열 위치 변경을 직접 수행.
+> 사용자 결정사항: **① Data 모드 인라인 편집** · **② 비파괴 스텝 저장** · **③ 헤더 드래그앤드롭 reorder**
+
+**설계 원칙 — 기존 비파괴 파이프라인 재사용**
+
+- 모든 편집 = `state.clean[id].steps`에 새 `op` 스텝 추가 → `applySteps(원본, steps)`가 재생.
+- → undo/redo · 스텝 로그 · 원본(`NODE.datasets`) 보존이 전부 자동 적용.
+- **행 식별 문제**: 그리드 정렬/필터/페이징 + 파이프라인 행 재배열 때문에 "n번째 행"으로 지목 불가
+  → 모든 원본 행에 **숨김 안정 ID `__rid`**(단조 증가 정수) 부여, 편집 스텝은 `__rid`로 행 지목.
+  → `columns`엔 미포함(그리드 비표시), `{...r}` 복제로 파이프라인 통과.
+
+**기존 재사용 op**: `rename`(피처명) · `drop_col`(열삭제) · `change_type`(타입). 신규 5종만 추가.
+
+**Phase A — 기반 (`js/store.jsx`, `js/data.js`)**
+
+- [ ] A1. `__rid` 주입 — 데이터셋 등록 + Import 경로 전 행에 단조 증가 ID
+- [ ] A2. `applySteps` 신규 op 5종:
+
+  | op | 동작 | 행 지목 |
+  |---|---|---|
+  | `set_cell` | 셀 값 변경 (열 타입 형변환) | `__rid` |
+  | `drop_rows` | 행 삭제(단일/다중) | `__rid[]` |
+  | `add_row` | 새 행 추가(새 `__rid`) | — |
+  | `add_col` | 빈/기본값 열 추가 | — |
+  | `reorder_cols` | 열 순서 재배치 | — |
+
+- [ ] A3. store 액션 `editCell·deleteRows·addRow·addColumn·moveColumn` (전부 `addStep` 래퍼)
+
+**Phase B — 편집 가능 그리드 (`js/grid.jsx`, `js/dataMode.jsx`)**
+
+- [ ] B1. `DataGrid`에 `editable` prop + 콜백, Data 툴바 **Edit 토글**(평소 읽기전용)
+- [ ] B2. 셀 인라인 편집 — 더블클릭 → input → Enter/blur 커밋, Esc 취소
+- [ ] B3. 헤더 컨텍스트 메뉴 확장 — 이름변경·타입변경·열 삽입(좌/우)·열 삭제 (기존 sort/filter/freeze/hide 유지)
+- [ ] B4. 헤더 드래그앤드롭 reorder (frozen·스크롤 hit-test 처리)
+- [ ] B5. 행 거터 — hover 삭제(×)/삽입, 다중선택 + Del 일괄삭제
+- [ ] B6. 푸터 — `+ 행 추가` / `+ 열 추가`
+
+**Phase C — 마감**
+
+- [ ] C1. Clean 모드 스텝 로그 `stepLabel`·`OP_ICON`에 신규 5종 추가
+- [ ] C2. 편집은 Data 모드 + 활성 데이터셋에서만 (집계/SQL 결과 그리드는 읽기전용)
+- [ ] C3. 브라우저 검증 → `?v=` 캐시 bump → CHANGELOG/README/docs 갱신
+
+**커밋 전략**: Phase A → B → C 순으로 분할 커밋 (A 완료 시 로직 단독 브라우저 검증).
+
+---
+
 ## 🔧 다음 세션 작업 계획 (Phase 2)
 
 > `HANDOFF.md` §12 "Suggested next steps" 참고
