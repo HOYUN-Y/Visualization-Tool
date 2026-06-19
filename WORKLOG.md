@@ -267,7 +267,10 @@ Visualization Tool/
 
 ---
 
-### Session 7 — 2026-06-19 (계획 수립, 착수 전)
+### Session 7 — 2026-06-19 (✅ 완료, v1.9.0)
+
+> **결과**: Phase A/B/C 전부 완료, 브라우저 전수 검증 통과. 커밋 `78b7803`(A) · `9a87bdf`(B) · `1d75a6a`(C1) + 문서.
+> 부가 수정: `__rid` 도입으로 노출된 중복제거(`drop_duplicates`/Clean dup 카드) 및 AIDrawer null-행 크래시 버그 동반 해결. 캐시 `?v=175`.
 
 **목표: 임포트 데이터 직접 편집 기능 (JMP/Excel 스타일)**
 
