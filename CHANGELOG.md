@@ -5,12 +5,20 @@ All notable changes to insight Analytics Workbench are documented here.
 ---
 
 ## [Unreleased] — Phase 2 (진행 중)
-- localStorage 영속성
+
+### Planned (아직 미구현)
+- 프로젝트/Store 상태 localStorage 또는 JSON 영속성
+- SQL JOIN/window 및 DuckDB-WASM 전환
 - Auto Chart Recommendation
 - PCA + Biplot + Scree Plot
-- Logistic Regression, ROC/AUC, Confusion Matrix
-- SPC Control Charts (X-Bar/R/S/P/C/U), Process Capability (Cp/Cpk)
-- Moving Average, Exponential Smoothing, ACF/PACF
+- Logistic Regression, Decision Tree, Naive Bayes, ROC/AUC, Precision-Recall Curve, Cross Validation
+- SPC Control Charts (X-Bar/R/S/P/C/U), Process Capability (Cp/Cpk/Pp/Ppk)
+- Moving Average, Exponential Smoothing, Seasonal Decomposition, ACF/PACF
+
+### Documentation
+- 현재 코드 기준으로 기능 현황 동기화: 차트 20종, 기본 데이터셋 7종, Map 3개 탭, Import/Export 지원 범위
+- 이미 구현된 Confusion Matrix, 클래스별 Precision/Recall/F1, OLS Feature Importance, Dashboard Cross Filtering을 예정 목록에서 분리
+- README 브랜드 자산 및 Brand Spec 링크를 현재 파일 경로로 수정
 
 ---
 
@@ -236,7 +244,7 @@ All notable changes to insight Analytics Workbench are documented here.
 - 전체 8개 모드 UI 프레임워크 (Data / Clean / SQL / Chart / Map / Board / Stats / ML)
 - 서울 아파트 실거래가 시뮬레이션 데이터셋 3종 (`seoul_txns` 503행, `monthly_index` 42행, `district_stats` 12행)
 - KOSPI 금융 데이터셋 (`KOSPI_Stock` 320행 OHLCV)
-- 21종 ECharts 차트 타입 (Basic 9 / Advanced 8 / Financial 3 / Special 1)
+- 20종 ECharts 차트 타입 (Basic 8 / Advanced 8 / Financial 3 / Special 1)
 - 다크/라이트 테마 + Tweaks 패널 (layout/tone/density/accent/sidebar)
 - DataGrid: 검색, 정렬, 필터, 컬럼 고정, 페이지네이션
 - Cleaning Studio: Missing/Duplicate/Outlier 원클릭 처리 + Undo/Redo 파이프라인

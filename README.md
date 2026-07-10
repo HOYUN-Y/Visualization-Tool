@@ -1,13 +1,15 @@
-<img src="docs/logo.svg" alt="INSIGHT Analytics" height="48" />
+<img src="docs/brand-assets/logos/analytics/logo.svg" alt="insight Analytics" height="48" />
 
 # insight Analytics Workbench
+
+> 현재 구현 계획: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) · 현재 작업 상태: [`WORKLOG.md`](./WORKLOG.md#current-state)
 
 **Local-First Business Intelligence & Data Analytics Platform**
 
 > Tableau의 시각화 + Power BI의 대시보드 + JMP의 통계 + Orange의 분석 흐름 + ChatGPT의 자연어 인터페이스를  
 > 하나의 로컬 웹 애플리케이션으로 통합한 개인용 데이터 분석 플랫폼
 
-![Status](https://img.shields.io/badge/Phase-2%20JMP%20Complete-brightgreen)
+![Status](https://img.shields.io/badge/v1.9.0-Direct%20Editing%20Complete-brightgreen)
 ![Stack](https://img.shields.io/badge/Stack-React%2018%20%2B%20ECharts%205-blue)
 ![No Build](https://img.shields.io/badge/Build-None%20(Browser--only)-lightgrey)
 
@@ -15,7 +17,7 @@
 
 ## 브랜드 아이덴티티
 
-> 상세 브랜드 스펙: [`docs/insight_Analytics_Brand_Spec_standalone.html`](docs/insight_Analytics_Brand_Spec_standalone.html)
+> 상세 브랜드 스펙: [`docs/insight Analytics Brand Spec (standalone) ver2.html`](<docs/insight Analytics Brand Spec (standalone) ver2.html>)
 
 ### 워드마크
 
@@ -87,7 +89,7 @@ open http://localhost:8742
 | **Data** | 데이터셋 탐색기 + 고밀도 데이터 그리드 + 자동 프로파일링 + **직접 편집** (JMP/Excel 스타일 — 셀 편집 · 행/열 추가·삭제 · 피처명 변경 · 타입 변경 · 헤더 드래그 열 순서 변경, 모두 비파괴 Undo/Redo) |
 | **Clean** | 결측치/중복/이상치 처리 · 컬럼 변환 · **Encoding** (Label/Dummy) · **수치 변환** (Z-Score/Min-Max/Log/Rank/Winsorize/Binning) · **Formula Column** (JS 수식 파생 컬럼) · Undo/Redo 파이프라인 (Data 모드 편집 이력도 여기에 통합 표시) |
 | **SQL** | 로컬 SQL 엔진 (SELECT/WHERE/GROUP BY/집계/ORDER/LIMIT) |
-| **Chart** | Tableau 스타일 Dimension/Measure 셸프 → ECharts (8종 차트) |
+| **Chart** | Tableau 스타일 Dimension/Measure 셸프 → ECharts (Basic 8 + Advanced 8 + Financial 3 + Special 1, 총 20종) |
 | **Map** | 3개 탭 — **Seoul · 구** (서울 25구 Choropleth + 버블맵) · **Korea · 행정구역** (17 시도 choropleth + 84 시군구 버블맵 + 내 데이터 모드) · **World · GDP** (30개국 choropleth) |
 | **Board** | 드래그/리사이즈 위젯 대시보드 + Cross Filtering |
 | **Stats** | 상관분석, T-Test, ANOVA, Chi-Square, 회귀분석 + **Distribution 탭** (히스토그램+박스플롯+왜도/첨도) + **Analysis Builder** (자동 분석 유형 선택) + 자동 해석 패널 |
@@ -98,7 +100,7 @@ open http://localhost:8742
 
 ## 🛠 기술 스택
 
-### 현재 (Phase 1 — 브라우저 전용 프로토타입)
+### 현재 (v1.9.0 — 브라우저 전용 프로토타입)
 - **React 18.3.1** (UMD, no bundler)
 - **Apache ECharts 5.5.1** (차트)
 - **Babel Standalone 7.29.0** (in-browser 트랜스파일)
@@ -115,13 +117,17 @@ open http://localhost:8742
 
 ## 📊 샘플 데이터
 
-서울 아파트 실거래가 데이터 (시뮬레이션):
+서울 부동산·금융·지도 데모 데이터 (시뮬레이션/정적 참조 데이터):
 
 | 데이터셋 | 행 수 | 설명 |
 |---|---|---|
 | `Seoul_Apartment_Txns` | 503 | 거래 상세 (구, 건물유형, 면적, 층, 준공연도, 가격) |
 | `Monthly_Price_Index` | 42 | 월별 평균 ㎡당 가격 + 거래량 추이 |
-| `District_Summary` | 12 | 구별 통계 + 위경도 (지도용) |
+| `KOSPI_Stock_2024` | 320 | OHLCV 금융 차트용 데이터 |
+| `District_Summary` | 12 | 서울 구별 통계 + 위경도 |
+| `World_GDP_2023` | 30 | 세계 GDP·인구·성장률 지도 데이터 |
+| `Korea_Provinces_2023` | 17 | 시도별 인구·면적·GRDP |
+| `Korea_시군구_2023` | 84 | 시군구별 인구·면적·위경도 |
 
 ---
 
@@ -169,7 +175,7 @@ open http://localhost:8742
 - Ask Insight 드로어: `IE.profileDataset()` 자동 실행 + 마지막 분석 결과 연동
 
 ### ✅ Phase 1.6 — Map 강화 (완료)
-- Export (PNG/CSV), CSV/JSON 파일 임포트 (드래그앤드롭)
+- Export (PNG/CSV), CSV/TSV/JSON 파일 임포트 (드래그앤드롭)
 - Map 모드 — World · GDP choropleth 탭 추가
 - Map 모드 — Korea · 행정구역 탭 (시도 choropleth + 시군구 버블맵, WGS84→UTM52N 좌표 변환)
 - Map 모드 — 내 데이터 모드 (위경도 컬럼 자동 감지, 임포트 데이터를 지도에 직접 표시)
@@ -198,8 +204,8 @@ open http://localhost:8742
 
 **[최우선] ML 모델 확장**
 - Logistic Regression, Decision Tree, Naive Bayes
-- Confusion Matrix, ROC/AUC, Precision-Recall, Lift/Gain/KS Chart
-- Feature Importance, Cross Validation (소규모)
+- ~~Confusion Matrix~~ ✅ · ROC/AUC, Precision-Recall Curve, Lift/Gain/KS Chart
+- ~~OLS 표준화 계수 기반 Feature Importance~~ ✅ · 트리/분류 모델 Feature Importance, Cross Validation (소규모)
 
 **[최우선] PCA**
 - PCA + Biplot + Scree Plot (순수 JS SVD, <10k 행)
@@ -209,7 +215,8 @@ open http://localhost:8742
 - Mosaic Plot, Pair Plot, Contour Plot, Bubble Matrix
 
 **[중요] 분포 플랫폼 (Stats 모드)**
-- QQ Plot, Normal Fit, Multi Variable Distribution, Outlier Visualization
+- QQ Plot, Normal Fit, Multi Variable Distribution
+- ~~IQR 이상치 탐지 + 박스플롯 표시~~ ✅ · 다변량 이상치 시각화는 예정
 
 **[중요] 시계열 기초 (Stats 모드)**
 - Moving Average, Exponential Smoothing, Seasonal Decomposition, ACF/PACF

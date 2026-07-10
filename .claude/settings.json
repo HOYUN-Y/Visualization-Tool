@@ -1,15 +1,3 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"/Users/lyuhoyun/Documents/GitHub/Visualization Tool/.claude/hooks/post-tool-use/auto-push.sh\""
-          }
-        ]
-      }
-    ]
-  }
+  "hooks": {}
 }

@@ -431,10 +431,10 @@ svg[aria-hidden="true"] { display: none; }
   <div class="hero-meta">
     <div class="hero-chip accent">No Install</div>
     <div class="hero-chip">8개 분석 모드</div>
-    <div class="hero-chip">21종 차트</div>
+    <div class="hero-chip">20종 차트</div>
     <div class="hero-chip">JMP 통계 분석</div>
     <div class="hero-chip">브라우저 ML</div>
-    <div class="hero-chip">오프라인 동작</div>
+    <div class="hero-chip">로컬 데이터 처리</div>
   </div>
 </div>
 
@@ -445,7 +445,7 @@ svg[aria-hidden="true"] { display: none; }
     <strong>insight Analytics Workbench</strong>는 Tableau의 시각화 능력, JMP의 통계 분석 깊이, ChatGPT 스타일의 자연어 인터페이스를 하나의 브라우저 앱으로 통합한 <strong>로컬-퍼스트 데이터 분석 도구</strong>입니다.
   </p>
   <p>
-    Python, R, Excel 없이도 — 심지어 인터넷 없이도 — 데이터를 불러오고, 정제하고, 시각화하고, 통계 검정을 수행하고, 머신러닝 모델을 훈련할 수 있습니다.
+    Python, R, Excel 없이도 데이터를 불러오고, 정제하고, 시각화하고, 통계 검정을 수행하고, 머신러닝 모델을 훈련할 수 있습니다. 분석 데이터는 브라우저 안에서 처리되지만, 앱 라이브러리와 지도 GeoJSON을 CDN에서 읽으므로 최초 실행과 일부 지도에는 인터넷 연결이 필요합니다.
   </p>
 
   <div class="mode-grid">
@@ -467,7 +467,7 @@ svg[aria-hidden="true"] { display: none; }
     <div class="mode-tile">
       <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-chart"></use></svg></div>
       <div class="mt-name">Chart</div>
-      <div class="mt-desc">드래그&드롭 차트 빌더, 21종 차트 타입</div>
+      <div class="mt-desc">드래그&드롭 차트 빌더, 20종 차트 타입</div>
     </div>
     <div class="mode-tile">
       <div class="mt-icon"><svg class="icon icon-lg"><use href="#i-map"></use></svg></div>
@@ -526,7 +526,7 @@ svg[aria-hidden="true"] { display: none; }
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="brand">
   <h2>브랜드 아이덴티티</h2>
-  <p>상세 브랜드 스펙: <code>docs/insight_Analytics_Brand_Spec_standalone.html</code> (v1.0 · 2026-06)</p>
+  <p>상세 브랜드 스펙: <code>docs/insight Analytics Brand Spec (standalone) ver2.html</code></p>
   <p style="margin-top:10px">워드마크는 <strong>in</strong> + <strong style="color:var(--accent)">sight</strong> + <span style="color:var(--tx-faint);font-size:.9em"> Analytics</span> 세 요소로 구성됩니다.</p>
 
   <h3 style="margin-top:20px">워드마크 구성</h3>
@@ -587,7 +587,7 @@ svg[aria-hidden="true"] { display: none; }
       <div class="step-num">2</div>
       <div class="step-body">
         <div class="step-title">프로젝트 폴더로 이동</div>
-        <div class="step-desc"><pre>cd "/Users/lyuhoyun/Documents/GitHub/Visualization Tool"</pre></div>
+        <div class="step-desc"><pre>cd "/Users/hoyun/Documents/GitHub/Visualization-Tool"</pre></div>
       </div>
     </div>
     <div class="step">
@@ -629,7 +629,7 @@ svg[aria-hidden="true"] { display: none; }
     <table>
       <thead><tr><th>영역</th><th>위치</th><th>설명</th></tr></thead>
       <tbody>
-        <tr><td><strong>TopBar</strong></td><td>최상단</td><td>로고, Ask Insight 버튼, Tweaks(슬라이더), 테마 전환, 저장/불러오기</td></tr>
+        <tr><td><strong>TopBar</strong></td><td>최상단</td><td>로고, Import/Export, Ask Insight, Tweaks, 테마 전환. Save는 현재 프로젝트 영속화 전의 비활성 UI입니다.</td></tr>
         <tr><td><strong>Rail</strong></td><td>좌측 세로 아이콘 바</td><td>8개 모드 전환. 클릭으로 모드 변경. 아이콘 + 레이블(Tweaks로 토글 가능)</td></tr>
         <tr><td><strong>좌측 패널</strong></td><td>Rail 오른쪽</td><td>데이터셋 탐색기 (모든 모드에서 공유). 드래그로 폭 조절 가능.</td></tr>
         <tr><td><strong>중앙 영역</strong></td><td>메인 콘텐츠</td><td>모드별 주요 작업 공간 (차트, 그리드, 분석 결과 등)</td></tr>
@@ -653,6 +653,9 @@ svg[aria-hidden="true"] { display: none; }
     <table>
       <thead><tr><th>버튼</th><th>기능</th></tr></thead>
       <tbody>
+        <tr><td><strong>Import</strong></td><td>CSV/TSV/JSON 파일을 드래그앤드롭 또는 파일 선택으로 불러옵니다.</td></tr>
+        <tr><td><strong>Export</strong></td><td>현재 차트를 PNG로, 활성 데이터를 CSV로 내보냅니다.</td></tr>
+        <tr><td><strong>Save</strong></td><td>현재 동작하지 않습니다. 프로젝트 저장/복원은 Phase 2 예정 기능입니다.</td></tr>
         <tr><td><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-insight"></use></svg><strong>Ask Insight</strong></td><td>AI 분석 드로어 열기. 자연어 질문, 자동 인사이트, 마지막 분석 결과 확인.</td></tr>
         <tr><td><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-tweaks"></use></svg><strong>슬라이더 아이콘</strong></td><td>Tweaks 패널 열기. 레이아웃/테마/밀도/액센트 컬러 변경.</td></tr>
         <tr><td><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-sun"></use></svg><strong>테마 토글</strong></td><td>다크 ↔ 라이트 모드 전환.</td></tr>
@@ -664,7 +667,7 @@ svg[aria-hidden="true"] { display: none; }
 <!-- ══════════════════════════════════════════════════════ -->
 <section id="datasets">
   <h2>샘플 데이터셋</h2>
-  <p>앱 시작 시 4개의 샘플 데이터셋이 미리 로드되어 있습니다. 서울 아파트 실거래가 도메인의 시뮬레이션 데이터입니다.</p>
+  <p>앱 시작 시 7개의 기본 데이터셋이 미리 로드됩니다. 서울 부동산, KOSPI 금융 차트, 한국·세계 지도 예제를 함께 제공합니다.</p>
 
   <div class="table-wrap">
     <table>
@@ -694,6 +697,9 @@ svg[aria-hidden="true"] { display: none; }
           <td>date, open, high, low, close, volume</td>
           <td>금융 차트 (캔들스틱, OHLC) 실습용</td>
         </tr>
+        <tr><td><code>world_gdp</code></td><td>30행</td><td>country, gdp_bn, gdp_pc, pop_mn, growth_pct</td><td>World · GDP 지도</td></tr>
+        <tr><td><code>korea_provinces</code></td><td>17행</td><td>name, region, pop_man, area_km2, pop_density, grdp_tril</td><td>한국 시도 choropleth</td></tr>
+        <tr><td><code>korea_municipalities</code></td><td>84행</td><td>name, province, pop_man, area_km2, pop_density, lat, lon</td><td>한국 시군구 버블맵</td></tr>
       </tbody>
     </table>
   </div>
@@ -946,7 +952,7 @@ LIMIT 5</pre>
   <p>Rows 셸프에 추가된 수치 필드의 집계 함수를 클릭하면 변경할 수 있습니다.</p>
   <p>지원 집계: <code>SUM</code> / <code>AVG</code> / <code>COUNT</code> / <code>COUNT DISTINCT</code> / <code>MIN</code> / <code>MAX</code> / <code>MEDIAN</code></p>
 
-  <h3>21종 차트 타입</h3>
+  <h3>20종 차트 타입</h3>
   <div class="table-wrap">
     <table>
       <thead><tr><th>그룹</th><th>차트</th><th>언제 사용</th></tr></thead>
@@ -1623,7 +1629,7 @@ LIMIT 5</pre>
   <h3>데이터 관련</h3>
   <ul>
     <li><strong>세션 새로고침 = 모든 상태 초기화</strong>. 클리닝 파이프라인, SQL 저장 데이터셋, 훈련된 모델이 모두 사라집니다.</li>
-    <li>오프라인에서는 Map 모드가 버블맵 모드로 자동 전환됩니다 (GeoJSON CDN 미접근).</li>
+    <li>서울 지도는 GeoJSON 미접근 시 버블맵으로 전환됩니다. Korea/World choropleth는 원격 GeoJSON이 필요합니다.</li>
     <li>샘플 데이터(<code>seoul_txns</code>)에는 의도적으로 결측치, 중복, 이상치가 포함되어 있습니다. Clean 모드 실습용입니다.</li>
   </ul>
 
@@ -1636,8 +1642,8 @@ LIMIT 5</pre>
 
   <hr/>
   <div style="text-align:center; color:var(--tx-faint); font-size:11px; padding:20px 0 0;">
-    insight Analytics Workbench 사용자 가이드 · v2.1 · 2026-06-06<br/>
-    오프라인에서도 동작하는 단일 HTML 파일.
+    insight Analytics Workbench 사용자 가이드 · v2.1 · source-synced 2026-07-10<br/>
+    가이드 문서 자체는 외부 의존성 없는 단일 HTML 파일입니다.
   </div>
 </section>
 
@@ -1750,7 +1756,7 @@ LIMIT 5</pre>
     </div>
     <div class="card">
       <div class="card-title"><svg class="icon icon-sm"><use href="#i-ml"></use></svg>Logistic Regression</div>
-      <div class="card-body">분류 모델 확장. ROC/AUC · Confusion Matrix · Precision-Recall.</div>
+      <div class="card-body">분류 모델 확장. ROC/AUC · Precision-Recall Curve · Cross Validation. Confusion Matrix와 클래스별 P/R/F1은 구현 완료.</div>
     </div>
   </div>
 
