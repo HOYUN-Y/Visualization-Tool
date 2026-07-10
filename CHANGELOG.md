@@ -7,7 +7,10 @@ All notable changes to insight Analytics Workbench are documented here.
 ## [Unreleased] — Phase 2 (진행 중)
 
 ### Planned (아직 미구현)
-- 프로젝트/Store 상태 localStorage 또는 JSON 영속성
+- XLSX Import + 다중 시트 선택
+- Union/Join 데이터 결합
+- Pivot Table Builder
+- Dashboard 위젯 설정 + 안전한 KPI 수식
 - SQL JOIN/window 및 DuckDB-WASM 전환
 - Auto Chart Recommendation
 - PCA + Biplot + Scree Plot
@@ -19,6 +22,14 @@ All notable changes to insight Analytics Workbench are documented here.
 - 현재 코드 기준으로 기능 현황 동기화: 차트 20종, 기본 데이터셋 7종, Map 3개 탭, Import/Export 지원 범위
 - 이미 구현된 Confusion Matrix, 클래스별 Precision/Recall/F1, OLS Feature Importance, Dashboard Cross Filtering을 예정 목록에서 분리
 - README 브랜드 자산 및 Brand Spec 링크를 현재 파일 경로로 수정
+
+### Added — Core v2 Milestone 1 (기능 브랜치)
+- IndexedDB `insight-workbench`에 다중 프로젝트, 데이터셋, 마지막 프로젝트 설정 저장
+- Store 변경 후 1초 debounce 자동저장과 `visibilitychange` flush
+- 프로젝트 생성·열기·이름 변경·복제·삭제 및 `Saved / Saving / Unsaved / Error` 상태 표시
+- schema version 1 portable JSON 백업·복원, 미래 schema 명시적 거부, 동일 ID import 복제
+- Store hydration과 데이터셋 등록·삭제 API 중앙화, 복원된 최대 `__rid` 이후 행 ID 연속성 보장
+- Node 기본 테스트 러너 기반 persistence/schema 회귀 테스트 추가
 
 ---
 

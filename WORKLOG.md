@@ -14,30 +14,30 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v1` |
-| Current milestone | Planning baseline |
-| Status | Approved — planning baseline 테스트 완료, 병합 대기 |
-| Branch | `docs/core-v2-planning` |
-| Base commit | `2953a63` |
-| Last checkpoint commit | `fa88243` — planning baseline 검증 종료 |
-| Working tree | 승인 대기 — 애플리케이션 기능 코드 변경 없음 |
-| Last verified | 2026-07-10 — HTTP 200, 로컬 자산 33개, diff check, JSON/HTML parse 통과 |
+| Current milestone | Milestone 1 — Project persistence |
+| Status | Ready for approval — automated verification complete, browser round trip pending |
+| Branch | `feat/project-persistence` |
+| Base commit | `76d5333` — planning baseline merge (`checkpoint/core-v2-plan`) |
+| Last checkpoint commit | `61da366` — project delete failure autosave guard |
+| Working tree | test/docs checkpoint; approval 전 애플리케이션 변경 완료 |
+| Last verified | 2026-07-10 — Node 5/5, Babel 17/17, HTML/JSON parse, HTTP 200, local assets 34/34 통과 |
 | Updated at | 2026-07-10 |
 
 ## NEXT EXACT ACTION
 
-1. `docs/core-v2-planning`을 `main`에 `--no-ff` 병합한다.
-2. 병합 커밋에 annotated tag `checkpoint/core-v2-plan`을 생성한다.
-3. 최신 `main`에서 `feat/project-persistence` 브랜치를 생성한다.
-4. Milestone 1 구현 전 WORKLOG 상태판을 갱신한다.
+1. Node persistence tests, Babel transform, HTTP/local asset smoke test를 재실행한다.
+2. 가능한 브라우저 세션에서 IndexedDB create/reload/open과 JSON round trip을 확인한다.
+3. 사용자에게 Milestone 1 코드와 테스트 제한을 보고하고 승인 게이트에서 대기한다.
+4. 승인 후 `main`에 `--no-ff` 병합하고 `checkpoint/project-persistence` 태그를 생성한다.
 
 ## ACTIVE CHECKPOINT
 
-- **목표:** Core Product v2의 계획과 현재 진행 상태가 모델·사람·세션에 관계없이 복원되도록 기준 문서를 고정한다.
-- **포함:** 현재 구현 상태 문서, 승인 계획, WORKLOG 상태판, 자동 push 비활성화.
-- **제외:** 애플리케이션 기능 코드 변경.
-- **완료:** 현재 소스 기준 문서 최신화 커밋 `1e81b9e`.
-- **남음:** `main` 병합과 checkpoint tag 생성.
-- **롤백:** branch `docs/core-v2-planning` 삭제 시 main `2953a63`에는 영향 없음.
+- **목표:** 여러 프로젝트의 전체 분석 상태와 데이터셋을 브라우저에 저장하고 portable JSON으로 이동 가능하게 한다.
+- **포함:** IndexedDB 3-store schema, autosave/flush, 다중 프로젝트 UI, JSON import/export, Store hydration/registry, 분석 이력.
+- **제외:** XLSX, Union/Join, Pivot, Dashboard/KPI 개선.
+- **완료:** repository `c0c4f26`, Store registry/hydration `b788c0f`, project UI `e549a3a`, delete guard `61da366`.
+- **남음:** 최종 회귀 테스트, 브라우저 런타임 검증, 사용자 승인.
+- **롤백:** 승인 전에는 `feat/project-persistence` 브랜치만 삭제하면 `main`과 `checkpoint/core-v2-plan`에 영향 없음.
 
 ## DECISIONS / BLOCKERS
 
@@ -52,17 +52,15 @@
 - 기능별 브랜치와 사용자 승인 게이트.
 - `WORKLOG.md`는 현재 상태, `IMPLEMENTATION_PLAN.md`는 승인 계획의 기준 문서.
 
-현재 blocker: 없음.
-
-테스트 제한: 현재 세션에 인앱 브라우저 인스턴스가 없어 클릭 기반 UI 스모크 테스트는 실행하지 못했다. 대신 로컬 서버 HTTP 200 응답, 진입 HTML, 로컬 자산 33개 참조를 확인했다. planning branch는 애플리케이션 코드를 변경하지 않는다.
+현재 blocker: 없음. 단, 현재 세션에 인앱 브라우저 인스턴스가 없어 실제 IndexedDB reload와 클릭 기반 UI round trip은 아직 실행하지 못했다.
 
 ## CHECKPOINT LEDGER
 
 | Milestone | Branch | Commit/Tag | Tests | Status |
 |---|---|---|---|---|
 | Source/document audit | `docs/core-v2-planning` | `1e81b9e` | diff check, HTML parse | Complete |
-| Core v2 plan baseline | `docs/core-v2-planning` | `fa88243` + approval HEAD | HTTP/assets, links, diff check, JSON/HTML parse | Approved |
-| Project persistence | `feat/project-persistence` | pending | IndexedDB + JSON round trip | Not started |
+| Core v2 plan baseline | `main` | `76d5333` / `checkpoint/core-v2-plan` | HTTP/assets, links, diff check, JSON/HTML parse | Complete |
+| Project persistence | `feat/project-persistence` | `c0c4f26`, `b788c0f`, `e549a3a`, `61da366` + test HEAD | Node 5, Babel 17, HTTP/assets; browser round trip pending | Ready for approval |
 | XLSX Import | `feat/xlsx-import` | pending | format/type fixtures | Not started |
 | Union/Join | `feat/data-combine` | pending | join matrix | Not started |
 | Pivot Builder | `feat/pivot-builder` | pending | aggregation/totals | Not started |
