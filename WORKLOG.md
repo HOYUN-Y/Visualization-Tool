@@ -18,8 +18,8 @@
 | Status | Ready for approval — planning baseline 검증 완료 |
 | Branch | `docs/core-v2-planning` |
 | Base commit | `2953a63` |
-| Last checkpoint commit | `deab21d` — 레거시 auto-push workflow 비활성화 |
-| Working tree | 검증 결과와 상태판을 마지막 planning checkpoint로 기록 중 |
+| Last checkpoint commit | `fa88243` — planning baseline 검증 종료 |
+| Working tree | 승인 대기 — 애플리케이션 기능 코드 변경 없음 |
 | Last verified | 2026-07-10 — diff check, JSON/HTML parse, 기준 문서 링크·상태 확인 통과 |
 | Updated at | 2026-07-10 |
 
@@ -59,7 +59,7 @@
 | Milestone | Branch | Commit/Tag | Tests | Status |
 |---|---|---|---|---|
 | Source/document audit | `docs/core-v2-planning` | `1e81b9e` | diff check, HTML parse | Complete |
-| Core v2 plan baseline | `docs/core-v2-planning` | `deab21d` + verification HEAD | links, diff check, JSON/HTML parse, state consistency | Ready for approval |
+| Core v2 plan baseline | `docs/core-v2-planning` | `fa88243` + state HEAD | links, diff check, JSON/HTML parse, state consistency | Ready for approval |
 | Project persistence | `feat/project-persistence` | pending | IndexedDB + JSON round trip | Not started |
 | XLSX Import | `feat/xlsx-import` | pending | format/type fixtures | Not started |
 | Union/Join | `feat/data-combine` | pending | join matrix | Not started |
