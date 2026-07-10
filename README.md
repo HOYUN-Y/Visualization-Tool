@@ -97,6 +97,7 @@ open http://localhost:8742
 | **Ask Insight** | 데이터셋 자동 프로파일 (IE.profileDataset) + 마지막 분석 결과 요약 + NL→차트/모드 전환 |
 | **Projects** | IndexedDB 다중 프로젝트 · 1초 자동저장 · 즉시 저장 상태 · JSON 백업/복원 |
 | **Import** | CSV/TSV/JSON/XLSX 공통 Preview · 결정적 타입 추론 · XLSX 복수 시트 선택 · 타입 override |
+| **Combine** | 데이터셋 Union(행 결합·타입 승격·`__source`) / Join(Inner·Left·Right·Full·복수키·폭증 경고) · lineage 포함 새 데이터셋 생성 |
 
 ---
 
@@ -210,6 +211,11 @@ open http://localhost:8742
 - CSV/TSV/JSON/XLSX 공통 ImportEngine과 원문 기반 결정적 타입 추론
 - XLSX 시트 범위·행/열·첫 20행 Preview, 복수 시트 선택, 컬럼별 타입 override
 - 중복 데이터셋명 `_2`, `_3` 처리와 Import 완료 후 프로젝트 즉시 저장
+
+### 🧪 Core v2 Milestone 3 — Union/Join 데이터 결합 (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.DataOps` 엔진: Union(타입 승격·null 채움·`__source`), Join(4종·복수키·정규화 비교·리네임·폭증 감지)
+- Combine 모달: 실시간 Preview·many-to-many 경고·lineage 포함 새 데이터셋 materialize
+- Node 9/9 회귀 테스트 + 브라우저 러너 케이스
 
 ### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
 

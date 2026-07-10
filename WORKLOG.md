@@ -13,31 +13,39 @@
 
 | 항목 | 현재 값 |
 |---|---|
-| Plan version | `core-v2-plan-v2` |
-| Current milestone | Milestone 2 — XLSX Import and deterministic type inference |
-| Status | Ready for approval — automated verification complete, browser round trip pending |
-| Branch | `feat/xlsx-import` |
-| Base commit | `b5aeaec` — project persistence merge (`checkpoint/project-persistence`) |
-| Last checkpoint commit | `120c1c8` — workbook preview and multi-sheet import UI |
-| Working tree | final test/docs checkpoint 준비; `.DS_Store` 사용자 변경 제외 |
-| Last verified | 2026-07-11 — Node 10/10, Babel 17/17, diff check, local assets 36/36, HTTP 200 통과 |
-| Updated at | 2026-07-11 |
+| Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
+| Current milestone | Milestone 3 — Union/Join (자율 진행 중) |
+| Status | 엔진+UI 구현 완료, 브랜치 스택 진행 — 병합/브라우저 왕복은 아침 게이트 |
+| Branch | `feat/data-combine` (feat/xlsx-import 팁 `ea2da48`에서 분기) |
+| Base commit | `ea2da48` — xlsx import 브랜치 팁 (M1+M2 포함) |
+| Last checkpoint commit | `432f1d6` — combine preview workflow |
+| Working tree | M3 완료, M4로 진행 예정; `.DS_Store` 사용자 변경 제외 |
+| Last verified | 2026-07-11 — Node 19/19, JSX 구문검사(tsc) OK, diff check clean, runner.html DataOps 케이스 추가 |
+| Updated at | 2026-07-11 (밤샘 자율 세션) |
+
+## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
+
+- 사용자가 "내 개입 없이 진행 가능한 부분은 새벽 내내 자율 진행" 명시 승인. 계획: `~/.claude/plans/temporal-juggling-fountain.md`.
+- **자율:** 순수 엔진 구현 + Node 테스트 + JSX 구문검사 + UI 배선 + 기능 브랜치 체크포인트 커밋 + 문서 동기화.
+- **아침 게이트(사용자):** `main` 병합, annotated tag, 원격 push, 실브라우저 왕복 검증.
+- **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
+- 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
+- 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
 
 ## NEXT EXACT ACTION
 
-1. Node tests와 diff check를 재실행하고 local branch HEAD를 확인한다.
-2. 제어 가능한 Chromium에서 `tests/runner.html`과 Import modal CSV/XLSX 왕복을 실행한다.
-3. 성공 시 사용자에게 결과를 보고하고 Milestone 2 승인 게이트에서 대기한다.
-4. 승인 후 `main`에 `--no-ff` 병합, tag `checkpoint/xlsx-import` 생성, `feat/data-combine` 시작 순서로 진행한다.
+1. (진행) Batch C — M4 Pivot: `feat/pivot-builder`를 `feat/data-combine` 팁에서 분기, `js/pivotEngine.js` + `js/pivotMode.jsx` + `tests/pivotEngine.test.js`.
+2. 이후 Batch D — M5 Dashboard/KPI (`feat/dashboard-builder`).
+3. Batch E/F 분석 엔진 병렬.
+4. 각 배치: 엔진→테스트→즉시수정→UI→커밋→문서갱신. 컨텍스트 경계 시 `wip(...)` 커밋.
 
-## ACTIVE CHECKPOINT
+## ACTIVE CHECKPOINT (M3)
 
-- **목표:** CSV/TSV/JSON/XLSX를 동일한 Import 파이프라인으로 처리하고 재현 가능한 타입 추론과 XLSX 복수 시트 선택을 제공한다.
-- **포함:** SheetJS 로컬 vendoring, 공통 ImportEngine, preview/override, 복수 시트 dataset 등록, 프로젝트 autosave 연동.
-- **제외:** Union/Join, Pivot, Dashboard/KPI 개선.
-- **완료:** vendor `b369ba8`, ImportEngine/tests `3b336c3`, workbook UI `120c1c8`.
-- **남음:** 실제 브라우저 Import round trip과 사용자 승인. 다음 절차는 `IMPLEMENTATION_PLAN.md` Milestone 2 하단에 고정.
-- **롤백:** 승인 전 `feat/xlsx-import` 브랜치만 삭제하면 local main 체크포인트에 영향 없음.
+- **목표:** CSV/…/XLSX를 넘어 데이터셋 Union/Join을 순수 결정적 엔진으로 결합, lineage 포함 새 데이터셋 materialize.
+- **완료:** 엔진 `fd8a9d6`(DataOps.union/join/preview/toDataset, Node 9/9), UI `432f1d6`(Combine 모달, app/dataMode/index 배선, runner 케이스).
+- **재사용:** `Store.actions.registerDataset`, `ensureRids`, import 모달 CSS, 컬럼 메타 형식.
+- **남음:** 실브라우저 Combine 왕복(아침), 문서 동기화 커밋(진행), M4 착수.
+- **롤백:** 승인 전 `feat/data-combine`(및 하위 스택)만 삭제하면 local main 영향 없음.
 
 ## DECISIONS / BLOCKERS
 
@@ -62,7 +70,7 @@
 | Core v2 plan baseline | `main` | `76d5333` / `checkpoint/core-v2-plan` | HTTP/assets, links, diff check, JSON/HTML parse | Complete |
 | Project persistence | `main` | `b5aeaec` / `checkpoint/project-persistence` (local) | Node 5, diff/parse, HTTP/assets; browser round trip deferred | Complete locally |
 | XLSX Import | `feat/xlsx-import` | `b369ba8`, `3b336c3`, `120c1c8` + final docs checkpoint | Node 10, Babel 17, HTTP/assets; browser round trip pending | Ready for approval |
-| Union/Join | `feat/data-combine` | pending | join matrix | Not started |
+| Union/Join | `feat/data-combine` | `fd8a9d6`, `432f1d6` | Node 9/9 (union/join matrix), runner cases, JSX syntax OK | Engine+UI done, awaiting browser round trip |
 | Pivot Builder | `feat/pivot-builder` | pending | aggregation/totals | Not started |
 | Dashboard/KPI | `feat/dashboard-builder` | pending | formula/cross-filter/restore | Not started |
 | Core v2 release | `release/core-product-v2` | pending | end-to-end regression | Not started |

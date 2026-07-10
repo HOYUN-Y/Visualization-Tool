@@ -7,7 +7,6 @@ All notable changes to insight Analytics Workbench are documented here.
 ## [Unreleased] — Phase 2 (진행 중)
 
 ### Planned (아직 미구현)
-- Union/Join 데이터 결합
 - Pivot Table Builder
 - Dashboard 위젯 설정 + 안전한 KPI 수식
 - SQL JOIN/window 및 DuckDB-WASM 전환
@@ -37,6 +36,14 @@ All notable changes to insight Analytics Workbench are documented here.
 - Workbook 시트 범위·행/열 수·첫 20행 Preview, 복수 시트 선택, 컬럼별 타입 override UI
 - TopBar와 Data Explorer Drop 영역을 동일 Import 흐름으로 통합하고 완료 후 프로젝트 즉시 저장
 - Node import 회귀 테스트와 no-build 브라우저 `tests/runner.html` 추가
+
+### Added — Core v2 Milestone 3 (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.DataOps` — Union/Join 엔진 (부수효과 없음, 타임스탬프는 호출부 주입)
+- Union: 컬럼 key 합집합, 타입 충돌 `boolean→integer→float→string` 승격, 없는 값 null, 선택적 `__source` 컬럼
+- Join: Inner/Left/Right/Full, 복수 키 복합 매칭, null 키 미매칭, 숫자·날짜·문자 정규화 비교, 우측 중복 컬럼 리네임, many-to-many 폭증 감지
+- 결과는 lineage(`op/sourceIds/joinType/keyPairs/createdAt`) 포함 새 데이터셋으로 materialize
+- Combine datasets 모달(Data explorer 진입), 실시간 Preview + 폭증 경고, `registerDataset`+`saveNow` 연동
+- Node 9/9 회귀 테스트, `tests/runner.html` DataOps 케이스 추가
 
 ---
 

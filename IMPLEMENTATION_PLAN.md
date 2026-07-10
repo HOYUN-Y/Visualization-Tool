@@ -420,3 +420,4 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 |---|---|---|---|
 | `core-v2-plan-v1` | 2026-07-10 | 최초 승인 계획. 하이브리드 구조, 핵심 제품 기능만, 기능별 승인 게이트 확정. | User approved |
 | `core-v2-plan-v2` | 2026-07-11 | 브라우저 제어가 없는 세션의 체크포인트 규칙 추가. 자동 검증+명시적 진행 승인으로 병합 가능하나 브라우저 왕복은 v2 릴리스 차단 항목으로 유지. | User instructed continuation |
+| `core-v2-plan-v3` | 2026-07-11 | 밤샘 자율 실행 승인. §1 "승인 전 다음 브랜치 미착수"를 **브랜치 스택 방식**으로 완화 — M3→M4→M5를 자율 연쇄 구현하되 main 병합·태그·원격 push·실브라우저 왕복은 전부 아침 사용자 게이트로 보류. 범위: Core v2 + Phase 2 순수-JS 분석(Batch E) + 규모제한(Batch F, 경고). Phase 3 제외. 서브에이전트 병렬/테스트 위임 허용. 상세: `~/.claude/plans/temporal-juggling-fountain.md`. | User approved |

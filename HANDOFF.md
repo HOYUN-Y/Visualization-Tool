@@ -95,6 +95,8 @@ js/
   store.jsx                # window.Store — global state, actions, transforms, aggregation, stats helpers
   projectStore.js          # window.ProjectStore — IndexedDB projects, autosave, portable JSON
   importEngine.js          # window.ImportEngine — shared parsers, XLSX inspection, deterministic type inference
+  dataOps.js               # window.DataOps — pure union/join engines, lineage, materialized datasets
+  combineModal.jsx         # window.CombineModal — Union/Join UI modal (Data explorer)
   charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors
   grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap
   shell.jsx                # window.TopBar, Rail, StatusBar, Workspace, MODES
