@@ -8,6 +8,7 @@
     { id: "clean", label: "Clean", icon: "clean" },
     { id: "sql", label: "SQL", icon: "sql" },
     { id: "visualize", label: "Chart", icon: "visualize" },
+    { id: "pivot", label: "Pivot", icon: "grid" },
     { id: "map", label: "Map", icon: "map" },
     { id: "dashboard", label: "Board", icon: "dashboard" },
     { id: "stats", label: "Stats", icon: "stats" },

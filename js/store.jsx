@@ -405,6 +405,9 @@
     // dashboard
     setDash: (patch) => setState((s) => ({ ...s, dash: { ...s.dash, ...patch } })),
     setCross: (c) => setState((s) => ({ ...s, dash: { ...s.dash, cross: c } })),
+
+    // pivot
+    setPivot: (patch) => setState((s) => ({ ...s, pivot: { ...s.pivot, ...patch } })),
   };
 
   function getDefaultProjectSnapshot() {

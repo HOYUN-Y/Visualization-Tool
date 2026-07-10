@@ -1,0 +1,26 @@
+/* Pivot mode */
+.pv-panel { display: flex; flex-direction: column; padding: 10px 0; }
+.pv-shelf { padding: 6px 12px; }
+.pv-shelf-label { font-size: var(--fs-11); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--tx-faint); margin-bottom: 5px; }
+.pv-well { min-height: 42px; border: 1px dashed var(--line-strong); border-radius: var(--r-md); padding: 6px; display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; background: var(--bg-0); transition: .12s; }
+.pv-well.over { border-color: var(--accent); background: var(--accent-soft); }
+.pv-hint { font-size: var(--fs-11); color: var(--tx-faint); padding: 4px 2px; }
+.pv-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 6px 0 9px; border-radius: 13px; font-size: var(--fs-11); border: 1px solid var(--line-strong); background: var(--bg-2); color: var(--tx-hi); }
+.pv-chip.dim { border-color: var(--dim-color, var(--line-strong)); }
+.pv-chip.meas { border-color: var(--accent-line, var(--accent)); }
+.pv-chip select { height: 18px; font: var(--fs-10) var(--font-mono); background: var(--bg-0); color: var(--accent-hi, var(--accent)); border: 1px solid var(--line); border-radius: 3px; }
+.pv-chip-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-x { display: inline-flex; cursor: pointer; color: var(--tx-faint); }
+.pv-x:hover { color: var(--neg); }
+.pv-note { font-size: var(--fs-11); color: var(--tx-faint); padding: 6px 12px; line-height: 1.5; }
+
+.pv-tablewrap { flex: 1; overflow: auto; padding: 12px; }
+.pv-table { border-collapse: separate; border-spacing: 0; font-size: var(--fs-12); }
+.pv-table th, .pv-table td { padding: 6px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.pv-table thead th { position: sticky; top: 0; z-index: 1; background: var(--bg-2); color: var(--tx-hi); text-align: left; font-weight: 600; }
+.pv-table th.pv-meas { text-align: right; color: var(--accent-hi, var(--accent)); }
+.pv-table th.pv-total, .pv-table td.pv-total { background: color-mix(in oklch, var(--accent), transparent 90%); }
+.pv-table td.pv-dim { color: var(--tx-hi); font-weight: 500; }
+.pv-table td.pv-num { text-align: right; font-family: var(--font-mono); color: var(--tx-mid); }
+.pv-table tfoot td { position: sticky; bottom: 0; background: var(--bg-2); font-weight: 600; color: var(--tx-hi); }
+.pv-meta { margin-top: 8px; font-size: var(--fs-11); color: var(--tx-faint); }

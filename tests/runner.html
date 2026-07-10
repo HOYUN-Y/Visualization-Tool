@@ -14,6 +14,7 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
 <script src="../vendor/sheetjs-0.20.3/xlsx.full.min.js"></script>
 <script src="../js/importEngine.js"></script>
 <script src="../js/dataOps.js"></script>
+<script src="../js/pivotEngine.js"></script>
 <script>
 (async function(){
   const results=[];
@@ -63,6 +64,17 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
     equal([inner.rows.length,inner.rows[0].amount,inner.rows[0].r__amount,inner.rows[0].name],[1,100,999,"Kim"]);
     equal(DataOps.join(left,right,{type:"left",keyPairs:kp}).rows.length,2);
     equal(DataOps.join(left,right,{type:"full",keyPairs:kp}).rows.length,2);
+  });
+
+  await check("PivotEngine cross-tabs with recomputed grand totals",async()=>{
+    const data=[{r:"A",c:"Q1",v:10},{r:"A",c:"Q1",v:20},{r:"A",c:"Q2",v:30},{r:"B",c:"Q1",v:100}];
+    const cols=[{key:"r"},{key:"c"},{key:"v",type:"integer"}];
+    const res=PivotEngine.build(data,cols,{rows:["r"],columns:["c"],values:[{key:"v",agg:"sum"}]});
+    const leafQ2=res.leaves.find(l=>l.colTuple[0]==="Q2").id;
+    const rowB=res.rows.find(x=>x.key[0]==="B");
+    equal([res.grandTotal["v__sum"],rowB.cells[leafQ2]],[160,0]);
+    const avg=PivotEngine.build(data,cols,{rows:["r"],columns:["c"],values:[{key:"v",agg:"avg"}]});
+    equal(avg.rows.find(x=>x.key[0]==="A").total["v__avg"],20); // recomputed, not (15+30)/2
   });
 
   const passed=results.filter(r=>r.ok).length;

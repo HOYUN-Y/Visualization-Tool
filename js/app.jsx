@@ -40,6 +40,8 @@
       content = window.SqlMode();
     } else if (mode === "visualize" && window.VizMode) {
       content = window.VizMode();
+    } else if (mode === "pivot" && window.PivotMode) {
+      content = window.PivotMode();
     } else if (mode === "map" && window.MapMode) {
       content = window.MapMode();
     } else if (mode === "dashboard" && window.DashMode) {
