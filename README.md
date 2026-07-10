@@ -91,7 +91,7 @@ open http://localhost:8742
 | **SQL** | 로컬 SQL 엔진 (SELECT/WHERE/GROUP BY/집계/ORDER/LIMIT) |
 | **Chart** | Tableau 스타일 Dimension/Measure 셸프 → ECharts (Basic 8 + Advanced 8 + Financial 3 + Special 1, 총 20종) |
 | **Map** | 3개 탭 — **Seoul · 구** (서울 25구 Choropleth + 버블맵) · **Korea · 행정구역** (17 시도 choropleth + 84 시군구 버블맵 + 내 데이터 모드) · **World · GDP** (30개국 choropleth) |
-| **Board** | 드래그/리사이즈 위젯 대시보드 + Cross Filtering |
+| **Board** | 드래그/리사이즈 위젯 대시보드 + Cross Filtering + **위젯 Inspector**(타입·필드·크기 편집) + **안전 KPI 수식**(SUM/AVG/COUNT/… 사칙연산, eval 없음) |
 | **Stats** | 상관분석, T-Test, ANOVA, Chi-Square, 회귀분석 + **Distribution 탭** (히스토그램+박스플롯+왜도/첨도) + **Analysis Builder** (자동 분석 유형 선택) + 자동 해석 패널 |
 | **ML** | 브라우저 내 AutoML: OLS 회귀, k-NN 분류, KMeans 군집 + **클래스별 Precision/Recall/F1** + **군집 특성표** + **모델 비교 이력** |
 | **Ask Insight** | 데이터셋 자동 프로파일 (IE.profileDataset) + 마지막 분석 결과 요약 + NL→차트/모드 전환 |
@@ -223,6 +223,13 @@ open http://localhost:8742
 - Grand Total은 원본 행에서 재계산(평균·중앙값 정확), 빈 셀 안전 처리
 - Pivot rail 모드: 드래그 shelf + 크로스탭 테이블 + 데이터셋 저장·Chart 열기
 - Node 8/8 회귀 테스트 + 브라우저 러너 케이스
+
+### 🧪 Core v2 Milestone 5 — Dashboard 설정 + KPI Builder (기능 브랜치, 밤샘 자율)
+- 안전한 `window.KPIFormula` 파서/평가기(eval 없음): SUM/AVG/COUNT(*)/COUNTD/MIN/MAX/MEDIAN + 사칙연산
+- 위젯 Inspector: 선택 위젯의 타입·필드·집계·색상·크기 편집(Chart/KPI/Table/Text)
+- KPI 수식은 Cross Filtering 이후 행 기준 계산, 오류는 `—` 표시
+- Text 위젯 `dangerouslySetInnerHTML` 제거(보안) + 기존 HTML→평문 마이그레이션
+- Node 7/7 회귀 테스트 + 브라우저 러너 케이스
 
 ### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
 

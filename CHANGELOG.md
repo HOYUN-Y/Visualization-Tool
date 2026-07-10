@@ -7,7 +7,6 @@ All notable changes to insight Analytics Workbench are documented here.
 ## [Unreleased] — Phase 2 (진행 중)
 
 ### Planned (아직 미구현)
-- Dashboard 위젯 설정 + 안전한 KPI 수식
 - SQL JOIN/window 및 DuckDB-WASM 전환
 - Auto Chart Recommendation
 - PCA + Biplot + Scree Plot
@@ -51,6 +50,21 @@ All notable changes to insight Analytics Workbench are documented here.
 - `toDataset` 평탄화 → registerable 데이터셋(옵션 Grand Total 행) + lineage
 - Pivot rail 모드: 필드 드래그 shelf(Rows/Columns/Values), 크로스탭 테이블, Save & open in Chart
 - Node 8/8 회귀 테스트, `tests/runner.html` Pivot 케이스 추가
+
+### Added — Core v2 Milestone 5 (기능 브랜치, 밤샘 자율)
+- 안전한 `window.KPIFormula` — eval/new Function 없는 재귀하강 파서+평가기
+- 문법: `SUM/AVG/COUNT(*)/COUNTD/MIN/MAX/MEDIAN(field)` + `+ - * / ( )` + 숫자 리터럴
+- 임의 코드·미지 함수·미지 필드·0 나눗셈 거부(→ `—`), `compute()`는 `{value,error}` 반환
+- 위젯 Inspector(우측 패널, 선택 위젯 편집): 공통 제목·크기, KPI(라벨·집계|수식 토글·형식·단위·소수), Chart(타입·차원·측정·집계·색상·Top N), Table(차원·측정·집계·행 제한), Text(평문)
+- KPI 위젯이 `spec.formula`를 Cross Filtering 이후 행 기준으로 계산
+- Text 위젯 `dangerouslySetInnerHTML` 제거 → 평문 렌더, 기존 `spec.html`은 태그 제거해 `spec.text`로 마이그레이션
+- Node 7/7 회귀 테스트, `tests/runner.html` KPI 케이스 추가
+
+### Changed
+- Rail에 **Pivot** 모드 추가(Chart 다음). Dashboard 위젯의 Chart Top N·Table 행 제한을 Inspector에서 조절 가능
+
+### Security
+- Dashboard Text 위젯의 임의 HTML 주입 경로(`dangerouslySetInnerHTML`) 제거
 
 ---
 
