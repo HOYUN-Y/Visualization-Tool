@@ -15,20 +15,20 @@
 |---|---|
 | Plan version | `core-v2-plan-v1` |
 | Current milestone | Planning baseline |
-| Status | Ready for approval — planning baseline 검증 완료 |
+| Status | Approved — planning baseline 테스트 완료, 병합 대기 |
 | Branch | `docs/core-v2-planning` |
 | Base commit | `2953a63` |
 | Last checkpoint commit | `fa88243` — planning baseline 검증 종료 |
 | Working tree | 승인 대기 — 애플리케이션 기능 코드 변경 없음 |
-| Last verified | 2026-07-10 — diff check, JSON/HTML parse, 기준 문서 링크·상태 확인 통과 |
+| Last verified | 2026-07-10 — HTTP 200, 로컬 자산 33개, diff check, JSON/HTML parse 통과 |
 | Updated at | 2026-07-10 |
 
 ## NEXT EXACT ACTION
 
-1. 사용자에게 planning baseline 체크포인트 검증 결과와 커밋을 보고한다.
-2. 사용자의 명시적 승인을 기다린다.
-3. 승인 후 branch를 `main`에 `--no-ff` 병합하고 `checkpoint/core-v2-plan` 태그를 생성한다.
-4. 승인된 최신 main에서 `feat/project-persistence` 브랜치를 생성한다.
+1. `docs/core-v2-planning`을 `main`에 `--no-ff` 병합한다.
+2. 병합 커밋에 annotated tag `checkpoint/core-v2-plan`을 생성한다.
+3. 최신 `main`에서 `feat/project-persistence` 브랜치를 생성한다.
+4. Milestone 1 구현 전 WORKLOG 상태판을 갱신한다.
 
 ## ACTIVE CHECKPOINT
 
@@ -36,7 +36,7 @@
 - **포함:** 현재 구현 상태 문서, 승인 계획, WORKLOG 상태판, 자동 push 비활성화.
 - **제외:** 애플리케이션 기능 코드 변경.
 - **완료:** 현재 소스 기준 문서 최신화 커밋 `1e81b9e`.
-- **남음:** 사용자 승인. 승인 전 기능 코드 변경은 금지.
+- **남음:** `main` 병합과 checkpoint tag 생성.
 - **롤백:** branch `docs/core-v2-planning` 삭제 시 main `2953a63`에는 영향 없음.
 
 ## DECISIONS / BLOCKERS
@@ -54,12 +54,14 @@
 
 현재 blocker: 없음.
 
+테스트 제한: 현재 세션에 인앱 브라우저 인스턴스가 없어 클릭 기반 UI 스모크 테스트는 실행하지 못했다. 대신 로컬 서버 HTTP 200 응답, 진입 HTML, 로컬 자산 33개 참조를 확인했다. planning branch는 애플리케이션 코드를 변경하지 않는다.
+
 ## CHECKPOINT LEDGER
 
 | Milestone | Branch | Commit/Tag | Tests | Status |
 |---|---|---|---|---|
 | Source/document audit | `docs/core-v2-planning` | `1e81b9e` | diff check, HTML parse | Complete |
-| Core v2 plan baseline | `docs/core-v2-planning` | `fa88243` + state HEAD | links, diff check, JSON/HTML parse, state consistency | Ready for approval |
+| Core v2 plan baseline | `docs/core-v2-planning` | `fa88243` + approval HEAD | HTTP/assets, links, diff check, JSON/HTML parse | Approved |
 | Project persistence | `feat/project-persistence` | pending | IndexedDB + JSON round trip | Not started |
 | XLSX Import | `feat/xlsx-import` | pending | format/type fixtures | Not started |
 | Union/Join | `feat/data-combine` | pending | join matrix | Not started |
