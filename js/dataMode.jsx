@@ -44,6 +44,11 @@
             </div>
           );
         })}
+        <div className="sect-label">Combine</div>
+        <button className="btn ghost sm" style={{ margin: "0 8px 8px", width: "calc(100% - 16px)", justifyContent: "center" }}
+          onClick={() => window.dispatchEvent(new CustomEvent("insight-combine-open"))}>
+          <Icon name="layers" size={13} /> Union / Join datasets
+        </button>
         <div className="sect-label">Connect</div>
         <div className="drop" style={{ margin: "0 8px 10px", padding: "14px 10px", textAlign: "center", color: "var(--tx-faint)", cursor: "pointer" }}
           onClick={() => window.dispatchEvent(new CustomEvent("insight-import-open"))}

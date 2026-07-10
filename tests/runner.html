@@ -13,6 +13,7 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
 <script>window.NODE={datasets:[]};</script>
 <script src="../vendor/sheetjs-0.20.3/xlsx.full.min.js"></script>
 <script src="../js/importEngine.js"></script>
+<script src="../js/dataOps.js"></script>
 <script>
 (async function(){
   const results=[];
@@ -44,6 +45,24 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
     const first=ImportEngine.materialize(parsed.sheets[0]);window.NODE.datasets.push(first);
     const second=ImportEngine.materialize(parsed.sheets[0]);
     equal([second.short,second.id],["sales_2","upload_sales_2"]);
+  });
+
+  await check("DataOps.union promotes types and fills missing keys",async()=>{
+    const a={id:"a",short:"a",columns:[{key:"id",type:"integer"},{key:"v",type:"integer"}],rows:[{id:1,v:10}]};
+    const b={id:"b",short:"b",columns:[{key:"id",type:"integer"},{key:"v",type:"float"},{key:"note",type:"string"}],rows:[{id:2,v:2.5,note:"x"}]};
+    const r=DataOps.union([a,b],{addSource:true});
+    equal(r.columns.find(c=>c.key==="v").type,"float");
+    equal([r.rows.length,r.rows[0].note,r.rows[1].note,r.rows[0].__source],[2,null,"x","a"]);
+  });
+
+  await check("DataOps.join inner/left/full match keys and rename collisions",async()=>{
+    const left={id:"l",short:"l",columns:[{key:"k",type:"integer"},{key:"amount",type:"integer"}],rows:[{k:1,amount:100},{k:2,amount:50}]};
+    const right={id:"r",short:"r",columns:[{key:"k",type:"integer"},{key:"amount",type:"integer"},{key:"name",type:"string"}],rows:[{k:1,amount:999,name:"Kim"}]};
+    const kp=[{left:"k",right:"k"}];
+    const inner=DataOps.join(left,right,{type:"inner",keyPairs:kp});
+    equal([inner.rows.length,inner.rows[0].amount,inner.rows[0].r__amount,inner.rows[0].name],[1,100,999,"Kim"]);
+    equal(DataOps.join(left,right,{type:"left",keyPairs:kp}).rows.length,2);
+    equal(DataOps.join(left,right,{type:"full",keyPairs:kp}).rows.length,2);
   });
 
   const passed=results.filter(r=>r.ok).length;

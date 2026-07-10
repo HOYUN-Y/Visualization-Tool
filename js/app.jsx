@@ -66,6 +66,7 @@
         <window.StatusBar />
         {window.TweaksPanel && <window.TweaksPanel />}
         {window.AIDrawer && <window.AIDrawer />}
+        {window.CombineModal && <window.CombineModal />}
       </div>
     );
   }
