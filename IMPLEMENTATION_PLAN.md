@@ -1,8 +1,8 @@
 # insight Analytics Workbench — Core Product v2 Implementation Plan
 
-> **Plan version:** `core-v2-plan-v1`
+> **Plan version:** `core-v2-plan-v2`
 > **Status:** Approved
-> **Approved:** 2026-07-10
+> **Approved:** 2026-07-11
 > **Canonical scope:** 이 문서는 무엇을 왜 어떤 순서와 기준으로 구현하는지 정의한다. 현재 진행 위치와 다음 행동은 `WORKLOG.md` 상단을 따른다.
 
 ---
@@ -26,6 +26,7 @@
 - 기능별 브랜치와 2~4개 단일 책임 커밋을 사용한다.
 - 각 기능은 사용자 승인 후에만 `main`에 `--no-ff` 병합한다.
 - 승인 전에는 다음 기능 브랜치를 시작하지 않는다.
+- 제어 가능한 브라우저가 세션에 제공되지 않으면 자동 검증 통과와 사용자의 명시적 진행 지시로 기능 체크포인트 병합은 허용하되, 미실행 브라우저 시나리오는 `v2.0.0` 릴리스 차단 항목으로 유지한다.
 - 자동 push는 사용하지 않는다.
 - 고급 ML·시계열·SPC·실제 LLM·Next.js/FastAPI 전환은 Core v2 범위에서 제외한다.
 
@@ -377,6 +378,8 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 
 주 대상은 최신 데스크톱 Chromium이다. `v2.0.0` 전 Firefox와 Safari에서 저장·Import·Pivot 기본 흐름을 추가 확인한다.
 
+세션에 제어 가능한 브라우저가 없을 때는 Node 테스트, Babel/HTML 파싱, 전체 로컬 자산 HTTP 200을 재검증하고 제한을 `WORKLOG.md`에 기록한다. 사용자가 계속 진행을 명시한 경우 체크포인트 병합은 가능하지만, IndexedDB/다운로드/새로고침 왕복 테스트를 통과한 것으로 간주하지 않으며 release branch에서 반드시 실행한다.
+
 ---
 
 ## 11. 명시적 제외
@@ -398,3 +401,4 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 | Version | Date | Change | Approval |
 |---|---|---|---|
 | `core-v2-plan-v1` | 2026-07-10 | 최초 승인 계획. 하이브리드 구조, 핵심 제품 기능만, 기능별 승인 게이트 확정. | User approved |
+| `core-v2-plan-v2` | 2026-07-11 | 브라우저 제어가 없는 세션의 체크포인트 규칙 추가. 자동 검증+명시적 진행 승인으로 병합 가능하나 브라우저 왕복은 v2 릴리스 차단 항목으로 유지. | User instructed continuation |

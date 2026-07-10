@@ -27,8 +27,9 @@ A browser-only analytics tool with **8 workspace modes** selectable from the lef
 | `ml` | ML | In-browser AutoML: OLS regression, k-NN classification, KMeans clustering |
 
 Plus: **Ask Insight** AI drawer (auto-insights + NL→chart), **Tweaks** panel (layout/tone/accent),
-dark/light toggle, CSV/TSV/JSON import, PNG/CSV export. Application state is in-memory
-(no backend or project persistence yet); only session logs use `localStorage`.
+dark/light toggle, CSV/TSV/JSON import, PNG/CSV export. Projects, mutable datasets, analysis
+history, and workspace state persist locally in IndexedDB; portable project JSON provides backup/restore.
+Session logs remain separate in `localStorage` and are not included in projects.
 
 ---
 
@@ -45,13 +46,21 @@ No build step. It's plain HTML + in-browser Babel.
 
 > ⚠️ It uses the **in-browser Babel transformer** (fine for prototyping; the console prints the usual "precompile for production" warning). For a real app you'd migrate to the Next.js/Vite stack described in §11.
 
+Automated persistence regression tests:
+
+```bash
+node --test tests/*.test.js
+```
+
+Browser approval checklist: [`tests/MANUAL_PROJECT_PERSISTENCE.md`](./tests/MANUAL_PROJECT_PERSISTENCE.md).
+
 ---
 
 ## 3. Tech & rendering model
 
 - **React 18** via global `React` / `ReactDOM` (UMD) — **no JSX imports/modules**. Every `*.jsx` file is a `<script type="text/babel">` that runs in its own transpile scope.
 - **Cross-file sharing is done through `window`**: each module attaches its exports to `window` at the end of its IIFE (e.g. `window.DataGrid = …`, `Object.assign(window, { DatasetTree, DataCenter })`). Other files read them as `window.X` at render time.
-- **No `import`/`export`, no bundler.** Load order in `index.html` matters (data → math → icons → store → charts → grid → shell → modes → tweaks → ai → app).
+- **No `import`/`export`, no bundler.** Load order in `index.html` matters (data → math → icons → store → projectStore → charts → grid → shell → modes → tweaks → ai → app).
 - **Charts**: Apache ECharts, wrapped by `window.Charts.EChart`.
 - **CSS**: hand-written, one file per concern, all driven by CSS custom properties (design tokens).
 
@@ -82,6 +91,7 @@ js/
   statsMath.js     (plain) # window.SM: incomplete gamma/beta, t/F/chi² p-values, matrix inverse
   icons.jsx                # window.Icon — inline line-icon set <Icon name="…" />
   store.jsx                # window.Store — global state, actions, transforms, aggregation, stats helpers
+  projectStore.js          # window.ProjectStore — IndexedDB projects, autosave, portable JSON
   charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors
   grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap
   shell.jsx                # window.TopBar, Rail, StatusBar, Workspace, MODES
@@ -106,7 +116,7 @@ js/
 Tiny redux-like store. **Read with the `useStore(selector)` hook; mutate only through `actions`.**
 
 ```js
-const { useStore, getState, setState, actions, derive, stat, aggFn } = window.Store;
+const { useStore, getState, setState, subscribe, actions, derive, stat, aggFn } = window.Store;
 const mode = useStore(s => s.mode);          // subscribes & re-renders on change
 actions.setMode("visualize");                 // never setState directly from components
 ```
@@ -134,6 +144,7 @@ actions.setMode("visualize");                 // never setState directly from co
 
 ### Actions (selected)
 `setTheme, toggleTheme, setMode, setActive, setUI, setTweak`
+`hydrateProject, registerDataset, removeDataset`  (project restore + dataset lifecycle)
 `addStep, undo, redo, gotoStep, clearSteps`  (cleaning; `cursor` is the undo pointer)
 `setViz, addToShelf(shelf,field), removeFromShelf, setRowAgg`  (chart)
 `setDash, setCross`  (dashboard)
@@ -174,7 +185,8 @@ Seeded PRNG (stable across reloads). Seven built-in datasets:
 - `fmt`: `"won"` → formatted as 억/만 via `NODE.fmtWon`
 
 Formatters on `window.NODE`: `fmtWon(만원)`, `fmtNum(v,dec)`, `fmtCompact(v)` (억/만/k), `round(n,d)`.
-Datasets are a **plain mutable array** — SQL "Save as dataset" simply `push`es a new dataset object (with inferred columns) and it appears in the explorer.
+Datasets remain in `window.NODE.datasets`, but every runtime addition/removal must go through
+`Store.actions.registerDataset(dataset, {activate})` / `removeDataset(id)` so React updates and autosave run.
 
 > To swap in real data: replace the dataset objects in `data.js` (keep the `{rows, columns}` shape + column metadata). Everything downstream is generic.
 
@@ -254,7 +266,7 @@ Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={
 ### ML (`mlMode.jsx`)
 - Tasks: **Regression** (OLS via normal equations → R²/RMSE/MAE, predicted-vs-actual scatter, standardized feature importance), **Classification** (k-NN on standardized features → accuracy + confusion-matrix heatmap + **per-class Precision/Recall/F1 table** + macroF1), **Clustering** (Lloyd's KMeans → cluster scatter + inertia + sizes + **cluster characteristics table** in original scale).
 - Config + result in `ui.ml = {task, target, feats[], split, k, K, result}`. Seeded train/test split. All math is inline (no libs).
-- **`window.NODE.mlHistory`** — mutable array persisted on the NODE object (not in Store); survives mode switches. Each entry: `{ task, target, metric, score, ts }`. Max 10 shown in the Model Comparison History table. `pushHistory(entry)` also sets `window.NODE.lastAnalysisResult = { type:"ml", ...entry }`.
+- **`window.NODE.mlHistory`** — mutable array on the NODE object (not in Store), included in project persistence. Each entry: `{ task, target, metric, score, ts }`. Max 10 shown in the Model Comparison History table. `pushHistory(entry)` also sets `window.NODE.lastAnalysisResult = { type:"ml", ...entry }` and marks the project dirty.
 - **IE interpretation panel** shown above metrics after training (calls `IE.summarizeClassification` / `IE.summarizeClustering`).
 
 ### Ask Insight (`aiDrawer.jsx`)
@@ -290,17 +302,17 @@ These are demo/customization toggles, not persisted.
 - **No `const styles = {…}`** global naming collisions — inline styles or uniquely-named objects only (Babel-per-script scope rule).
 - **Always read data via `Store.derive.getActiveData(activeId)`** so cleaning steps propagate. Don't read `NODE.datasets[i].rows` directly in feature code.
 - **Native `<select>` capture quirk**: screenshots of native selects can show the first option regardless of value — the live value is correct; verify via DOM if unsure.
-- **No persistence**: refresh resets all state (theme, cleaning steps, dashboards, saved SQL datasets). See next section.
+- **Project persistence:** `window.ProjectStore` owns IndexedDB and JSON I/O. Do not write project data directly to `localStorage`; session logs intentionally remain separate.
 - Canonical HTML / explicit closing tags are used so the visual editor can direct-edit; keep that style.
 
 ---
 
 ## 12. Suggested next steps (for the Next.js port / further work)
 
-1. **Persistence** — serialize Store state and mutable datasets (`clean`, `dash`, `viz`, imported/saved SQL datasets) to `localStorage` or a JSON project file. The top-bar Save button is still decorative.
-2. **Import expansion** — CSV/TSV/JSON import is implemented; add XLSX/Parquet and stronger multi-row type inference.
+1. **Import expansion** — CSV/TSV/JSON import is implemented; add XLSX/Parquet and stronger multi-row type inference.
+2. **Data combine** — add materialized Union/Join results with lineage metadata.
 3. **Engine swap** — replace `runSQL` and in-JS aggregation with **DuckDB-WASM**; move ML/stats work to a worker if datasets grow. SQL still lacks JOIN/subquery/window support.
-4. **Export expansion** — PNG and CSV are implemented; add PDF/XLSX and project-file export.
+4. **Export expansion** — PNG, CSV, and portable project JSON are implemented; add PDF/XLSX.
 5. **Analysis roadmap** — Auto Chart Recommendation, PCA/Biplot/Scree, Logistic Regression + ROC/AUC/CV, time-series basics, and SPC are the next browser-feasible batches. Confusion Matrix, per-class P/R/F1, and OLS feature importance already exist.
 6. **Modes still partial**: no mode is a placeholder, but Map choropleths depend on remote GeoJSON and AI is rule-based rather than connected to an LLM.
 7. **Productionize**: move from in-browser Babel to the intended stack — Next.js + TypeScript + Tailwind + shadcn/ui + Zustand (the `Store` maps almost 1:1 to a Zustand store) + TanStack Table (replace `DataGrid`) + ECharts/Plotly + dnd-kit (replace the hand-rolled drag in dashboard/shelves) + FastAPI/DuckDB/Polars backend.

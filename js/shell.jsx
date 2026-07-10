@@ -14,6 +14,124 @@
     { id: "ml", label: "ML", icon: "ml" },
   ];
 
+  // ── Project library + save status ────────────────────────────────
+  function ProjectControls() {
+    const PS = window.ProjectStore;
+    const [snapshot, setSnapshot] = React.useState(() => PS.getStatus());
+    const [projects, setProjects] = React.useState([]);
+    const [open, setOpen] = React.useState(false);
+    const [busy, setBusy] = React.useState(false);
+    const fileRef = React.useRef(null);
+
+    const refresh = React.useCallback(async () => {
+      try { setProjects(await PS.list()); }
+      catch (error) { console.error(error); }
+    }, []);
+
+    React.useEffect(() => {
+      let alive = true;
+      const unsubscribe = PS.subscribe((next) => { if (alive) setSnapshot(next); });
+      PS.init().then(() => { if (alive) { setSnapshot(PS.getStatus()); refresh(); } })
+        .catch((error) => { if (alive) setSnapshot(PS.getStatus()); console.error(error); });
+      return () => { alive = false; unsubscribe(); };
+    }, []);
+
+    async function run(task, closeAfter) {
+      setBusy(true);
+      try {
+        await task();
+        await refresh();
+        if (closeAfter !== false) setOpen(false);
+      } catch (error) {
+        alert(error.message || String(error));
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function createProject() {
+      const name = prompt("새 프로젝트 이름", "Untitled Project");
+      if (name == null) return;
+      run(() => PS.create(name));
+    }
+
+    function renameProject() {
+      if (!snapshot.project) return;
+      const name = prompt("프로젝트 이름 변경", snapshot.project.name);
+      if (name == null) return;
+      run(() => PS.rename(snapshot.project.id, name));
+    }
+
+    function duplicateProject() {
+      if (!snapshot.project) return;
+      const name = prompt("복제 프로젝트 이름", snapshot.project.name + " Copy");
+      if (name == null) return;
+      run(() => PS.duplicate(snapshot.project.id, name));
+    }
+
+    function removeProject() {
+      if (!snapshot.project) return;
+      if (!confirm('"' + snapshot.project.name + '" 프로젝트를 삭제할까요? 이 브라우저에서는 되돌릴 수 없습니다.')) return;
+      run(() => PS.remove(snapshot.project.id));
+    }
+
+    function importProject(file) {
+      if (!file) return;
+      run(() => PS.importJSON(file));
+      if (fileRef.current) fileRef.current.value = "";
+    }
+
+    const saveState = snapshot.state || "unsaved";
+    const projectName = snapshot.project ? snapshot.project.name : "Loading project…";
+
+    return (
+      <React.Fragment>
+        <div className="project-switcher">
+          <button className="btn ghost sm project-trigger" onClick={() => setOpen(!open)} disabled={busy} title={projectName}>
+            <Icon name="db" size={13} /><span>{projectName}</span><Icon name="chevD" size={11} />
+          </button>
+          {open && (
+            <div className="project-overlay" onClick={() => setOpen(false)}>
+              <div className="project-menu" onClick={(event) => event.stopPropagation()}>
+                <div className="project-menu-head">
+                  <div><strong>Projects</strong><span>Local browser library</span></div>
+                  <button className="iconbtn" onClick={() => setOpen(false)}><Icon name="x" size={14} /></button>
+                </div>
+                <div className="project-list">
+                  {projects.map((project) => (
+                    <button key={project.id} className={"project-item" + (snapshot.project && project.id === snapshot.project.id ? " active" : "")}
+                      disabled={busy} onClick={() => run(() => PS.open(project.id))}>
+                      <span className="project-item-icon"><Icon name="table" size={13} /></span>
+                      <span className="project-item-copy"><strong>{project.name}</strong><small>{new Date(project.updatedAt).toLocaleString()}</small></span>
+                      {snapshot.project && project.id === snapshot.project.id && <Icon name="check" size={13} />}
+                    </button>
+                  ))}
+                </div>
+                <div className="project-actions">
+                  <button className="btn ghost sm" disabled={busy} onClick={createProject}><Icon name="plus" /> New</button>
+                  <button className="btn ghost sm" disabled={busy || !snapshot.project} onClick={renameProject}><Icon name="edit" /> Rename</button>
+                  <button className="btn ghost sm" disabled={busy || !snapshot.project} onClick={duplicateProject}><Icon name="duplicate" /> Duplicate</button>
+                  <button className="btn ghost sm danger" disabled={busy || !snapshot.project} onClick={removeProject}><Icon name="trash" /> Delete</button>
+                </div>
+                <div className="project-actions backup">
+                  <button className="btn ghost sm" disabled={busy || !snapshot.project} onClick={() => run(() => PS.exportJSON(), false)}><Icon name="download" /> Project JSON</button>
+                  <button className="btn ghost sm" disabled={busy} onClick={() => fileRef.current.click()}><Icon name="upload" /> Restore JSON</button>
+                  <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={(event) => importProject(event.target.files[0])} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <button className={"btn ghost sm save-now " + saveState} disabled={busy || saveState === "saving" || !snapshot.initialized}
+          onClick={() => run(() => PS.saveNow(), false)} title={snapshot.error || snapshot.label}>
+          <span className="save-dot" />
+          <Icon name="save" /> {saveState === "saving" ? "Saving…" : "Save now"}
+          <span className="save-label">{snapshot.label}</span>
+        </button>
+      </React.Fragment>
+    );
+  }
+
   // ── Import modal ──────────────────────────────────────────────────
   function ImportBtn() {
     const [open, setOpen] = React.useState(false);
@@ -65,8 +183,7 @@
           });
           const id = "upload_" + Date.now();
           const ds = { id, name: file.name, short: file.name.replace(/\.[^.]+$/, ""), icon: "table", source: "Upload", rows, columns };
-          window.NODE.datasets.push(ds);
-          window.Store.actions.setActive(id);
+          window.Store.actions.registerDataset(ds, { activate: true });
           window.LOG && window.LOG.info("import", "Loaded " + file.name + " — " + rows.length + " rows");
           setOpen(false);
         } catch (err) { alert("파일 파싱 실패: " + err.message); }
@@ -153,10 +270,10 @@
         <div className="brand"><span className="logomark"><Icon name="visualize" size={16} /></span></div>
         <div className="wb-name">
           <span className="k logo-text"><span className="logo-in">in</span><span className="logo-sight">sight</span><span className="logo-an"> Analytics</span></span>
-          <span className="v">Seoul Real-Estate Analysis</span>
+          <span className="v">Local Analytics Workbench</span>
         </div>
         <div className="topbar-sep" />
-        <button className="btn ghost sm"><Icon name="save" /> Save</button>
+        <ProjectControls />
         <ImportBtn />
         <ExportBtn />
         <div className="topbar-spacer" />
