@@ -45,13 +45,13 @@
           );
         })}
         <div className="sect-label">Connect</div>
-        <div className="drop" style={{ margin: "0 8px 10px", padding: "14px 10px", textAlign: "center", color: "var(--tx-faint)" }}>
+        <div className="drop" style={{ margin: "0 8px 10px", padding: "14px 10px", textAlign: "center", color: "var(--tx-faint)", cursor: "pointer" }}
+          onClick={() => window.dispatchEvent(new CustomEvent("insight-import-open"))}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => { event.preventDefault(); window.dispatchEvent(new CustomEvent("insight-import-open", { detail: { files: event.dataTransfer.files } })); }}>
           <Icon name="upload" size={18} />
-          <div style={{ fontSize: 11, marginTop: 6 }}>Drop CSV · XLSX · JSON · Parquet</div>
-          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 8 }}>
-            <span className="badge"><Icon name="db" size={11} /> PostgreSQL</span>
-            <span className="badge">MySQL</span>
-          </div>
+          <div style={{ fontSize: 11, marginTop: 6 }}>Drop CSV · TSV · JSON · XLSX</div>
+          <div style={{ fontSize: 10, marginTop: 4 }}>Preview · infer types · select sheets</div>
         </div>
       </div>
     );

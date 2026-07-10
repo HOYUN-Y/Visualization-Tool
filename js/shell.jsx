@@ -135,83 +135,112 @@
   // ── Import modal ──────────────────────────────────────────────────
   function ImportBtn() {
     const [open, setOpen] = React.useState(false);
+    const [busy, setBusy] = React.useState(false);
+    const [error, setError] = React.useState("");
+    const [inspection, setInspection] = React.useState(null);
+    const [selected, setSelected] = React.useState({});
+    const [activeSheet, setActiveSheet] = React.useState("");
+    const [overrides, setOverrides] = React.useState({});
     const fileRef = React.useRef(null);
+    const TYPES = ["boolean", "integer", "float", "datetime", "category", "string"];
 
-    function handleFiles(files) {
-      const file = files[0]; if (!file) return;
-      const ext = file.name.split(".").pop().toLowerCase();
-      if (!["csv", "tsv", "json"].includes(ext)) { alert("CSV / TSV / JSON 파일만 지원합니다."); return; }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          let rows, columns;
-          if (ext === "json") {
-            rows = JSON.parse(e.target.result);
-            if (!Array.isArray(rows)) throw new Error("JSON must be an array of objects");
-          } else {
-            const sep = ext === "tsv" ? "\t" : ",";
-            const lines = e.target.result.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(Boolean);
-            const parseRow = (line) => {
-              const cells = []; let cur = "", inQ = false;
-              for (let i = 0; i < line.length; i++) {
-                const ch = line[i];
-                if (ch === '"' && !inQ) { inQ = true; }
-                else if (ch === '"' && inQ && line[i+1] === '"') { cur += '"'; i++; }
-                else if (ch === '"' && inQ) { inQ = false; }
-                else if (ch === sep && !inQ) { cells.push(cur); cur = ""; }
-                else cur += ch;
-              }
-              cells.push(cur); return cells;
-            };
-            const headers = parseRow(lines[0]);
-            rows = lines.slice(1).map((l) => {
-              const vals = parseRow(l);
-              const o = {};
-              headers.forEach((h, i) => {
-                const v = vals[i] !== undefined ? vals[i].trim() : "";
-                o[h.trim()] = v === "" ? null : isNaN(v) ? v : +v;
-              });
-              return o;
-            });
-          }
-          if (!rows.length) { alert("데이터가 비어 있습니다."); return; }
-          const sample = rows[0];
-          columns = Object.keys(sample).map((k) => {
-            const vals = rows.map((r) => r[k]).filter((v) => v != null);
-            const isNum = vals.length && vals.every((v) => typeof v === "number" && !isNaN(v));
-            return { key: k, label: k, type: isNum ? "float" : "string", role: isNum ? "measure" : "dimension", agg: isNum ? "sum" : null, unit: null, fmt: null };
-          });
-          const id = "upload_" + Date.now();
-          const ds = { id, name: file.name, short: file.name.replace(/\.[^.]+$/, ""), icon: "table", source: "Upload", rows, columns };
-          window.Store.actions.registerDataset(ds, { activate: true });
-          window.LOG && window.LOG.info("import", "Loaded " + file.name + " — " + rows.length + " rows");
-          setOpen(false);
-        } catch (err) { alert("파일 파싱 실패: " + err.message); }
-      };
-      reader.readAsText(file, "UTF-8");
+    const reset = React.useCallback(() => {
+      setInspection(null); setSelected({}); setActiveSheet(""); setOverrides({}); setError("");
+      if (fileRef.current) fileRef.current.value = "";
+    }, []);
+
+    const handleFiles = React.useCallback(async (files) => {
+      const file = files && files[0]; if (!file) return;
+      setOpen(true); setBusy(true); setError("");
+      try {
+        const result = await window.ImportEngine.parseFile(file);
+        const available = result.sheets.filter((sheet) => sheet.columnCount > 0);
+        const nextSelected = {};
+        available.forEach((sheet) => { nextSelected[sheet.name] = true; });
+        setInspection(result); setSelected(nextSelected); setActiveSheet(available[0] ? available[0].name : ""); setOverrides({});
+      } catch (err) { setError(err.message || String(err)); setInspection(null); }
+      finally { setBusy(false); }
+    }, []);
+
+    React.useEffect(() => {
+      const listener = (event) => { setOpen(true); if (event.detail && event.detail.files) handleFiles(event.detail.files); };
+      window.addEventListener("insight-import-open", listener);
+      return () => window.removeEventListener("insight-import-open", listener);
+    }, [handleFiles]);
+
+    const sheet = inspection && inspection.sheets.find((item) => item.name === activeSheet);
+    const selectedSheets = inspection ? inspection.sheets.filter((item) => selected[item.name] && item.columnCount > 0) : [];
+
+    async function importSelected() {
+      if (!selectedSheets.length) return;
+      setBusy(true); setError("");
+      try {
+        selectedSheets.forEach((item, index) => {
+          const dataset = window.ImportEngine.materialize(item, overrides[item.name] || {});
+          actions.registerDataset(dataset, { activate: index === selectedSheets.length - 1 });
+          window.LOG && window.LOG.info("import", `Loaded ${dataset.short} — ${dataset.rows.length} rows`);
+        });
+        if (window.ProjectStore) await window.ProjectStore.saveNow();
+        setOpen(false); reset();
+      } catch (err) { setError(err.message || String(err)); }
+      finally { setBusy(false); }
     }
 
     return (
-      <div style={{ position: "relative" }}>
-        <button className="btn ghost sm" onClick={() => setOpen(!open)}><Icon name="upload" size={13} /> Import</button>
+      <div>
+        <button className="btn ghost sm" onClick={() => { setOpen(true); reset(); }}><Icon name="upload" size={13} /> Import</button>
         {open && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setOpen(false)}>
-            <div style={{ position: "absolute", top: 48, left: "50%", transform: "translateX(-50%)", width: 340,
-              background: "var(--bg-2)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-lg)",
-              boxShadow: "var(--shadow-pop)", padding: 24 }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--tx-hi)", marginBottom: 16 }}>파일 가져오기</div>
-              <div style={{ border: "2px dashed var(--line-strong)", borderRadius: "var(--r-md)", padding: "28px 20px",
-                textAlign: "center", color: "var(--tx-faint)", cursor: "pointer", transition: "all .15s" }}
-                onClick={() => fileRef.current.click()}
-                onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.background = "var(--accent-soft)"; }}
-                onDragLeave={(e) => { e.currentTarget.style.borderColor = ""; e.currentTarget.style.background = ""; }}
-                onDrop={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = ""; e.currentTarget.style.background = ""; handleFiles(e.dataTransfer.files); }}>
-                <Icon name="upload" size={24} style={{ marginBottom: 8, display: "block", margin: "0 auto 10px" }} />
-                <div style={{ fontSize: 13, color: "var(--tx-mid)", marginBottom: 4 }}>CSV / TSV / JSON 파일을 드롭하거나 클릭</div>
-                <div style={{ fontSize: 11 }}>첫 행을 헤더로 인식 · 숫자 자동 감지</div>
+          <div className="import-overlay" onClick={() => { if (!busy) { setOpen(false); reset(); } }}>
+            <div className="import-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="import-head">
+                <div><strong>Import data</strong><span>CSV · TSV · JSON · XLSX</span></div>
+                <button className="iconbtn" disabled={busy} onClick={() => { setOpen(false); reset(); }}><Icon name="x" /></button>
               </div>
-              <input ref={fileRef} type="file" accept=".csv,.tsv,.json" style={{ display: "none" }} onChange={(e) => handleFiles(e.target.files)} />
-              <button className="btn ghost sm" style={{ marginTop: 14, width: "100%" }} onClick={() => setOpen(false)}>취소</button>
+              {!inspection ? (
+                <div className="import-drop" onClick={() => fileRef.current.click()} onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => { event.preventDefault(); handleFiles(event.dataTransfer.files); }}>
+                  <Icon name="upload" size={28} /><strong>{busy ? "Inspecting file…" : "Drop a file or click to browse"}</strong>
+                  <span>Original strings are preserved before deterministic type inference.</span>
+                </div>
+              ) : (
+                <React.Fragment>
+                  <div className="import-filebar"><Icon name="table" /><strong>{inspection.fileName}</strong><span>{inspection.sourceType}</span>
+                    <button className="btn ghost sm" disabled={busy} onClick={() => { reset(); fileRef.current.click(); }}>Choose another</button>
+                  </div>
+                  <div className="import-sheets">
+                    {inspection.sheets.map((item) => (
+                      <label key={item.name} className={"import-sheet" + (item.name === activeSheet ? " active" : "") + (!item.columnCount ? " disabled" : "")} onClick={() => item.columnCount && setActiveSheet(item.name)}>
+                        <input type="checkbox" disabled={!item.columnCount} checked={!!selected[item.name]}
+                          onChange={(event) => setSelected((current) => ({ ...current, [item.name]: event.target.checked }))} />
+                        <span><strong>{item.name}</strong><small>{item.range || "No range"} · {item.rowCount} rows × {item.columnCount} cols</small></span>
+                      </label>
+                    ))}
+                  </div>
+                  {sheet && (
+                    <div className="import-preview-wrap">
+                      <div className="import-preview-title"><strong>Preview · {sheet.name}</strong><span>First {sheet.preview.length} rows</span></div>
+                      <div className="import-preview"><table><thead><tr>
+                        {sheet.columns.map((column) => <th key={column.key}><span>{column.label}</span>
+                          <select value={(overrides[sheet.name] && overrides[sheet.name][column.key]) || column.type}
+                            onChange={(event) => setOverrides((current) => ({ ...current, [sheet.name]: { ...(current[sheet.name] || {}), [column.key]: event.target.value } }))}>
+                            {TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                          </select></th>)}
+                      </tr></thead><tbody>
+                        {sheet.preview.map((row, index) => <tr key={index}>{sheet.columns.map((column) => {
+                          const value = row[column.key]; const text = value == null ? "—" : value instanceof Date ? value.toISOString() : String(value);
+                          return <td key={column.key} title={text}>{text}</td>;
+                        })}</tr>)}
+                      </tbody></table></div>
+                    </div>
+                  )}
+                </React.Fragment>
+              )}
+              {error && <div className="import-error"><Icon name="info" size={13} />{error}</div>}
+              <input ref={fileRef} type="file" accept=".csv,.tsv,.json,.xlsx" style={{ display: "none" }} onChange={(event) => handleFiles(event.target.files)} />
+              <div className="import-actions">
+                <button className="btn ghost sm" disabled={busy} onClick={() => { setOpen(false); reset(); }}>Cancel</button>
+                <button className="btn primary sm" disabled={busy || !selectedSheets.length} onClick={importSelected}><Icon name="upload" /> Import {selectedSheets.length ? `${selectedSheets.length} dataset${selectedSheets.length > 1 ? "s" : ""}` : ""}</button>
+              </div>
             </div>
           </div>
         )}
