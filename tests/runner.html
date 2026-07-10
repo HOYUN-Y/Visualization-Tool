@@ -16,6 +16,10 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
 <script src="../js/dataOps.js"></script>
 <script src="../js/pivotEngine.js"></script>
 <script src="../js/kpiFormula.js"></script>
+<script src="../js/pca.js"></script>
+<script src="../js/logistic.js"></script>
+<script src="../js/timeSeries.js"></script>
+<script src="../js/distributionFit.js"></script>
 <script>
 (async function(){
   const results=[];
@@ -85,6 +89,24 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
     equal(KPIFormula.compute("COUNT(*)",rows,cols).value,3);
     if(!KPIFormula.compute("process.exit(1)",rows,cols).error) throw new Error("should reject bare identifiers");
     if(!/Division by zero/.test(KPIFormula.compute("1/(SUM(profit)-70)",rows,cols).error||"")) throw new Error("should catch div by zero");
+  });
+
+  await check("PCA explains ~all variance on correlated data",async()=>{
+    const rows=[];for(let i=0;i<20;i++)rows.push({a:i,b:2*i+1});
+    const r=PCA.fit(rows,["a","b"],{standardize:true});
+    if(r.explainedRatio[0]<0.999)throw new Error("PC1 ratio "+r.explainedRatio[0]);
+  });
+  await check("Logistic ROC AUC classic example = 0.75",async()=>{
+    const {auc}=Logistic.roc([0,0,1,1],[0.1,0.4,0.35,0.8]);
+    if(Math.abs(auc-0.75)>1e-9)throw new Error("auc "+auc);
+  });
+  await check("TimeSeries moving average and exponential smoothing",async()=>{
+    equal(TimeSeries.movingAverage([1,2,3,4,5],3),[null,null,2,3,4]);
+    equal(TimeSeries.exponentialSmoothing([10,10,10],0.5),[10,10,10]);
+  });
+  await check("DistFit normInv/normCdf round-trip",async()=>{
+    if(Math.abs(DistFit.normInv(0.975)-1.959964)>1e-4)throw new Error("normInv");
+    if(Math.abs(DistFit.normCdf(0)-0.5)>1e-4)throw new Error("normCdf");
   });
 
   const passed=results.filter(r=>r.ok).length;
