@@ -18,14 +18,15 @@ A browser-only analytics tool with **8 workspace modes** selectable from the lef
 | `data` | Data | Dataset explorer + dense data grid + auto profiling + per-column statistics |
 | `clean` | Clean | Cleaning Studio: reversible cleaning pipeline (missing/dupes/outliers/transform) |
 | `sql` | SQL | Local SQL engine (SELECT/WHERE/GROUP BY/aggregates/ORDER/LIMIT) over datasets |
-| `visualize` | Chart | Tableau-style Columns/Rows shelves → ECharts (8 chart types) |
-| `map` | Map | Seoul 25-gu choropleth (runtime GeoJSON) + offline bubble-map fallback |
+| `visualize` | Chart | Tableau-style Columns/Rows shelves → ECharts (20 chart types in 4 groups) |
+| `map` | Map | Seoul · Korea · World 3-tab maps + imported lat/lon data overlay |
 | `dashboard` | Board | Drag/resize widget grid (KPI/Chart/Table/Text) with **cross-filtering** |
 | `stats` | Stats | Significance testing: Correlation, T-Test, ANOVA, Chi-Square, Regression + auto-interpretation |
 | `ml` | ML | In-browser AutoML: OLS regression, k-NN classification, KMeans clustering |
 
 Plus: **Ask Insight** AI drawer (auto-insights + NL→chart), **Tweaks** panel (layout/tone/accent),
-dark/light toggle. All state is in-memory (no backend, no persistence yet).
+dark/light toggle, CSV/TSV/JSON import, PNG/CSV export. Application state is in-memory
+(no backend or project persistence yet); only session logs use `localStorage`.
 
 ---
 
@@ -38,7 +39,7 @@ No build step. It's plain HTML + in-browser Babel.
   - React 18.3.1, ReactDOM 18.3.1, @babel/standalone 7.29.0 (pinned, with SRI integrity hashes — keep them).
   - Apache ECharts 5.5.1 (`cdn.jsdelivr.net`).
   - Google Fonts: **IBM Plex Sans** + **IBM Plex Mono**.
-  - Map mode also fetches a Seoul districts GeoJSON from `raw.githubusercontent.com/southkorea/seoul-maps` at runtime (falls back to bubble map if offline/unreachable).
+  - Map mode fetches Seoul, Korea-province, and world GeoJSON at runtime. Seoul falls back to a bubble map; Korea/world choropleths require their remote GeoJSON.
 
 > ⚠️ It uses the **in-browser Babel transformer** (fine for prototyping; the console prints the usual "precompile for production" warning). For a real app you'd migrate to the Next.js/Vite stack described in §11.
 
@@ -150,13 +151,17 @@ actions.setMode("visualize");                 // never setState directly from co
 
 ## 6. Data model (`js/data.js` → `window.NODE`)
 
-Seeded PRNG (stable across reloads). Three datasets:
+Seeded PRNG (stable across reloads). Seven built-in datasets:
 
 | id | rows | note |
 |---|---|---|
-| `seoul_txns` | ~540 | main fact table; **intentionally dirty** (injected missing `built_year`/`area_m2`, ~6 duplicate rows, a few ₩/m² outliers) so Cleaning Studio has work to do |
+| `seoul_txns` | 503 | main fact table; **intentionally dirty** (injected missing `built_year`/`area_m2`, duplicate rows, a few ₩/m² outliers) so Cleaning Studio has work to do |
 | `monthly_index` | ~42 | derived monthly avg ₩/m² + counts (time series; rise→dip→recovery trend baked in) |
+| `kospi_stock` | 320 | simulated OHLCV data used by the three financial chart types |
 | `district_stats` | 12 | derived per-district aggregates + lat/lon (used by Map) |
+| `world_gdp` | 30 | country GDP, population, per-capita GDP, and growth data |
+| `korea_provinces` | 17 | province-level population, area, density, and GRDP |
+| `korea_municipalities` | 84 | municipality-level population, area, density, and lat/lon |
 
 `seoul_txns` columns: `id, txn_date(datetime), district(category, 12 Seoul gu), building_type(category: 아파트/오피스텔/빌라), complex_name, area_m2(float,m²), floor(int), built_year(int), price_manwon(int, 만원, fmt:"won"), price_per_m2(float, 만원/m²), lat, lon`.
 
@@ -190,9 +195,9 @@ All visuals are CSS variables; **never hard-code colors in components** — use 
 
 ## 8. Shell & layout (`js/shell.jsx`)
 
-- `<TopBar>` — Insight logomark, workbench name, Save/Import/Export (decorative), **Ask Insight** toggle (`ui.aiOpen`), Tweaks button (dispatches `window` event `node-tweaks-toggle`), theme toggle, avatar.
+- `<TopBar>` — Insight logomark, workbench name, decorative **Save**, functional CSV/TSV/JSON **Import**, functional PNG/CSV **Export**, **Ask Insight** toggle (`ui.aiOpen`), Tweaks button (dispatches `window` event `node-tweaks-toggle`), theme toggle, avatar.
 - `<Rail>` — the 8 `MODES`. Active mode highlighted; click → `actions.setMode`.
-- `<StatusBar>` — engine label, dataset, row/col counts.
+- `<StatusBar>` — engine label, dataset, row/col counts. The current UI string says `Local engine · DuckDB`, but the runtime still uses the hand-written JavaScript SQL/aggregation engine; treat the DuckDB label as aspirational until the engine swap is implemented.
 - `<Workspace left center right …>` — the **3-panel frame** used by every mode. Left = explorer, center = workspace, right = inspector. Side panels are **drag-resizable** (the `.resizer` handles write `ui.leftW/rightW`). Honors tweaks: `explorerSide:"right"` swaps panels; `layout:"focus"` hides the right panel.
 
 Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={<XPanel/>} />`.
@@ -205,13 +210,13 @@ Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={
 ### Data (`dataMode.jsx`)
 - Center tabs: **Data Preview** (DataGrid) / **Profiling** (one card per column: mini distribution + key stats + % null).
 - Right: **Column Profile** for `ui.selCol` — overview (count/missing/distinct), numeric → full histogram + boxplot + mean/median/std/quartiles; category → top values; datetime → range.
-- **DataGrid** (`grid.jsx`) features: global search, click-header sort, per-column menu (sort/filter/freeze/hide), category multi-select **filter popovers** + numeric range filters, column show/hide menu, pagination, frozen columns, type badges, in-cell data bars (measures) and category swatches, null styling. Reused by Clean & SQL.
+- **DataGrid** (`grid.jsx`) features: global search, click-header sort, per-column menu (sort/filter/freeze/hide), category multi-select **filter popovers** + numeric range filters, column show/hide menu, pagination, frozen columns, type badges, in-cell data bars (measures), category swatches, and null styling. In Data mode, an Edit toggle additionally enables cell editing, row selection/add/delete, column add/delete/rename/type change, and header drag reorder. Clean & SQL reuse the read-only grid.
 
 ### Clean (`cleanMode.jsx`)
 - Top **issue bar**: live counts of missing cells / duplicate rows / outliers with one-click fixes.
 - Center: DataGrid of the **current pipeline output** (recomputes on every step / undo / redo).
 - Right: **Add operation** (per-column) + **Pipeline** (ordered steps; click any step to time-travel; steps after `cursor` shown struck-through = redoable).
-- Ops (`Step.op`): `drop_missing, fill_mean, fill_median, fill_mode, drop_duplicates, remove_outliers (IQR ±1.5), rename, replace, change_type`. Logic lives in `Store.derive.applySteps`. **To add an op:** add a `case` there + a button in `CleanPanel` + a label in `stepLabel`.
+- Ops (`Step.op`) are centralized in `Store.derive.applySteps`: basic cleaning (`drop_missing`, fills, duplicates, outliers, rename/replace/type), encoding (`label_encode`, `dummy_encode`), numeric transforms (`standardize`, `normalize`, `log_transform`, `rank_transform`, `winsorize`, `binning`), `formula`, column removal, and direct-edit ops (`set_cell`, `drop_rows`, `add_row`, `add_col`, `reorder_cols`). **To add an op:** add a `case` there + a button in `CleanPanel` + a label/icon in the pipeline.
 
 ### SQL (`sqlMode.jsx`)
 - Hand-written engine `runSQL(sql)` — supports `SELECT (cols / *, AGG(col) AS alias)`, `FROM <datasetId|short>`, `WHERE c op v [AND …]` (ops `= != <> > < >= <= LIKE`, `%`/`_` wildcards), `GROUP BY`, aggregates `SUM/AVG/COUNT/MIN/MAX/MEDIAN` (`COUNT(*)`), `ORDER BY col [ASC|DESC]`, `LIMIT n`. No JOIN/subquery/window yet.
@@ -219,16 +224,16 @@ Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={
 
 ### Chart / Visualization Builder (`vizMode.jsx`)
 - **Shelves**: drag dimensions → **Columns** (`viz.cols`), measures → **Rows** (`viz.rows`, each carries an `agg` with a click-to-change menu). Drop a dimension on **Marks ▸ Color** (`viz.color`) to split series.
-- **Show Me** tiles enable/disable by field requirements: `bar, hbar, line, area, pie, scatter(2 measures), treemap, heatmap(2 dims)`.
+- **Show Me** contains 20 chart types in four groups: Basic 8, Advanced 8, Financial 3, Special/Facet 1. Tiles enable/disable according to each type's field requirement (`need`).
 - Sort/limit controls (`sortDesc`, `topN`).
 - `buildVizOption(type, {rows, cols, measures, color, sortDesc, topN})` builds the ECharts option and is **exported (`window.buildVizOption`) and reused by dashboard chart widgets**.
 - `window.VizAddField(field)` = double-click-to-add behavior.
 
 ### Map (`mapMode.jsx`)
-- Uses `district_stats`. Metric toggle (₩/m² · Price · Txns), view toggle **Choropleth / Bubble**.
-- Choropleth: fetches Seoul-gu GeoJSON once, `echarts.registerMap("seoul", …)`, region `name` matches Korean `district` values. Module-level `_geoState` caches success/failure.
-- **Bubble fallback** uses lat/lon scatter and needs no network (so the map always renders something offline).
-- Click a district → `setCross({key:"district", value, source:"map"})` (shared selection). Right panel = ₩/m² leaderboard + selected-district detail.
+- **Seoul · 구**: uses `district_stats`; metric toggle (₩/m² · Price · Txns), choropleth/bubble view, district selection through shared cross-filter state. Seoul GeoJSON failure falls back to lat/lon bubbles.
+- **Korea · 행정구역**: 17-province choropleth plus 84-municipality bubbles, province filtering/drilldown, and an imported-data mode that auto-detects lat/lon columns. Highcharts map-collection coordinates require the built-in WGS84→UTM52N/JSON conversion.
+- **World · GDP**: 30-country choropleth for GDP, per-capita GDP, population, and growth.
+- Module-level `_geoState`, `_koreaProvState`, and `_worldGeoState` cache the three remote map resources.
 
 ### Board / Dashboard (`dashMode.jsx`)
 - 12-column grid; widgets `{id, type, x, y, w, h, title, spec}`. Types: `kpi, chart, table, text`.
@@ -249,13 +254,6 @@ Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={
 - Config + result in `ui.ml = {task, target, feats[], split, k, K, result}`. Seeded train/test split. All math is inline (no libs).
 - **`window.NODE.mlHistory`** — mutable array persisted on the NODE object (not in Store); survives mode switches. Each entry: `{ task, target, metric, score, ts }`. Max 10 shown in the Model Comparison History table. `pushHistory(entry)` also sets `window.NODE.lastAnalysisResult = { type:"ml", ...entry }`.
 - **IE interpretation panel** shown above metrics after training (calls `IE.summarizeClassification` / `IE.summarizeClustering`).
-
-### Ask Insight (`aiDrawer.jsx`)
-- **`IE.profileDataset(activeId)`** runs on every render (memoized by `activeId`) → shown in "Dataset Profile" section (string[] of findings).
-- **`window.NODE.lastAnalysisResult`** — shared bridge from ML/Stats → AI drawer. Shows in "Last Analysis Result" section if present.
-- New intents: `last` (reads lastAnalysisResult), `goStats` (setMode("stats") + setUI({stats:{test:tab}})), `goMl` (setMode("ml")).
-- 6th SUGGEST chip: "Summarize last analysis" → kind:"last".
-- NL keywords: corr/regress/distribut/ml/machine/learn → navigate to Stats/ML mode tabs directly.
 
 ### Ask Insight (`aiDrawer.jsx`)
 - Slide-over drawer (`ui.aiOpen`). **Market insights**: `buildInsights(rows)` computes real findings (district share, top-3 concentration, price leader, 2022→2024 trend, building-type premium, outlier count).
@@ -297,18 +295,19 @@ These are demo/customization toggles, not persisted.
 
 ## 12. Suggested next steps (for the Next.js port / further work)
 
-1. **Persistence** — serialize `Store` state (datasets, `clean`, `dash`, `viz`, saved SQL results) to `localStorage` or a JSON project file (the PRD's "프로젝트 저장"). The store is already a single object — add load/save.
-2. **Real file import** — wire the Data-mode dropzone to parse CSV/XLSX/JSON/Parquet (PRD lists these) → build `{rows, columns}` with type inference (mirror the existing column metadata shape).
-3. **Engine swap** — replace `runSQL` and the in-JS aggregation with **DuckDB-WASM**; replace ML/stats math with a worker if datasets grow.
-4. **Export** — PNG (ECharts `getDataURL`), PDF, CSV/XLSX (PRD's Export). Hooks exist (decorative buttons) — implement handlers.
-5. **Modes still stubbed/partial**: none are stubbed now, but **SQL lacks JOIN/window**, **Map** depends on a remote GeoJSON, **AI** is rule-based (swap `interpret`/`runIntent` for a real LLM call if desired).
-6. **Productionize**: move from in-browser Babel to the intended stack — Next.js + TypeScript + Tailwind + shadcn/ui + Zustand (the `Store` maps almost 1:1 to a Zustand store) + TanStack Table (replace `DataGrid`) + ECharts/Plotly + dnd-kit (replace the hand-rolled drag in dashboard/shelves) + FastAPI/DuckDB/Polars backend.
+1. **Persistence** — serialize Store state and mutable datasets (`clean`, `dash`, `viz`, imported/saved SQL datasets) to `localStorage` or a JSON project file. The top-bar Save button is still decorative.
+2. **Import expansion** — CSV/TSV/JSON import is implemented; add XLSX/Parquet and stronger multi-row type inference.
+3. **Engine swap** — replace `runSQL` and in-JS aggregation with **DuckDB-WASM**; move ML/stats work to a worker if datasets grow. SQL still lacks JOIN/subquery/window support.
+4. **Export expansion** — PNG and CSV are implemented; add PDF/XLSX and project-file export.
+5. **Analysis roadmap** — Auto Chart Recommendation, PCA/Biplot/Scree, Logistic Regression + ROC/AUC/CV, time-series basics, and SPC are the next browser-feasible batches. Confusion Matrix, per-class P/R/F1, and OLS feature importance already exist.
+6. **Modes still partial**: no mode is a placeholder, but Map choropleths depend on remote GeoJSON and AI is rule-based rather than connected to an LLM.
+7. **Productionize**: move from in-browser Babel to the intended stack — Next.js + TypeScript + Tailwind + shadcn/ui + Zustand (the `Store` maps almost 1:1 to a Zustand store) + TanStack Table (replace `DataGrid`) + ECharts/Plotly + dnd-kit (replace the hand-rolled drag in dashboard/shelves) + FastAPI/DuckDB/Polars backend.
 
 ---
 
 ## 13. Quick orientation for a new contributor
 
-- Want to **add a chart type**? → `vizMode.jsx` `CHART_TYPES` + a branch in `buildOption`.
+- Want to **add a chart type**? → `vizMode.jsx` `CHART_GROUPS` + a branch in `buildOption`.
 - Add a **cleaning op**? → `applySteps` case (store) + button (`CleanPanel`) + `stepLabel`.
 - Add a **stat test**? → math in `statsMath.js`, test fn + center render + config in `statsMode.jsx`, entry in `TESTS`.
 - Add a **dashboard widget type**? → renderer in `dashMode.jsx` + Add-widget tile.

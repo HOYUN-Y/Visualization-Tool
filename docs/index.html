@@ -316,7 +316,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
   <div class="topbar-sub">Developer Documentation</div>
   <div class="topbar-sep"></div>
   <a class="user-link" href="user-guide.html">사용자 가이드 →</a>
-  <div class="topbar-badge">v2.1 — JMP Enhancement</div>
+  <div class="topbar-badge">Source synced · 2026-07-10</div>
   <button class="theme-btn" id="themeBtn" title="다크/라이트 전환" onclick="toggleTheme()"><svg class="icon" id="themeSun"><use href="#i-sun"></use></svg><svg class="icon" id="themeMoon" style="display:none"><use href="#i-moon"></use></svg></button>
 </div>
 
@@ -391,7 +391,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
         <div class="hero-chip">ECharts 5.5.1</div>
         <div class="hero-chip">Babel Standalone 7.29.0</div>
         <div class="hero-chip">IBM Plex Font</div>
-        <div class="hero-chip">21 Chart Types</div>
+        <div class="hero-chip">20 Chart Types</div>
         <div class="hero-chip">8 Analysis Modes</div>
       </div>
     </div>
@@ -403,13 +403,13 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
         insight Analytics Workbench는 <strong>로컬-퍼스트</strong> 브라우저 전용 비즈니스 인텔리전스 도구입니다.
         Node.js, npm, 빌드 단계 없이 <code>python3 -m http.server</code>로 즉시 실행됩니다.
         서울 아파트 실거래가 데이터를 포함한 샘플 데이터셋으로 즉시 사용 가능하며,
-        21종의 차트 타입과 8개의 분석 모드를 제공합니다.
+        20종의 차트 타입과 8개의 분석 모드를 제공합니다.
       </p>
 
       <h3>목적 및 설계 철학</h3>
       <div class="cards">
         <div class="card">
-          <div class="card-title"><svg class="icon-sm"><use href="#i-rocket"></use></svg>Zero Dependency</div>
+          <div class="card-title"><svg class="icon-sm"><use href="#i-rocket"></use></svg>No Package Install</div>
           <div class="card-body">npm install 없음. CDN에서 React/ECharts를 로드하는 단일 HTML 파일 기반.</div>
         </div>
         <div class="card">
@@ -427,7 +427,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
       </div>
 
       <h3>브랜드 아이덴티티</h3>
-      <p>상세 스펙: <code>docs/insight_Analytics_Brand_Spec_standalone.html</code> (v1.0 · 2026-06)</p>
+      <p>상세 스펙: <code>docs/insight Analytics Brand Spec (standalone) ver2.html</code></p>
       <p style="margin-top:8px">워드마크는 <strong>in</strong> + <strong style="color:var(--accent)">sight</strong> + <span style="color:var(--tx-faint);font-size:.9em"> Analytics</span> 세 요소로 구성됩니다.</p>
 
       <h4 style="margin-top:16px;margin-bottom:8px">워드마크 구성</h4>
@@ -483,7 +483,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
         </table>
       </div>
 
-      <p style="color:var(--tx-mid);font-size:13px;margin-bottom:4px">SVG 로고: <code>docs/logo.svg</code> — IBM Plex Sans 700, tspan 단일 text, in=#1a1a2e(라이트배경)/sight=#E8611A/Analytics=#6E6E86·20px(0.62em)</p>
+      <p style="color:var(--tx-mid);font-size:13px;margin-bottom:4px">SVG 로고: <code>docs/brand-assets/logos/analytics/logo.svg</code> (라이트 배경) / <code>logo-dark.svg</code> (다크 배경)</p>
       <p style="color:var(--tx-mid);font-size:13px">CSS 클래스: <code>.logo-in</code> / <code>.logo-sight { color:var(--accent) }</code> / <code>.logo-an { font-size:.62em; color:var(--tx-faint) }</code></p>
 
       <h3>기술 스택</h3>
@@ -510,7 +510,7 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
     <section id="quickstart">
       <h2>빠른 시작</h2>
       <pre><code><span class="cmt"># 1. 프로젝트 디렉토리로 이동</span>
-<span class="fn">cd</span> <span class="str">"/Users/lyuhoyun/Documents/GitHub/Visualization Tool"</span>
+<span class="fn">cd</span> <span class="str">"/Users/hoyun/Documents/GitHub/Visualization-Tool"</span>
 
 <span class="cmt"># 2. 로컬 HTTP 서버 실행 (포트 8742)</span>
 <span class="fn">python3</span> -m http.server <span class="num">8742</span>
@@ -526,10 +526,11 @@ tbody tr:hover td { background: rgba(128,128,128,.03); }
         <div><strong>왜 HTTP 서버가 필요한가?</strong> Babel Standalone은 <code>file://</code> 프로토콜에서 CORS 제한으로 .jsx 파일을 fetch할 수 없습니다. 반드시 HTTP 서버를 통해 접근해야 합니다.</div>
       </div>
 
-      <h3>오프라인 동작</h3>
+      <h3>네트워크 및 로컬 처리 범위</h3>
       <ul>
-        <li><strong>차트, 데이터 처리:</strong> 완전히 로컬에서 동작 (CDN 이후 캐시됨)</li>
-        <li><strong>지도 (Map 모드):</strong> GeoJSON CDN 미접근 시 버블맵 폴백으로 동작</li>
+        <li><strong>런타임:</strong> React, Babel, ECharts를 CDN에서 로드하므로 최초 실행에는 네트워크가 필요합니다. 브라우저 캐시 여부는 환경에 따라 다릅니다.</li>
+        <li><strong>분석 데이터:</strong> Import, 정제, 차트, 통계, ML 계산은 백엔드 전송 없이 현재 브라우저에서 처리됩니다.</li>
+        <li><strong>지도:</strong> 서울 GeoJSON 실패 시 버블맵으로 폴백합니다. Korea/World choropleth는 각 원격 GeoJSON이 필요합니다.</li>
         <li><strong>폰트:</strong> Google Fonts 미접근 시 시스템 폰트로 폴백</li>
       </ul>
     </section>
@@ -592,11 +593,11 @@ actions.<span class="fn">addToShelf</span>(<span class="str">"cols"</span>, fiel
     <!-- ═══════════════════ FILE STRUCTURE ═══════════════════ -->
     <section id="filestructure">
       <h2>파일 구조</h2>
-      <pre><code>Visualization Tool/
+      <pre><code>Visualization-Tool/
 ├── index.html              <span class="cmt"># 메인 진입점 + 로딩 화면 + CDN 스크립트 태그</span>
 ├── docs/
 │   └── index.html          <span class="cmt"># 이 개발 문서 파일</span>
-├── WORKLOG.md              <span class="cmt"># 세션 간 작업 로그 (자동 git push)</span>
+├── WORKLOG.md              <span class="cmt"># 세션 간 작업 로그</span>
 ├── README.md               <span class="cmt"># 프로젝트 소개</span>
 ├── HANDOFF.md              <span class="cmt"># 개발 인수인계 전체 문서</span>
 ├── css/
@@ -614,20 +615,20 @@ actions.<span class="fn">addToShelf</span>(<span class="str">"cols"</span>, fiel
 │   ├── tweaks.css          <span class="cmt"># Tweaks 사이드패널</span>
 │   └── ai.css              <span class="cmt"># Ask Insight AI 드로어</span>
 └── js/
-    ├── data.js             <span class="cmt"># 샘플 데이터셋 (서울 아파트, KOSPI, 월별지수, 구별통계)</span>
+    ├── data.js             <span class="cmt"># 기본 데이터셋 7종 + 포매터</span>
     ├── statsMath.js        <span class="cmt"># 통계 수학 (p-value, gamma, beta, 행렬 역, 왜도, 첨도)</span>
     ├── insightEngine.js    <span class="cmt"># 규칙 기반 자동 해석 엔진 (window.IE)</span>
-    ├── icons.jsx           <span class="cmt"># 아이콘 컴포넌트 + isNumType + Popover</span>
+    ├── icons.jsx           <span class="cmt"># 아이콘 컴포넌트</span>
     ├── store.jsx           <span class="cmt"># 전역 상태 + 집계 + 클리닝 트랜스폼</span>
     ├── charts.jsx          <span class="cmt"># ECharts 래퍼 + CSS변수 해석</span>
-    ├── grid.jsx            <span class="cmt"># DataGrid (가상화 스크롤)</span>
+    ├── grid.jsx            <span class="cmt"># DataGrid (정렬/필터/페이징/직접 편집)</span>
     ├── shell.jsx           <span class="cmt"># TopBar, Rail, StatusBar, Workspace 레이아웃</span>
     ├── dataMode.jsx        <span class="cmt"># Data 모드: DatasetTree, DataCenter, ColumnProfile</span>
     ├── cleanMode.jsx       <span class="cmt"># Clean 모드: 클리닝 스튜디오</span>
-    ├── vizMode.jsx         <span class="cmt"># Chart 모드: 21종 차트 buildOption + FacetGrid</span>
+    ├── vizMode.jsx         <span class="cmt"># Chart 모드: 20종 차트 buildOption + FacetGrid</span>
     ├── dashMode.jsx        <span class="cmt"># Dashboard 모드: 위젯 배치 + 크로스 필터</span>
     ├── sqlMode.jsx         <span class="cmt"># SQL 모드: in-memory SQL 쿼리 엔진</span>
-    ├── mapMode.jsx         <span class="cmt"># Map 모드: 대한민국 choropleth + 버블맵</span>
+    ├── mapMode.jsx         <span class="cmt"># Map 모드: Seoul/Korea/World + 내 데이터</span>
     ├── mlMode.jsx          <span class="cmt"># ML 모드: 선형회귀, k-NN 분류, KMeans 군집 + 클래스별 P/R/F1 + 모델 이력</span>
     ├── statsMode.jsx       <span class="cmt"># Stats 모드: 기술통계, 상관분석, t-test, Distribution, Analysis Builder</span>
     ├── tweaks.jsx          <span class="cmt"># 레이아웃/테마 Tweaks 사이드패널</span>
@@ -642,7 +643,7 @@ actions.<span class="fn">addToShelf</span>(<span class="str">"cols"</span>, fiel
 
       <h3>window.NODE 인터페이스</h3>
       <pre><code><span class="prop">window</span>.NODE = {
-  <span class="prop">datasets</span>: Array&lt;Dataset&gt;,    <span class="cmt">// 4개 데이터셋 배열</span>
+  <span class="prop">datasets</span>: Array&lt;Dataset&gt;,    <span class="cmt">// 7개 기본 데이터셋 배열</span>
   <span class="fn">fmtWon</span>: (v) => string,        <span class="cmt">// 만원 → "3.2억" / "1,500만" 형식</span>
   <span class="fn">fmtNum</span>: (v, d?) => string,    <span class="cmt">// 숫자 → 로케일 포맷</span>
   <span class="fn">fmtCompact</span>: (v) => string,   <span class="cmt">// 숫자 → "12.3억" / "4.5k" 압축 형식</span>
@@ -676,10 +677,13 @@ actions.<span class="fn">addToShelf</span>(<span class="str">"cols"</span>, fiel
         <table>
           <thead><tr><th>id</th><th>이름</th><th>행 수</th><th>설명</th></tr></thead>
           <tbody>
-            <tr><td><code>seoul_txns</code></td><td>Seoul_Apartment_Txns</td><td>~503행</td><td>서울 12개 구 아파트 실거래가 (2022-2025). 의도적 결측값/이상치 포함 (Cleaning 데모용).</td></tr>
-            <tr><td><code>monthly_index</code></td><td>Monthly_Price_Index</td><td>~42행</td><td>서울 아파트 월별 평균 가격 지수. seoul_txns에서 파생.</td></tr>
-            <tr><td><code>kospi_stock</code></td><td>KOSPI_Stock_2024</td><td>~252행</td><td>KOSPI 시뮬레이션 OHLCV 데이터 (2024-2025). 금융 차트 전용. open/high/low/close 컬럼 필수.</td></tr>
+            <tr><td><code>seoul_txns</code></td><td>Seoul_Apartment_Txns</td><td>503행</td><td>서울 12개 구 아파트 실거래가 (2022-2025). 의도적 결측값/이상치 포함 (Cleaning 데모용).</td></tr>
+            <tr><td><code>monthly_index</code></td><td>Monthly_Price_Index</td><td>42행</td><td>서울 아파트 월별 평균 가격 지수. seoul_txns에서 파생.</td></tr>
+            <tr><td><code>kospi_stock</code></td><td>KOSPI_Stock_2024</td><td>320행</td><td>KOSPI 시뮬레이션 OHLCV 데이터. 금융 차트 전용. open/high/low/close 컬럼 필수.</td></tr>
             <tr><td><code>district_stats</code></td><td>District_Summary</td><td>12행</td><td>구별 집계 통계. 지도 시각화 기본 데이터.</td></tr>
+            <tr><td><code>world_gdp</code></td><td>World_GDP_2023</td><td>30행</td><td>국가별 GDP·1인당 GDP·인구·성장률.</td></tr>
+            <tr><td><code>korea_provinces</code></td><td>Korea_Provinces_2023</td><td>17행</td><td>시도별 인구·면적·밀도·GRDP.</td></tr>
+            <tr><td><code>korea_municipalities</code></td><td>Korea_시군구_2023</td><td>84행</td><td>시군구별 인구·면적·밀도·위경도.</td></tr>
           </tbody>
         </table>
       </div>
@@ -796,22 +800,17 @@ Store.derive.<span class="fn">colStats</span>(rows, key) → stats</code></pre>
         </table>
       </div>
 
-      <h3>클리닝 스텝 (op 타입)</h3>
+      <h3>변환 파이프라인 요약</h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>op</th><th>필수 파라미터</th><th>설명</th></tr></thead>
+          <thead><tr><th>그룹</th><th>op</th><th>설명</th></tr></thead>
           <tbody>
-            <tr><td><code>drop_missing</code></td><td>col</td><td>해당 컬럼에 결측값 있는 행 제거</td></tr>
-            <tr><td><code>fill_mean</code></td><td>col</td><td>결측값을 평균으로 채움</td></tr>
-            <tr><td><code>fill_median</code></td><td>col</td><td>결측값을 중앙값으로 채움</td></tr>
-            <tr><td><code>fill_mode</code></td><td>col</td><td>결측값을 최빈값으로 채움</td></tr>
-            <tr><td><code>drop_duplicates</code></td><td>—</td><td>완전 중복 행 제거</td></tr>
-            <tr><td><code>remove_outliers</code></td><td>col</td><td>IQR 1.5× 초과 이상치 제거</td></tr>
-            <tr><td><code>rename</code></td><td>col, params.to</td><td>컬럼명 변경</td></tr>
-            <tr><td><code>replace</code></td><td>col, params.from, params.to</td><td>값 치환</td></tr>
-            <tr><td><code>change_type</code></td><td>col, params.to</td><td>컬럼 타입 변경</td></tr>
+            <tr><td>기본 정제</td><td><code>drop_missing</code>, <code>fill_*</code>, <code>drop_duplicates</code>, <code>remove_outliers</code>, <code>rename</code>, <code>replace</code>, <code>change_type</code>, <code>drop_col</code></td><td>결측·중복·이상치·컬럼/값 관리</td></tr>
+            <tr><td>인코딩/변환</td><td><code>label_encode</code>, <code>dummy_encode</code>, <code>standardize</code>, <code>normalize</code>, <code>log_transform</code>, <code>rank_transform</code>, <code>winsorize</code>, <code>binning</code>, <code>formula</code></td><td>ML 전처리 및 파생 컬럼</td></tr>
+            <tr><td>직접 편집</td><td><code>set_cell</code>, <code>drop_rows</code>, <code>add_row</code>, <code>add_col</code>, <code>reorder_cols</code></td><td>Data 모드 편집을 동일한 Undo/Redo 파이프라인으로 기록</td></tr>
           </tbody>
         </table>
+        <p style="margin:10px 0 0">전체 파라미터와 동작은 아래 Clean 모드의 <strong>지원 op 전체 목록</strong>을 참조하세요.</p>
       </div>
     </section>
 
@@ -829,6 +828,9 @@ Store.derive.<span class="fn">colStats</span>(rows, key) → stats</code></pre>
   },
   <span class="fn">baseGrid</span>: (colors) => EChartsOption,   <span class="cmt">// 공통 grid/tooltip/textStyle</span>
   EChart: ReactComponent,                 <span class="cmt">// ECharts React 래퍼 컴포넌트</span>
+  <span class="fn">downloadPNG</span>: (filename?) => boolean,  <span class="cmt">// 마지막 차트를 PNG로 저장</span>
+  <span class="fn">downloadCSV</span>: (rows, columns, name) => void,
+  <span class="prop">lastInst</span>: EChartsInstance | null,      <span class="cmt">// 마지막 렌더 인스턴스</span>
 };</code></pre>
 
       <h3>EChart 컴포넌트 Props</h3>
@@ -1038,7 +1040,7 @@ row.price_per_m2 > <span class="num">1000</span> ? <span class="str">'high'</spa
 
     <section id="mode-viz">
       <h2>Viz 모드 — <code>vizMode.jsx</code></h2>
-      <p>Tableau-inspired 드래그&드롭 차트 빌더. 21종 차트 타입, 4개 그룹으로 분류됩니다.</p>
+      <p>Tableau-inspired 드래그&드롭 차트 빌더. 20종 차트 타입, 4개 그룹으로 분류됩니다.</p>
 
       <h3>노출 전역 변수</h3>
       <pre><code>window.<span class="prop">VizMode</span>              <span class="cmt">// Viz 모드 루트 컴포넌트</span>
@@ -1569,7 +1571,7 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
 
     <!-- ═══════════════════ CHART TYPES ═══════════════════ -->
     <section id="chart-types">
-      <h2>차트 타입 레지스트리 (21종)</h2>
+      <h2>차트 타입 레지스트리 (20종)</h2>
 
       <div class="ct-group">Basic (8종)</div>
       <div class="ct-grid">
@@ -1625,7 +1627,7 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
           <tbody>
             <tr><td>UI 프레임워크</td><td>8개 모드 전체 구현 — Data / Clean / SQL / Chart / Map / Board / Stats / ML</td></tr>
             <tr><td>런타임 스택</td><td>React 18 UMD + Babel Standalone + ECharts 5 — 빌드 단계 없음</td></tr>
-            <tr><td>샘플 데이터</td><td>서울 아파트 실거래 시뮬레이션 3종 (503행 / 42행 / 12행)</td></tr>
+            <tr><td>샘플 데이터</td><td>서울 거래·월별지수·KOSPI·서울 구·세계 GDP·한국 시도/시군구, 총 7종</td></tr>
             <tr><td>테마 시스템</td><td>CSS Custom Property 기반 다크/라이트, Tweaks 패널</td></tr>
             <tr><td>Ask Insight</td><td>규칙 기반 NL→차트/모드 전환, 데이터 프로파일 요약</td></tr>
           </tbody>
@@ -1652,7 +1654,7 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
         <table>
           <thead><tr><th>항목</th><th>내용</th><th>관련 파일</th></tr></thead>
           <tbody>
-            <tr><td>Export / Import</td><td>차트 PNG (<code>echarts.getDataURL</code>), 현재 데이터 CSV 내보내기, CSV/JSON 파일 드래그앤드롭 임포트</td><td><code>js/shell.jsx</code>, <code>js/charts.jsx</code></td></tr>
+            <tr><td>Export / Import</td><td>차트 PNG (<code>echarts.getDataURL</code>), 현재 데이터 CSV 내보내기, CSV/TSV/JSON 파일 드래그앤드롭 임포트</td><td><code>js/shell.jsx</code>, <code>js/charts.jsx</code></td></tr>
             <tr><td>World · GDP 탭</td><td>ECharts v4 CDN world.json 로드, 30개국 GDP/인구/성장률 choropleth</td><td><code>js/mapMode.jsx</code></td></tr>
             <tr><td>Korea · 행정구역 탭</td><td>Highcharts map-collection GeoJSON (UTM52N 투영), 17 시도 choropleth + 84 시군구 버블맵, WGS84→HC 좌표 변환 함수 내장</td><td><code>js/mapMode.jsx</code>, <code>js/data.js</code></td></tr>
             <tr><td>내 데이터 모드</td><td>임포트 데이터의 위경도 컬럼 자동 감지(lat/lon/위도/경도 패턴), 컬럼 선택 드롭다운, 한국 영역 좌표 필터링</td><td><code>js/mapMode.jsx</code></td></tr>
@@ -1704,8 +1706,8 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
             <tr><td><b>전처리 잔여</b></td><td>Box-Cox Transformation (lambda 최적화)</td><td><span class="tag accent">중요</span></td><td>Clean</td></tr>
             <tr><td rowspan="4"><b>ML 모델 확장</b></td><td>Logistic Regression (단변량 / 다변량)</td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
             <tr><td>Decision Tree, Naive Bayes</td><td><span class="tag accent">중요</span></td><td>ML</td></tr>
-            <tr><td>Confusion Matrix, ROC/AUC, Precision-Recall, Lift/Gain/KS Chart</td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
-            <tr><td>Feature Importance, Cross Validation (소규모)</td><td><span class="tag accent">중요</span></td><td>ML</td></tr>
+            <tr><td>ROC/AUC, Precision-Recall Curve, Lift/Gain/KS Chart <span class="tag ok">Confusion Matrix 구현됨</span></td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
+            <tr><td>분류/트리 Feature Importance, Cross Validation <span class="tag ok">OLS Importance 구현됨</span></td><td><span class="tag accent">중요</span></td><td>ML</td></tr>
             <tr><td rowspan="2"><b>차원축소</b></td><td>PCA + Biplot + Scree Plot (순수 JS SVD)</td><td><span class="tag warn">최우선</span></td><td>ML</td></tr>
             <tr><td>Factor Analysis</td><td><span class="tag ok">보통</span></td><td>Stats</td></tr>
             <tr><td rowspan="3"><b>차트 확장</b><br/>(Chart 모드)</td><td>Auto Chart Recommendation (컬럼 타입 규칙 기반)</td><td><span class="tag accent">중요</span></td><td>Chart</td></tr>
@@ -1713,7 +1715,7 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
             <tr><td>Mosaic Plot, Pair Plot, Contour Plot, Bubble Matrix</td><td><span class="tag ok">보통</span></td><td>Chart</td></tr>
             <tr><td rowspan="3"><b>분포 플랫폼</b><br/>(Stats 모드)</td><td>QQ Plot, Normal Fit</td><td><span class="tag accent">중요</span></td><td>Stats</td></tr>
             <tr><td>Multi Variable Distribution View</td><td><span class="tag accent">중요</span></td><td>Stats</td></tr>
-            <tr><td>Outlier Visualization (Tukey 방식 박스플롯 강화)</td><td><span class="tag ok">보통</span></td><td>Stats</td></tr>
+            <tr><td>다변량 이상치 시각화 <span class="tag ok">IQR 박스플롯 구현됨</span></td><td><span class="tag ok">보통</span></td><td>Stats</td></tr>
             <tr><td rowspan="2"><b>시계열 기초</b><br/>(Stats 모드)</td><td>Moving Average, Exponential Smoothing, Seasonal Decomposition</td><td><span class="tag accent">중요</span></td><td>Stats</td></tr>
             <tr><td>ACF / PACF (자기상관함수)</td><td><span class="tag accent">중요</span></td><td>Stats</td></tr>
             <tr><td rowspan="2"><b>품질관리 SPC</b><br/>(신규 탭)</td><td>Control Charts — X-Bar, R, S, P, C, U Chart</td><td><span class="tag accent">중요</span></td><td>Stats 신규탭</td></tr>
@@ -1791,7 +1793,7 @@ window.Popover = ({ anchor, onClose, children }) => JSX;</code></pre>
     <!-- ═══════════════════ FOOTER ═══════════════════ -->
     <hr />
     <div style="text-align:center; color:var(--tx-faint); font-size:11px; padding-bottom:20px;">
-      insight Analytics Workbench Developer Docs · v2.1 (JMP Enhancement) · 2026-06-06<br/>
+      insight Analytics Workbench Developer Docs · v2.1 · source-synced 2026-07-10<br/>
       이 문서는 유지보수 목적으로 생성되었습니다. 오프라인에서도 동작하는 단일 HTML 파일.
     </div>
 

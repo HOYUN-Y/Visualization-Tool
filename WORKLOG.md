@@ -1,8 +1,8 @@
 # INSIGHT Analytics Workbench — Work Log
 
 > 이 파일은 세션 간 작업 연속성을 위한 로그입니다.  
-> 변경사항 발생 시 자동으로 업데이트 & git push 됩니다.  
-> **자동 푸시 훅 활성화 완료** (PostToolUse → Edit|Write → auto-push.sh)
+> 변경사항 발생 시 세션 단위로 업데이트합니다.
+> `.claude`의 과거 자동 푸시 훅은 이전 절대 경로를 참조하므로 현재 환경의 공식 작업 절차로 간주하지 않습니다.
 
 ---
 
@@ -10,7 +10,7 @@
 
 ```bash
 # 1. 프로젝트 디렉토리로 이동
-cd "/Users/lyuhoyun/Documents/GitHub/Visualization Tool"
+cd "/Users/hoyun/Documents/GitHub/Visualization-Tool"
 
 # 2. 로컬 서버 실행 (포트 8742)
 python3 -m http.server 8742
@@ -23,7 +23,7 @@ open http://localhost:8742
 > - 빌드 단계 없음 — 순수 HTML + in-browser Babel (Next.js/Vite 아님)
 > - 포트 8742 충돌 시: `kill $(lsof -ti :8742)` 후 재실행
 > - CDN 의존성: React 18.3.1, ECharts 5.5.1, Babel 7.29.0, IBM Plex 폰트
-> - 오프라인 시 지도(Map 모드)는 버블맵 폴백으로 동작 (GeoJSON CDN 미접근)
+> - 서울 지도는 GeoJSON 미접근 시 버블맵으로 폴백하며, Korea/World choropleth는 원격 GeoJSON이 필요
 > - 파일 로드 순서가 중요 (`index.html` 내 `<script>` 순서 변경 금지)
 > - 크로스파일 공유는 `window.*` 전역 변수로만 가능 (`import/export` 없음)
 
@@ -32,7 +32,7 @@ open http://localhost:8742
 ## 📁 프로젝트 구조
 
 ```
-Visualization Tool/
+Visualization-Tool/
 ├── index.html              # 메인 진입점
 ├── HANDOFF.md              # 개발 인수인계 전체 문서
 ├── WORKLOG.md              # 이 파일 — 세션 간 작업 로그
@@ -100,7 +100,7 @@ Visualization Tool/
 **작업 내용: 차트 타입 대량 구현 (+13종)**
 
 **수정 파일:**
-- `js/vizMode.jsx` — 전체 재작성, 차트 타입 8→21종으로 확장
+- `js/vizMode.jsx` — 전체 재작성, 차트 타입 8→20종으로 확장
 - `js/icons.jsx` — 신규 아이콘 10개 추가 (bubble, waterfall, boxplot, violin, sankey, sunburst, facet, cumreturn 등)
 - `js/data.js` — KOSPI 금융 데이터셋 추가 (320행 OHLCV, 2024-2025)
 - `css/viz.css` — Show Me 그룹 스타일 + Facet Grid CSS 추가
@@ -126,7 +126,7 @@ Visualization Tool/
 - Violin KDE renderItem: category axis에서 fractional index 불가 → 픽셀 공간에서 직접 좌표 계산으로 해결
 - Show Me 패널: 단일 grid → 4개 그룹(Basic/Advanced/Financial/Special)으로 재구성
 
-**현재 총 차트 수: 21종**
+**현재 총 차트 수: 20종** (Basic 8 + Advanced 8 + Financial 3 + Special 1)
 
 ---
 
@@ -142,7 +142,7 @@ Visualization Tool/
 **문서 포함 내용:**
 - 프로젝트 개요, 설계 철학, 기술 스택
 - 전체 아키텍처 & 스크립트 로드 순서
-- `data.js` — Dataset/Column 스키마, PRNG, 4개 데이터셋 설명
+- `data.js` — Dataset/Column 스키마, PRNG, 현재 7개 기본 데이터셋 설명
 - `store.jsx` — State 구조, Actions 전체 목록, derive/stat/aggFn API
 - `charts.jsx` — EChart 컴포넌트 Props, CSS 변수 해석 원리
 - `shell.jsx` / `app.jsx` — 셸 컴포넌트, MODES 배열
@@ -153,7 +153,7 @@ Visualization Tool/
 - `window.*` 전역 변수 완전 목록 (30+ 개)
 - 핵심 개발 규칙 8가지 (번호 목록)
 - 로딩 화면 구현 상세
-- 차트 타입 레지스트리 21종 (그룹별, need 코드 포함)
+- 차트 타입 레지스트리 20종 (그룹별, need 코드 포함)
 
 **특이사항:**
 - 사이드바 스크롤 연동 네비게이션 (현재 섹션 하이라이트)
@@ -289,8 +289,8 @@ Visualization Tool/
 
 **Phase A — 기반 (`js/store.jsx`, `js/data.js`)**
 
-- [ ] A1. `__rid` 주입 — 데이터셋 등록 + Import 경로 전 행에 단조 증가 ID
-- [ ] A2. `applySteps` 신규 op 5종:
+- [x] A1. `__rid` 주입 — 데이터셋 등록 + Import 경로 전 행에 단조 증가 ID
+- [x] A2. `applySteps` 신규 op 5종:
 
   | op | 동작 | 행 지목 |
   |---|---|---|
@@ -300,24 +300,36 @@ Visualization Tool/
   | `add_col` | 빈/기본값 열 추가 | — |
   | `reorder_cols` | 열 순서 재배치 | — |
 
-- [ ] A3. store 액션 `editCell·deleteRows·addRow·addColumn·moveColumn` (전부 `addStep` 래퍼)
+- [x] A3. store 액션 `editCell·deleteRows·addRow·addColumn·reorderCols` (전부 `addStep` 래퍼)
 
 **Phase B — 편집 가능 그리드 (`js/grid.jsx`, `js/dataMode.jsx`)**
 
-- [ ] B1. `DataGrid`에 `editable` prop + 콜백, Data 툴바 **Edit 토글**(평소 읽기전용)
-- [ ] B2. 셀 인라인 편집 — 더블클릭 → input → Enter/blur 커밋, Esc 취소
-- [ ] B3. 헤더 컨텍스트 메뉴 확장 — 이름변경·타입변경·열 삽입(좌/우)·열 삭제 (기존 sort/filter/freeze/hide 유지)
-- [ ] B4. 헤더 드래그앤드롭 reorder (frozen·스크롤 hit-test 처리)
-- [ ] B5. 행 거터 — hover 삭제(×)/삽입, 다중선택 + Del 일괄삭제
-- [ ] B6. 푸터 — `+ 행 추가` / `+ 열 추가`
+- [x] B1. `DataGrid`에 `editable` prop + 콜백, Data 툴바 **Edit 토글**(평소 읽기전용)
+- [x] B2. 셀 인라인 편집 — 더블클릭 → input → Enter/blur 커밋, Esc 취소
+- [x] B3. 헤더 컨텍스트 메뉴 확장 — 이름변경·타입변경·열 삽입(좌/우)·열 삭제 (기존 sort/filter/freeze/hide 유지)
+- [x] B4. 헤더 드래그앤드롭 reorder
+- [x] B5. 행 거터 — hover 삭제(×), 다중선택 + Del 일괄삭제
+- [x] B6. 푸터 — `Add row` / `Add column`
 
 **Phase C — 마감**
 
-- [ ] C1. Clean 모드 스텝 로그 `stepLabel`·`OP_ICON`에 신규 5종 추가
-- [ ] C2. 편집은 Data 모드 + 활성 데이터셋에서만 (집계/SQL 결과 그리드는 읽기전용)
-- [ ] C3. 브라우저 검증 → `?v=` 캐시 bump → CHANGELOG/README/docs 갱신
+- [x] C1. Clean 모드 스텝 로그 `stepLabel`·`OP_ICON`에 신규 5종 추가
+- [x] C2. 편집은 Data 모드 + 활성 데이터셋에서만 (집계/SQL 결과 그리드는 읽기전용)
+- [x] C3. 브라우저 검증 → `?v=` 캐시 bump → CHANGELOG/README/docs 갱신
 
 **커밋 전략**: Phase A → B → C 순으로 분할 커밋 (A 완료 시 로직 단독 브라우저 검증).
+
+---
+
+### Session 8 — 2026-07-10 (문서 최신화, 코드 변경 없음)
+
+- 현재 소스 기준 기능 현황 재검증
+- 차트 수를 실제 레지스트리 기준 20종(Basic 8 / Advanced 8 / Financial 3 / Special 1)으로 통일
+- 기본 데이터셋을 실제 `window.NODE.datasets` 기준 7종으로 통일
+- Confusion Matrix, 클래스별 P/R/F1, OLS Feature Importance, Dashboard Cross Filtering을 구현 완료로 정정
+- Import/Export 지원 범위(CSV/TSV/JSON 입력, PNG/CSV 출력)와 Save/영속성 미구현 상태 명시
+- README 브랜드 자산/Brand Spec 링크와 로컬 실행 경로 수정
+- `README.md`, `HANDOFF.md`, `CHANGELOG.md`, `WORKLOG.md`, `docs/index.html`, `docs/user-guide.html` 동기화
 
 ---
 
@@ -328,15 +340,17 @@ Visualization Tool/
 - [ ] **데이터 영속성**: `localStorage`에 Store 상태 직렬화/복원
 - [ ] **SQL JOIN**: `sqlMode.jsx` 내 `runSQL` 엔진에 JOIN 지원 추가
 - [ ] **Chart Recommendation Engine**: 선택한 컬럼 타입 조합 → 최적 차트 자동 추천
-- [ ] **Cross Filtering 강화**: Dashboard 내 차트 간 실시간 필터 연동
+- [x] **Dashboard Cross Filtering 기본 기능**: 차트 클릭 → 다른 위젯 필터, 재클릭/버튼으로 해제
+- [ ] **ML/PCA 확장**: Logistic Regression, ROC/AUC, Cross Validation, PCA/Biplot/Scree Plot
+- [ ] **Stats 확장**: 시계열 기초, SPC, QQ Plot/Normal Fit
 - [ ] **FastAPI 백엔드**: DuckDB/Polars 엔진 연동 (Phase 3)
 
 ---
 
-## ⚙️ 자동 로그 업데이트 훅
+## ⚙️ 자동 로그 업데이트 훅 (레거시)
 
-`WORKLOG.md` 수정 후 항상 git commit & push 수행.  
 훅 위치: `.claude/hooks/post-tool-use/auto-push.sh`
+현재 훅과 `.claude/settings.json`은 이전 사용자/디렉터리의 절대 경로를 참조합니다. 경로를 명시적으로 정비하기 전에는 자동 commit/push가 동작한다고 가정하지 않습니다.
 
 ---
 
