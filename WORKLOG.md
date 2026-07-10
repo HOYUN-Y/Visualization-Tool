@@ -20,7 +20,7 @@
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
 | Last checkpoint commit | `d4529b7` — SPC + clustering engines |
 | Working tree | 분석 엔진 완료, 최종 재검증+스모크 테스트 진행; `.DS_Store` 사용자 변경 제외 |
-| Last verified | 2026-07-11 — Node 101/101, JSX 구문검사(tsc) OK, diff clean, runner에 8개 분석 케이스 |
+| Last verified | 2026-07-11 — Node 90/90, JSX 구문검사(tsc) OK, plain-JS node --check OK, diff clean, index.html 자산 존재, runner에 8개 분석 케이스 (주: 커밋 d4529b7 메시지의 "101"은 오기, 실제 90) |
 | Updated at | 2026-07-11 (밤샘 자율 세션) |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)

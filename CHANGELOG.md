@@ -74,7 +74,7 @@ All notable changes to insight Analytics Workbench are documented here.
 - `window.DistFit` — normInv/normCdf, QQ-정규, 정규 적합, Jarque-Bera, 히스토그램 (Node 10)
 - `window.SPC` — I-MR·X-bar/R·X-bar/S·p·c·u 관리도, Cp/Cpk/Pp/Ppk, Pareto (Node 7)
 - `window.Clustering` — DBSCAN + 병합형 계층군집(single/complete/average/ward), O(n²) ~5k행 (Node 4)
-- 전체 Node 테스트 101/101, `tests/runner.html` 8개 분석 케이스 추가
+- 전체 Node 테스트 90/90 통과, `tests/runner.html` 8개 분석 케이스 추가
 
 ---
 
