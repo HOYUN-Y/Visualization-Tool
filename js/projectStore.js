@@ -430,20 +430,23 @@
         autosaveTimer = null;
         hydrating = true;
       }
-      await deleteBundle(id);
-      if (removingCurrent) {
-        currentProject = null;
-        var remaining = await listProjectRecords();
-        if (remaining.length) await activateBundle(await loadBundle(remaining[0].id));
-        else {
-          var replacement = makeSeedBundle("Untitled Project");
-          await saveBundle(replacement);
-          await activateBundle(replacement);
+      try {
+        await deleteBundle(id);
+        if (removingCurrent) {
+          currentProject = null;
+          var remaining = await listProjectRecords();
+          if (remaining.length) await activateBundle(await loadBundle(remaining[0].id));
+          else {
+            var replacement = makeSeedBundle("Untitled Project");
+            await saveBundle(replacement);
+            await activateBundle(replacement);
+          }
         }
-        hydrating = false;
+        notify();
+        return true;
+      } finally {
+        if (removingCurrent) hydrating = false;
       }
-      notify();
-      return true;
     },
 
     saveNow: async function () {
