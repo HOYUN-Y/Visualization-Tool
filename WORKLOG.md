@@ -4,6 +4,70 @@
 > 변경사항 발생 시 세션 단위로 업데이트합니다.
 > `.claude`의 과거 자동 푸시 훅은 이전 절대 경로를 참조하므로 현재 환경의 공식 작업 절차로 간주하지 않습니다.
 
+> **계획 기준:** [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
+> **사용법:** 새 세션이나 컨텍스트 압축 후에는 이 문서의 `CURRENT STATE`와 `NEXT EXACT ACTION`을 먼저 확인합니다.
+
+---
+
+## CURRENT STATE
+
+| 항목 | 현재 값 |
+|---|---|
+| Plan version | `core-v2-plan-v1` |
+| Current milestone | Planning baseline |
+| Status | In progress — canonical plan/worklog 작성 완료, hook 비활성화 대기 |
+| Branch | `docs/core-v2-planning` |
+| Base commit | `2953a63` |
+| Last checkpoint commit | `1e81b9e` — implementation status 문서 최신화 |
+| Working tree | 계획 기준 문서 변경을 checkpoint commit으로 기록 중 |
+| Last verified | 2026-07-10 — Markdown diff check, HTML parser 통과 |
+| Updated at | 2026-07-10 |
+
+## NEXT EXACT ACTION
+
+1. `.claude/settings.json`의 레거시 PostToolUse 자동 push hook을 비활성화한다.
+2. WORKLOG에 새 checkpoint commit 해시를 기록한다.
+3. 문서 링크·HTML·Git 상태를 검증한다.
+4. 사용자에게 planning baseline 체크포인트 승인을 요청한다.
+5. 승인 전에는 `feat/project-persistence`를 시작하지 않는다.
+
+## ACTIVE CHECKPOINT
+
+- **목표:** Core Product v2의 계획과 현재 진행 상태가 모델·사람·세션에 관계없이 복원되도록 기준 문서를 고정한다.
+- **포함:** 현재 구현 상태 문서, 승인 계획, WORKLOG 상태판, 자동 push 비활성화.
+- **제외:** 애플리케이션 기능 코드 변경.
+- **완료:** 현재 소스 기준 문서 최신화 커밋 `1e81b9e`.
+- **남음:** 계획 문서 커밋, hook 비활성화 커밋, 최종 검증과 사용자 승인.
+- **롤백:** branch `docs/core-v2-planning` 삭제 시 main `2953a63`에는 영향 없음.
+
+## DECISIONS / BLOCKERS
+
+확정 결정:
+
+- 하이브리드 구현: 현재 앱에서 Core v2 완성 후 프로덕션 전환은 별도 진행.
+- Core v2 범위: 저장, XLSX, Union/Join, Pivot, Dashboard/KPI.
+- IndexedDB + JSON, 다중 프로젝트.
+- SheetJS는 로컬 vendoring.
+- XLSX는 시트 선택 모달과 복수 시트 Import.
+- 병합 결과는 새 데이터셋으로 materialize.
+- 기능별 브랜치와 사용자 승인 게이트.
+- `WORKLOG.md`는 현재 상태, `IMPLEMENTATION_PLAN.md`는 승인 계획의 기준 문서.
+
+현재 blocker: 없음.
+
+## CHECKPOINT LEDGER
+
+| Milestone | Branch | Commit/Tag | Tests | Status |
+|---|---|---|---|---|
+| Source/document audit | `docs/core-v2-planning` | `1e81b9e` | diff check, HTML parse | Complete |
+| Core v2 plan baseline | `docs/core-v2-planning` | pending | links, diff check, state consistency | In progress |
+| Project persistence | `feat/project-persistence` | pending | IndexedDB + JSON round trip | Not started |
+| XLSX Import | `feat/xlsx-import` | pending | format/type fixtures | Not started |
+| Union/Join | `feat/data-combine` | pending | join matrix | Not started |
+| Pivot Builder | `feat/pivot-builder` | pending | aggregation/totals | Not started |
+| Dashboard/KPI | `feat/dashboard-builder` | pending | formula/cross-filter/restore | Not started |
+| Core v2 release | `release/core-product-v2` | pending | end-to-end regression | Not started |
+
 ---
 
 ## 🚀 Quick Start (다른 세션에서 반드시 실행)

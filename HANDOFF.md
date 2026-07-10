@@ -1,5 +1,7 @@
 # INSIGHT Analytics Workbench — Project Handoff
 
+> **먼저 읽기:** 승인된 구현 계획은 [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md), 현재 체크포인트와 다음 행동은 [`WORKLOG.md`](./WORKLOG.md#current-state)를 기준으로 합니다.
+
 > Local-first Business Intelligence & data-analytics workbench (Tableau / Power BI / JMP-style),
 > built as a **single-page, no-build** web app. Dark-default + light themes, English UI,
 > high information density. Sample domain: **Seoul apartment transactions (실거래가)**.

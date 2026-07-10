@@ -2,6 +2,8 @@
 
 # insight Analytics Workbench
 
+> 현재 구현 계획: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) · 현재 작업 상태: [`WORKLOG.md`](./WORKLOG.md#current-state)
+
 **Local-First Business Intelligence & Data Analytics Platform**
 
 > Tableau의 시각화 + Power BI의 대시보드 + JMP의 통계 + Orange의 분석 흐름 + ChatGPT의 자연어 인터페이스를  
