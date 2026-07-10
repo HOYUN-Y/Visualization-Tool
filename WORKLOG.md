@@ -76,6 +76,18 @@
 | Analytics engines E/F | `feat/analytics` | `edbe287`, `d4529b7` | Node: PCA 11, Logistic 7, TimeSeries 17, DistFit 10, SPC 7, Clustering 4 | Engines done, UI wiring deferred |
 | Core v2 release | `release/core-product-v2` | pending | end-to-end regression | Not started |
 
+## OVERNIGHT AUTONOMOUS SESSION — 2026-07-11 (밤샘 자율)
+
+브랜치 스택(main 미병합): `feat/data-combine → pivot-builder → dashboard-builder → analytics`.
+
+- **M3 Union/Join** `feat/data-combine`: `fd8a9d6`(엔진 Node 9/9) → `432f1d6`(Combine 모달) → `d20f60e`(docs).
+- **M4 Pivot** `feat/pivot-builder`: `d2c78dd`(엔진 Node 8/8) → `86ffd60`(Pivot 모드) → `cb236be`(docs).
+- **M5 Dashboard/KPI** `feat/dashboard-builder`: `8d3bab3`(KPIFormula Node 7/7) → `25e1234`(위젯 Inspector, 수식 KPI, dangerouslySetInnerHTML 제거) → `07dab60`(docs).
+- **Batch E/F 분석 엔진** `feat/analytics`: `edbe287`(PCA/Logistic/TimeSeries/DistFit) → `d4529b7`(SPC/Clustering) → docs → `docs` 정정 커밋(101→90).
+- **최종 검증(2026-07-11):** Node **90/90**, JSX 구문검사(tsc) 오류 0, plain-JS `node --check` 전부 OK, `git diff --check` clean, index.html 참조 자산 전부 존재, 로컬 서버 HTTP 200(curl), **엔진 통합 스모크 테스트 통과**(union→join→pivot→kpi→pca→logistic→timeseries→distfit→spc→clustering 전체 파이프라인 무예외·정상 출력), 엔진 결정성 확인(Math.random/Date.now/argless new Date 없음).
+- **미실행(사용자/아침 게이트):** **앱 UI 브라우저 왕복** — 이 세션의 제어 Chrome이 로컬 서버(localhost/127.0.0.1/file://)에 접근 불가하여 미실행. plan v2/v3에 따라 release blocker로 유지. Pivot/Combine/Dashboard Inspector·KPI 수식·cross filter의 실제 클릭 검증과 IndexedDB reload는 사용자 환경에서 필요.
+- **분석 엔진 UI 배선(Stats/ML 모드 시각화)** 은 아침 논의 대상(엔진은 window.* 로 로드 완료).
+
 ## LATEST SESSION CHECKPOINT — 2026-07-11
 
 - Persistence 자동 검증 재실행: Node 5/5, `git diff --check`, HTML/JSON parse, 로컬 자산 34/34, HTTP 200 통과.
