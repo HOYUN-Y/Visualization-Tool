@@ -98,6 +98,7 @@ open http://localhost:8742
 | **Projects** | IndexedDB 다중 프로젝트 · 1초 자동저장 · 즉시 저장 상태 · JSON 백업/복원 |
 | **Import** | CSV/TSV/JSON/XLSX 공통 Preview · 결정적 타입 추론 · XLSX 복수 시트 선택 · 타입 override |
 | **Combine** | 데이터셋 Union(행 결합·타입 승격·`__source`) / Join(Inner·Left·Right·Full·복수키·폭증 경고) · lineage 포함 새 데이터셋 생성 |
+| **Pivot** | Rows × Columns 크로스탭 · 복수 Values 개별 집계 · 범주/범위 필터 · Grand Total(원본 재계산) · 결과를 데이터셋으로 저장 후 Chart 열기 |
 
 ---
 
@@ -216,6 +217,12 @@ open http://localhost:8742
 - 순수 결정적 `window.DataOps` 엔진: Union(타입 승격·null 채움·`__source`), Join(4종·복수키·정규화 비교·리네임·폭증 감지)
 - Combine 모달: 실시간 Preview·many-to-many 경고·lineage 포함 새 데이터셋 materialize
 - Node 9/9 회귀 테스트 + 브라우저 러너 케이스
+
+### 🧪 Core v2 Milestone 4 — Pivot Table (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.PivotEngine`: Rows × Columns 크로스탭, 복수 Values 개별 집계, 범주/범위 필터
+- Grand Total은 원본 행에서 재계산(평균·중앙값 정확), 빈 셀 안전 처리
+- Pivot rail 모드: 드래그 shelf + 크로스탭 테이블 + 데이터셋 저장·Chart 열기
+- Node 8/8 회귀 테스트 + 브라우저 러너 케이스
 
 ### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
 

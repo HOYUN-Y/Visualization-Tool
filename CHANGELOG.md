@@ -7,7 +7,6 @@ All notable changes to insight Analytics Workbench are documented here.
 ## [Unreleased] — Phase 2 (진행 중)
 
 ### Planned (아직 미구현)
-- Pivot Table Builder
 - Dashboard 위젯 설정 + 안전한 KPI 수식
 - SQL JOIN/window 및 DuckDB-WASM 전환
 - Auto Chart Recommendation
@@ -44,6 +43,14 @@ All notable changes to insight Analytics Workbench are documented here.
 - 결과는 lineage(`op/sourceIds/joinType/keyPairs/createdAt`) 포함 새 데이터셋으로 materialize
 - Combine datasets 모달(Data explorer 진입), 실시간 Preview + 폭증 경고, `registerDataset`+`saveNow` 연동
 - Node 9/9 회귀 테스트, `tests/runner.html` DataOps 케이스 추가
+
+### Added — Core v2 Milestone 4 (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.PivotEngine` — Rows × Columns 크로스탭 집계 엔진
+- 복수 Values와 개별 집계(sum/avg/count/countd/min/max/median), 범주·범위 필터
+- 빈 셀 안전 처리(sum/count 0, 그 외 null), Grand Total은 원본 행에서 재계산(avg/median 정확)
+- `toDataset` 평탄화 → registerable 데이터셋(옵션 Grand Total 행) + lineage
+- Pivot rail 모드: 필드 드래그 shelf(Rows/Columns/Values), 크로스탭 테이블, Save & open in Chart
+- Node 8/8 회귀 테스트, `tests/runner.html` Pivot 케이스 추가
 
 ---
 

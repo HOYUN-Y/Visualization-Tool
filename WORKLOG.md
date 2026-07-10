@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | Milestone 3 — Union/Join (자율 진행 중) |
-| Status | 엔진+UI 구현 완료, 브랜치 스택 진행 — 병합/브라우저 왕복은 아침 게이트 |
-| Branch | `feat/data-combine` (feat/xlsx-import 팁 `ea2da48`에서 분기) |
-| Base commit | `ea2da48` — xlsx import 브랜치 팁 (M1+M2 포함) |
-| Last checkpoint commit | `432f1d6` — combine preview workflow |
-| Working tree | M3 완료, M4로 진행 예정; `.DS_Store` 사용자 변경 제외 |
-| Last verified | 2026-07-11 — Node 19/19, JSX 구문검사(tsc) OK, diff check clean, runner.html DataOps 케이스 추가 |
+| Current milestone | Milestone 4 — Pivot Table (자율 진행 중) |
+| Status | M3·M4 엔진+UI 완료, 브랜치 스택 진행 — 병합/브라우저 왕복은 아침 게이트 |
+| Branch | `feat/pivot-builder` (feat/data-combine 팁에서 분기) |
+| Base commit | `d20f60e` — M3 combine docs checkpoint |
+| Last checkpoint commit | `86ffd60` — pivot workspace UI |
+| Working tree | M4 완료, M5(Dashboard/KPI)로 진행 예정; `.DS_Store` 사용자 변경 제외 |
+| Last verified | 2026-07-11 — Node 27/27, JSX 구문검사(tsc) OK, diff check clean, runner.html DataOps+Pivot 케이스 |
 | Updated at | 2026-07-11 (밤샘 자율 세션) |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
@@ -34,18 +34,17 @@
 
 ## NEXT EXACT ACTION
 
-1. (진행) Batch C — M4 Pivot: `feat/pivot-builder`를 `feat/data-combine` 팁에서 분기, `js/pivotEngine.js` + `js/pivotMode.jsx` + `tests/pivotEngine.test.js`.
-2. 이후 Batch D — M5 Dashboard/KPI (`feat/dashboard-builder`).
-3. Batch E/F 분석 엔진 병렬.
-4. 각 배치: 엔진→테스트→즉시수정→UI→커밋→문서갱신. 컨텍스트 경계 시 `wip(...)` 커밋.
+1. (진행) Batch D — M5 Dashboard/KPI: `feat/dashboard-builder`를 `feat/pivot-builder` 팁에서 분기, `js/kpiFormula.js`(eval 금지 파서) + 위젯 Inspector + `dangerouslySetInnerHTML` 제거 + `tests/kpiFormula.test.js`.
+2. 이후 Batch E/F 분석 엔진 병렬(`feat/analytics-*`).
+3. 각 배치: 엔진→테스트→즉시수정→UI→커밋→문서갱신. 컨텍스트 경계 시 `wip(...)` 커밋.
 
-## ACTIVE CHECKPOINT (M3)
+## ACTIVE CHECKPOINT (M4 완료 / M5 착수)
 
-- **목표:** CSV/…/XLSX를 넘어 데이터셋 Union/Join을 순수 결정적 엔진으로 결합, lineage 포함 새 데이터셋 materialize.
-- **완료:** 엔진 `fd8a9d6`(DataOps.union/join/preview/toDataset, Node 9/9), UI `432f1d6`(Combine 모달, app/dataMode/index 배선, runner 케이스).
-- **재사용:** `Store.actions.registerDataset`, `ensureRids`, import 모달 CSS, 컬럼 메타 형식.
-- **남음:** 실브라우저 Combine 왕복(아침), 문서 동기화 커밋(진행), M4 착수.
-- **롤백:** 승인 전 `feat/data-combine`(및 하위 스택)만 삭제하면 local main 영향 없음.
+- **M3 완료:** 엔진 `fd8a9d6`(Node 9/9), UI `432f1d6`, docs `d20f60e`.
+- **M4 완료:** 엔진 `d2c78dd`(PivotEngine.build/toDataset, Node 8/8), UI `86ffd60`(Pivot 모드, shelf 드롭, 크로스탭+Grand Total, Save→Chart).
+- **재사용:** `registerDataset`, `ensureRids`, viz shelf 드래그 패턴, `application/node-field`, projectStore가 이미 `pivot` 직렬화.
+- **남음:** 실브라우저 왕복(아침) — Pivot Grand Total/저장, Combine 왕복. M5 착수.
+- **롤백:** 승인 전 브랜치 스택(`feat/data-combine→pivot-builder→…`)만 삭제하면 local main 영향 없음.
 
 ## DECISIONS / BLOCKERS
 
@@ -71,7 +70,7 @@
 | Project persistence | `main` | `b5aeaec` / `checkpoint/project-persistence` (local) | Node 5, diff/parse, HTTP/assets; browser round trip deferred | Complete locally |
 | XLSX Import | `feat/xlsx-import` | `b369ba8`, `3b336c3`, `120c1c8` + final docs checkpoint | Node 10, Babel 17, HTTP/assets; browser round trip pending | Ready for approval |
 | Union/Join | `feat/data-combine` | `fd8a9d6`, `432f1d6` | Node 9/9 (union/join matrix), runner cases, JSX syntax OK | Engine+UI done, awaiting browser round trip |
-| Pivot Builder | `feat/pivot-builder` | pending | aggregation/totals | Not started |
+| Pivot Builder | `feat/pivot-builder` | `d2c78dd`, `86ffd60` | Node 8/8 (agg/totals/filters), runner case, JSX syntax OK | Engine+UI done, awaiting browser round trip |
 | Dashboard/KPI | `feat/dashboard-builder` | pending | formula/cross-filter/restore | Not started |
 | Core v2 release | `release/core-product-v2` | pending | end-to-end regression | Not started |
 

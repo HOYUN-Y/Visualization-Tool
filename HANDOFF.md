@@ -97,6 +97,8 @@ js/
   importEngine.js          # window.ImportEngine — shared parsers, XLSX inspection, deterministic type inference
   dataOps.js               # window.DataOps — pure union/join engines, lineage, materialized datasets
   combineModal.jsx         # window.CombineModal — Union/Join UI modal (Data explorer)
+  pivotEngine.js           # window.PivotEngine — pure cross-tab aggregation, grand totals, toDataset
+  pivotMode.jsx            # window.PivotMode — drag-and-drop Pivot workspace (Rows/Columns/Values)
   charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors
   grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap
   shell.jsx                # window.TopBar, Rail, StatusBar, Workspace, MODES
