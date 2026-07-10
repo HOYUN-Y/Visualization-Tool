@@ -14,30 +14,30 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v2` |
-| Current milestone | Milestone 1 — Project persistence |
-| Status | Approved for checkpoint merge — browser round trip deferred to release gate |
-| Branch | `feat/project-persistence` |
-| Base commit | `76d5333` — planning baseline merge (`checkpoint/core-v2-plan`) |
-| Last checkpoint commit | `d68c3e3` — persistence verification and docs checkpoint |
-| Working tree | plan/worklog continuation checkpoint 준비; `.DS_Store` 사용자 변경 제외 |
+| Current milestone | Milestone 2 — XLSX Import and deterministic type inference |
+| Status | In progress — feature branch initialized |
+| Branch | `feat/xlsx-import` |
+| Base commit | `b5aeaec` — project persistence merge (`checkpoint/project-persistence`) |
+| Last checkpoint commit | `b5aeaec` — Milestone 1 local merge checkpoint |
+| Working tree | Milestone 2 상태판 갱신 중; `.DS_Store` 사용자 변경 제외 |
 | Last verified | 2026-07-11 — Node 5/5, diff check, HTML/JSON parse, HTTP 200, local assets 34/34 통과 |
 | Updated at | 2026-07-11 |
 
 ## NEXT EXACT ACTION
 
-1. 현재 계획/워크로그 갱신을 persistence 브랜치 체크포인트로 커밋한다.
-2. `main`에 `--no-ff` 병합하고 annotated tag `checkpoint/project-persistence`를 생성한다.
-3. 최신 `main`에서 `feat/xlsx-import` 브랜치를 생성한다.
-4. Milestone 2 시작 상태로 WORKLOG를 갱신하고 SheetJS vendoring 전 라이선스/해시 검증을 수행한다.
+1. Milestone 2 시작 상태를 WORKLOG 체크포인트로 커밋한다.
+2. SheetJS CE 0.20.3 standalone build의 공식 배포 위치, 라이선스, SHA-256을 확인하고 `vendor/`에 고정한다.
+3. CSV/TSV/JSON/XLSX 공통 `ImportEngine`과 결정적 타입 추론 테스트를 먼저 구현한다.
+4. Workbook preview·복수 시트 선택·타입 override UI를 연결한다.
 
 ## ACTIVE CHECKPOINT
 
-- **목표:** 여러 프로젝트의 전체 분석 상태와 데이터셋을 브라우저에 저장하고 portable JSON으로 이동 가능하게 한다.
-- **포함:** IndexedDB 3-store schema, autosave/flush, 다중 프로젝트 UI, JSON import/export, Store hydration/registry, 분석 이력.
-- **제외:** XLSX, Union/Join, Pivot, Dashboard/KPI 개선.
-- **완료:** repository `c0c4f26`, Store registry/hydration `b788c0f`, project UI `e549a3a`, delete guard `61da366`.
-- **남음:** 체크포인트 병합/태그. 실제 IndexedDB/JSON 브라우저 왕복은 release gate에서 필수 실행.
-- **롤백:** 승인 전에는 `feat/project-persistence` 브랜치만 삭제하면 `main`과 `checkpoint/core-v2-plan`에 영향 없음.
+- **목표:** CSV/TSV/JSON/XLSX를 동일한 Import 파이프라인으로 처리하고 재현 가능한 타입 추론과 XLSX 복수 시트 선택을 제공한다.
+- **포함:** SheetJS 로컬 vendoring, 공통 ImportEngine, preview/override, 복수 시트 dataset 등록, 프로젝트 autosave 연동.
+- **제외:** Union/Join, Pivot, Dashboard/KPI 개선.
+- **완료:** Milestone 1 로컬 병합 `b5aeaec`, tag `checkpoint/project-persistence`, Milestone 2 브랜치 생성.
+- **남음:** vendor 검증, ImportEngine, UI, fixtures/tests, 문서 동기화.
+- **롤백:** 승인 전 `feat/xlsx-import` 브랜치만 삭제하면 local main 체크포인트에 영향 없음.
 
 ## DECISIONS / BLOCKERS
 
@@ -52,7 +52,7 @@
 - 기능별 브랜치와 사용자 승인 게이트.
 - `WORKLOG.md`는 현재 상태, `IMPLEMENTATION_PLAN.md`는 승인 계획의 기준 문서.
 
-현재 blocker: 없음. 현재 세션에 인앱 브라우저가 없어 실제 IndexedDB reload와 클릭 기반 JSON round trip은 미실행이며, plan v2 규칙에 따라 `v2.0.0` release blocker로 이관한다. 사용자는 2026-07-11 다음 작업과 체크포인트 진행을 명시적으로 승인했다.
+현재 blocker: SheetJS 배포 파일 다운로드는 외부 네트워크 전송 승인이 필요하다. 원격 Git push도 명시적 외부 전송 승인 전까지 보류한다. IndexedDB/JSON 브라우저 왕복은 plan v2에 따라 `v2.0.0` release blocker로 유지한다.
 
 ## CHECKPOINT LEDGER
 
@@ -60,12 +60,21 @@
 |---|---|---|---|---|
 | Source/document audit | `docs/core-v2-planning` | `1e81b9e` | diff check, HTML parse | Complete |
 | Core v2 plan baseline | `main` | `76d5333` / `checkpoint/core-v2-plan` | HTTP/assets, links, diff check, JSON/HTML parse | Complete |
-| Project persistence | `feat/project-persistence` | `c0c4f26`, `b788c0f`, `e549a3a`, `61da366`, `d68c3e3` + continuation checkpoint | Node 5, diff/parse, HTTP/assets; browser round trip deferred | Approved for merge |
-| XLSX Import | `feat/xlsx-import` | pending | format/type fixtures | Not started |
+| Project persistence | `main` | `b5aeaec` / `checkpoint/project-persistence` (local) | Node 5, diff/parse, HTTP/assets; browser round trip deferred | Complete locally |
+| XLSX Import | `feat/xlsx-import` | branch from `b5aeaec` | format/type fixtures | In progress |
 | Union/Join | `feat/data-combine` | pending | join matrix | Not started |
 | Pivot Builder | `feat/pivot-builder` | pending | aggregation/totals | Not started |
 | Dashboard/KPI | `feat/dashboard-builder` | pending | formula/cross-filter/restore | Not started |
 | Core v2 release | `release/core-product-v2` | pending | end-to-end regression | Not started |
+
+## LATEST SESSION CHECKPOINT — 2026-07-11
+
+- Persistence 자동 검증 재실행: Node 5/5, `git diff --check`, HTML/JSON parse, 로컬 자산 34/34, HTTP 200 통과.
+- 제어 가능한 인앱 브라우저가 없어 IndexedDB/JSON 클릭 왕복은 release blocker로 이관하고 plan을 `core-v2-plan-v2`로 갱신.
+- 체크포인트 `0b192d3` 생성 후 local main에 `--no-ff` 병합: `b5aeaec`.
+- annotated tag `checkpoint/project-persistence` 생성.
+- 원격 push는 외부 전송 명시 승인 부족으로 보류; local main은 `origin/main`보다 7커밋 앞섬.
+- `feat/xlsx-import` 브랜치를 local main 체크포인트에서 생성.
 
 ---
 
