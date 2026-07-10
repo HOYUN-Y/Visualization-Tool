@@ -65,8 +65,7 @@
           });
           const id = "upload_" + Date.now();
           const ds = { id, name: file.name, short: file.name.replace(/\.[^.]+$/, ""), icon: "table", source: "Upload", rows, columns };
-          window.NODE.datasets.push(ds);
-          window.Store.actions.setActive(id);
+          window.Store.actions.registerDataset(ds, { activate: true });
           window.LOG && window.LOG.info("import", "Loaded " + file.name + " — " + rows.length + " rows");
           setOpen(false);
         } catch (err) { alert("파일 파싱 실패: " + err.message); }

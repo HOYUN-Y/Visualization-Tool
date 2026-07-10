@@ -1,6 +1,6 @@
 /* ============================================================
    NØDE — global store + data transforms + aggregation
-   window.Store = { useStore, getState, setState, actions, derive, stat }
+   window.Store = { useStore, getState, setState, subscribe, actions, derive, stat }
    ============================================================ */
 (function () {
   const D = window.NODE.datasets;
@@ -16,6 +16,16 @@
     for (const r of ds.rows) { if (r.__rid == null) r.__rid = _ridSeq++; }
     ds.__rid_tagged = true;
     return ds;
+  }
+  function restoreRidSequence(datasets) {
+    let maxRid = 0;
+    datasets.forEach((ds) => {
+      (ds.rows || []).forEach((row) => {
+        if (Number.isInteger(row.__rid) && row.__rid > maxRid) maxRid = row.__rid;
+      });
+    });
+    _ridSeq = maxRid + 1;
+    datasets.forEach((ds) => { ds.__rid_tagged = false; ensureRids(ds); });
   }
 
   const initial = {
@@ -34,10 +44,12 @@
       sortDesc: true,
       topN: 0,
     },
+    pivot: {},
     dash: { widgets: null, cross: null, edit: false },
     tweaks: { layout: "classic", sidebar: "rail", tone: "cool", density: "compact" },
   };
 
+  const initialDatasets = JSON.parse(JSON.stringify(D));
   let state = JSON.parse(JSON.stringify(initial));
   const listeners = new Set();
 
@@ -55,11 +67,15 @@
     return o;
   }
   function getState() { return state; }
+  function subscribe(listener) {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  }
 
   function useStore(sel) {
     const select = sel || ((s) => s);
     const [, force] = React.useReducer((x) => x + 1, 0);
-    React.useEffect(() => { listeners.add(force); return () => listeners.delete(force); }, []);
+    React.useEffect(() => subscribe(force), []);
     return select(state);
   }
 
@@ -297,6 +313,59 @@
     setUI: (patch) => setState((s) => ({ ...s, ui: { ...s.ui, ...patch } })),
     setTweak: (patch) => setState((s) => ({ ...s, tweaks: { ...s.tweaks, ...patch } })),
 
+    // project lifecycle + centralized dataset registry
+    hydrateProject: (bundle) => {
+      if (!bundle || !Array.isArray(bundle.datasets) || !bundle.datasets.length) throw new Error("Project bundle requires datasets");
+      const datasets = JSON.parse(JSON.stringify(bundle.datasets));
+      D.splice(0, D.length, ...datasets);
+      restoreRidSequence(D);
+
+      const saved = JSON.parse(JSON.stringify(bundle.state || {}));
+      const next = deepMerge(JSON.parse(JSON.stringify(initial)), saved);
+      next.ui = { ...initial.ui, ...(saved.ui || {}), aiOpen: false };
+      if (!D.some((ds) => ds.id === next.activeId)) next.activeId = D[0].id;
+      state = next;
+
+      const analysis = bundle.analysis || {};
+      window.NODE.mlHistory = JSON.parse(JSON.stringify(analysis.mlHistory || []));
+      window.NODE.lastAnalysisResult = analysis.lastAnalysisResult == null
+        ? null
+        : JSON.parse(JSON.stringify(analysis.lastAnalysisResult));
+      listeners.forEach((listener) => listener());
+      return state;
+    },
+    registerDataset: (dataset, options) => {
+      if (!dataset || typeof dataset.id !== "string" || !dataset.id || !Array.isArray(dataset.rows) || !Array.isArray(dataset.columns)) {
+        throw new Error("Dataset requires id, rows, and columns");
+      }
+      if (D.some((existing) => existing.id === dataset.id)) throw new Error("Dataset id already exists: " + dataset.id);
+      const next = JSON.parse(JSON.stringify(dataset));
+      ensureRids(next);
+      D.push(next);
+      const activate = !options || options.activate !== false;
+      setState((s) => activate
+        ? { ...s, activeId: next.id, ui: { ...s.ui, selCol: null } }
+        : { ...s });
+      return next;
+    },
+    removeDataset: (id) => {
+      const index = D.findIndex((dataset) => dataset.id === id);
+      if (index < 0) return false;
+      if (D.length === 1) throw new Error("A project must keep at least one dataset");
+      D.splice(index, 1);
+      setState((s) => {
+        const clean = { ...s.clean };
+        delete clean[id];
+        return {
+          ...s,
+          clean,
+          activeId: s.activeId === id ? D[Math.min(index, D.length - 1)].id : s.activeId,
+          ui: s.activeId === id ? { ...s.ui, selCol: null } : s.ui,
+        };
+      });
+      return true;
+    },
+
     // cleaning
     addStep: (step) => setState((s) => {
       const id = s.activeId; const cur = s.clean[id] || { steps: [], cursor: 0 };
@@ -338,5 +407,16 @@
     setCross: (c) => setState((s) => ({ ...s, dash: { ...s.dash, cross: c } })),
   };
 
-  window.Store = { useStore, getState, setState, actions, derive: { getDataset, getActiveData, getClean, aggregate, colStats, applySteps }, stat, aggFn };
+  function getDefaultProjectSnapshot() {
+    return {
+      state: JSON.parse(JSON.stringify(initial)),
+      datasets: JSON.parse(JSON.stringify(initialDatasets)),
+      analysis: { mlHistory: [], lastAnalysisResult: null },
+    };
+  }
+
+  window.Store = {
+    useStore, getState, setState, subscribe, actions, getDefaultProjectSnapshot,
+    derive: { getDataset, getActiveData, getClean, aggregate, colStats, applySteps }, stat, aggFn,
+  };
 })();

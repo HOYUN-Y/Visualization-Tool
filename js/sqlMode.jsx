@@ -148,8 +148,8 @@ LIMIT 10`;
     const save = () => {
       if (!result || result.error) return;
       const id = "query_" + Date.now().toString(36);
-      NODE.datasets.push({ id, name: id + ".csv", short: "Query result", icon: "trend", source: "SQL", rows: result.rows, columns: result.columns });
-      actions.setActive(id); actions.setMode("data");
+      actions.registerDataset({ id, name: id + ".csv", short: "Query result", icon: "trend", source: "SQL", rows: result.rows, columns: result.columns }, { activate: true });
+      actions.setMode("data");
     };
 
     return (

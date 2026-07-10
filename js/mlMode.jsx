@@ -110,6 +110,7 @@
     hist.push(entry);
     if (hist.length > 10) hist.shift();
     window.NODE.lastAnalysisResult = { type: "ml", ...entry };
+    if (window.ProjectStore) window.ProjectStore.markDirty();
   }
 
   // ---- center components ----
