@@ -75,6 +75,44 @@ input, select { font-family: inherit; color: inherit; }
 .topbar-sep { width: 1px; height: 22px; background: var(--line); }
 .topbar-spacer { flex: 1; }
 
+/* local project library */
+.project-switcher { position: relative; min-width: 0; }
+.project-trigger { max-width: 210px; }
+.project-trigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-overlay { position: fixed; inset: 0; z-index: 8000; }
+.project-menu {
+  position: absolute; top: 42px; left: 78px; width: 390px; max-height: calc(100vh - 60px);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-2); border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-pop);
+}
+.project-menu-head { display: flex; align-items: center; padding: 13px 12px 10px 15px; border-bottom: 1px solid var(--line); }
+.project-menu-head > div:first-child { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.project-menu-head strong { font-size: var(--fs-13); color: var(--tx-hi); }
+.project-menu-head span { font-size: var(--fs-10); color: var(--tx-faint); }
+.project-list { overflow: auto; max-height: 290px; padding: 6px; }
+.project-item {
+  width: 100%; min-height: 46px; display: flex; align-items: center; gap: 9px; padding: 6px 8px;
+  border: 1px solid transparent; border-radius: var(--r-md); background: transparent; text-align: left;
+}
+.project-item:hover { background: var(--bg-hover); }
+.project-item.active { background: var(--accent-soft); border-color: var(--accent-line); }
+.project-item-icon { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: var(--r-sm); background: var(--bg-3); color: var(--tx-mid); }
+.project-item.active .project-item-icon { color: var(--accent-hi); }
+.project-item-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
+.project-item-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-12); color: var(--tx-hi); }
+.project-item-copy small { font-size: var(--fs-10); color: var(--tx-faint); }
+.project-actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 10px; border-top: 1px solid var(--line); }
+.project-actions.backup { background: var(--bg-1); }
+.btn.danger { color: var(--neg); }
+.save-now { gap: 5px; }
+.save-now .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.save-now.saved .save-dot { background: var(--pos); }
+.save-now.saving .save-dot { background: var(--accent); animation: save-pulse .8s ease-in-out infinite alternate; }
+.save-now.error .save-dot { background: var(--neg); }
+.save-label { color: var(--tx-faint); font-size: var(--fs-10); }
+@keyframes save-pulse { to { opacity: .35; } }
+
 /* generic icon button */
 .iconbtn {
   display: inline-flex; align-items: center; justify-content: center;
