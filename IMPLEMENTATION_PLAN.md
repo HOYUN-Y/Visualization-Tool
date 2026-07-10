@@ -1,8 +1,8 @@
 # insight Analytics Workbench — Core Product v2 Implementation Plan
 
-> **Plan version:** `core-v2-plan-v1`  
-> **Status:** Approved  
-> **Approved:** 2026-07-10  
+> **Plan version:** `core-v2-plan-v1`
+> **Status:** Approved
+> **Approved:** 2026-07-10
 > **Canonical scope:** 이 문서는 무엇을 왜 어떤 순서와 기준으로 구현하는지 정의한다. 현재 진행 위치와 다음 행동은 `WORKLOG.md` 상단을 따른다.
 
 ---
