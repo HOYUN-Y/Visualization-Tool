@@ -7,7 +7,6 @@ All notable changes to insight Analytics Workbench are documented here.
 ## [Unreleased] — Phase 2 (진행 중)
 
 ### Planned (아직 미구현)
-- XLSX Import + 다중 시트 선택
 - Union/Join 데이터 결합
 - Pivot Table Builder
 - Dashboard 위젯 설정 + 안전한 KPI 수식
@@ -30,6 +29,14 @@ All notable changes to insight Analytics Workbench are documented here.
 - schema version 1 portable JSON 백업·복원, 미래 schema 명시적 거부, 동일 ID import 복제
 - Store hydration과 데이터셋 등록·삭제 API 중앙화, 복원된 최대 `__rid` 이후 행 ID 연속성 보장
 - Node 기본 테스트 러너 기반 persistence/schema 회귀 테스트 추가
+
+### Added — Core v2 Milestone 2 (기능 브랜치)
+- SheetJS CE 0.20.3 standalone build를 로컬 vendoring하고 Apache-2.0 라이선스와 SHA-256 기록
+- CSV/TSV/JSON/XLSX 공통 `window.ImportEngine`과 결정적 타입 추론 추가
+- CSV 선행 0 코드 보존, 멀티라인/escaped quote, JSON 키 합집합, XLSX 날짜 셀 처리
+- Workbook 시트 범위·행/열 수·첫 20행 Preview, 복수 시트 선택, 컬럼별 타입 override UI
+- TopBar와 Data Explorer Drop 영역을 동일 Import 흐름으로 통합하고 완료 후 프로젝트 즉시 저장
+- Node import 회귀 테스트와 no-build 브라우저 `tests/runner.html` 추가
 
 ---
 

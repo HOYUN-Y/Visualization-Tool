@@ -27,7 +27,7 @@ A browser-only analytics tool with **8 workspace modes** selectable from the lef
 | `ml` | ML | In-browser AutoML: OLS regression, k-NN classification, KMeans clustering |
 
 Plus: **Ask Insight** AI drawer (auto-insights + NL→chart), **Tweaks** panel (layout/tone/accent),
-dark/light toggle, CSV/TSV/JSON import, PNG/CSV export. Projects, mutable datasets, analysis
+dark/light toggle, CSV/TSV/JSON/XLSX import, PNG/CSV export. Projects, mutable datasets, analysis
 history, and workspace state persist locally in IndexedDB; portable project JSON provides backup/restore.
 Session logs remain separate in `localStorage` and are not included in projects.
 
@@ -43,6 +43,8 @@ No build step. It's plain HTML + in-browser Babel.
   - Apache ECharts 5.5.1 (`cdn.jsdelivr.net`).
   - Google Fonts: **IBM Plex Sans** + **IBM Plex Mono**.
   - Map mode fetches Seoul, Korea-province, and world GeoJSON at runtime. Seoul falls back to a bubble map; Korea/world choropleths require their remote GeoJSON.
+
+SheetJS CE 0.20.3 is vendored locally under `vendor/sheetjs-0.20.3/`; do not replace it with a runtime CDN reference without updating its recorded license and SHA-256.
 
 > ⚠️ It uses the **in-browser Babel transformer** (fine for prototyping; the console prints the usual "precompile for production" warning). For a real app you'd migrate to the Next.js/Vite stack described in §11.
 
@@ -92,6 +94,7 @@ js/
   icons.jsx                # window.Icon — inline line-icon set <Icon name="…" />
   store.jsx                # window.Store — global state, actions, transforms, aggregation, stats helpers
   projectStore.js          # window.ProjectStore — IndexedDB projects, autosave, portable JSON
+  importEngine.js          # window.ImportEngine — shared parsers, XLSX inspection, deterministic type inference
   charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors
   grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap
   shell.jsx                # window.TopBar, Rail, StatusBar, Workspace, MODES
@@ -209,7 +212,7 @@ All visuals are CSS variables; **never hard-code colors in components** — use 
 
 ## 8. Shell & layout (`js/shell.jsx`)
 
-- `<TopBar>` — Insight logomark, workbench name, decorative **Save**, functional CSV/TSV/JSON **Import**, functional PNG/CSV **Export**, **Ask Insight** toggle (`ui.aiOpen`), Tweaks button (dispatches `window` event `node-tweaks-toggle`), theme toggle, avatar.
+- `<TopBar>` — Insight logomark, workbench name, project switcher/save status, functional CSV/TSV/JSON/XLSX **Import**, functional PNG/CSV **Export**, **Ask Insight** toggle (`ui.aiOpen`), Tweaks button, theme toggle, avatar.
 - `<Rail>` — the 8 `MODES`. Active mode highlighted; click → `actions.setMode`.
 - `<StatusBar>` — engine label, dataset, row/col counts. The current UI string says `Local engine · DuckDB`, but the runtime still uses the hand-written JavaScript SQL/aggregation engine; treat the DuckDB label as aspirational until the engine swap is implemented.
 - `<Workspace left center right …>` — the **3-panel frame** used by every mode. Left = explorer, center = workspace, right = inspector. Side panels are **drag-resizable** (the `.resizer` handles write `ui.leftW/rightW`). Honors tweaks: `explorerSide:"right"` swaps panels; `layout:"focus"` hides the right panel.
@@ -309,8 +312,8 @@ These are demo/customization toggles, not persisted.
 
 ## 12. Suggested next steps (for the Next.js port / further work)
 
-1. **Import expansion** — CSV/TSV/JSON import is implemented; add XLSX/Parquet and stronger multi-row type inference.
-2. **Data combine** — add materialized Union/Join results with lineage metadata.
+1. **Data combine** — add materialized Union/Join results with lineage metadata.
+2. **Import expansion** — CSV/TSV/JSON/XLSX and deterministic inference are implemented; Parquet remains future work.
 3. **Engine swap** — replace `runSQL` and in-JS aggregation with **DuckDB-WASM**; move ML/stats work to a worker if datasets grow. SQL still lacks JOIN/subquery/window support.
 4. **Export expansion** — PNG, CSV, and portable project JSON are implemented; add PDF/XLSX.
 5. **Analysis roadmap** — Auto Chart Recommendation, PCA/Biplot/Scree, Logistic Regression + ROC/AUC/CV, time-series basics, and SPC are the next browser-feasible batches. Confusion Matrix, per-class P/R/F1, and OLS feature importance already exist.

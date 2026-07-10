@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>insight Analytics — Browser Tests</title>
+<style>
+body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,sans-serif}main{max-width:820px;margin:auto}h1{font-size:20px}#summary{margin:18px 0;padding:12px;border:1px solid #3b4148;border-radius:8px}.test{padding:9px 12px;margin:6px 0;border-radius:6px;background:#22262b}.pass{border-left:3px solid #42b883}.fail{border-left:3px solid #e05c5c}pre{white-space:pre-wrap;color:#ffabab}
+</style>
+</head>
+<body>
+<main><h1>Browser regression tests</h1><div id="summary">Running…</div><div id="results"></div></main>
+<script>window.NODE={datasets:[]};</script>
+<script src="../vendor/sheetjs-0.20.3/xlsx.full.min.js"></script>
+<script src="../js/importEngine.js"></script>
+<script>
+(async function(){
+  const results=[];
+  async function check(name,fn){try{await fn();results.push({name,ok:true});}catch(error){results.push({name,ok:false,error:error.stack||String(error)});}}
+  function equal(actual,expected,message){if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error((message||"Values differ")+`\nactual: ${JSON.stringify(actual)}\nexpected: ${JSON.stringify(expected)}`);}
+
+  await check("CSV preserves leading-zero codes and infers types",async()=>{
+    const lines=["code,qty,amount,flag,date,group"];
+    for(let i=0;i<10;i++)lines.push(`00${i},${i+1},${i+.5},${i%2?"yes":"no"},2026-07-${String(i+1).padStart(2,"0")},${i<5?"A":"B"}`);
+    const parsed=await ImportEngine.parseFile(new File([lines.join("\n")],"sample.csv",{type:"text/csv"}));
+    const sheet=parsed.sheets[0];
+    equal(sheet.columns.map(c=>c.type),["string","integer","float","boolean","datetime","category"]);
+    const dataset=ImportEngine.materialize(sheet);
+    equal([dataset.rows[0].code,dataset.rows[0].qty,dataset.rows[0].flag],["000",1,false]);
+  });
+
+  await check("XLSX exposes multiple sheets and 20-row preview",async()=>{
+    const workbook=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook,XLSX.utils.aoa_to_sheet([["date","amount"],...Array.from({length:25},(_,i)=>[new Date(Date.UTC(2026,0,i+1)),i+1])]),"Sales");
+    XLSX.utils.book_append_sheet(workbook,XLSX.utils.aoa_to_sheet([["name"],["Seoul"]]),"Regions");
+    const bytes=XLSX.write(workbook,{type:"array",bookType:"xlsx",cellDates:true});
+    const parsed=await ImportEngine.inspectWorkbook(new File([bytes],"book.xlsx"));
+    equal([parsed.sheets.length,parsed.sheets[0].rowCount,parsed.sheets[0].preview.length],[2,25,20]);
+    equal(parsed.sheets[0].columns[0].type,"datetime");
+  });
+
+  await check("Duplicate imports receive deterministic suffixes",async()=>{
+    const parsed=await ImportEngine.parseFile(new File(["value\n1\n2"],"sales.csv"));
+    const first=ImportEngine.materialize(parsed.sheets[0]);window.NODE.datasets.push(first);
+    const second=ImportEngine.materialize(parsed.sheets[0]);
+    equal([second.short,second.id],["sales_2","upload_sales_2"]);
+  });
+
+  const passed=results.filter(r=>r.ok).length;
+  document.getElementById("summary").textContent=`${passed}/${results.length} passed`;
+  document.getElementById("results").innerHTML=results.map(r=>`<div class="test ${r.ok?"pass":"fail"}"><strong>${r.ok?"PASS":"FAIL"}</strong> · ${r.name}${r.error?`<pre>${r.error.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}</pre>`:""}</div>`).join("");
+})();
+</script>
+</body>
+</html>

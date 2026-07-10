@@ -96,6 +96,7 @@ open http://localhost:8742
 | **ML** | 브라우저 내 AutoML: OLS 회귀, k-NN 분류, KMeans 군집 + **클래스별 Precision/Recall/F1** + **군집 특성표** + **모델 비교 이력** |
 | **Ask Insight** | 데이터셋 자동 프로파일 (IE.profileDataset) + 마지막 분석 결과 요약 + NL→차트/모드 전환 |
 | **Projects** | IndexedDB 다중 프로젝트 · 1초 자동저장 · 즉시 저장 상태 · JSON 백업/복원 |
+| **Import** | CSV/TSV/JSON/XLSX 공통 Preview · 결정적 타입 추론 · XLSX 복수 시트 선택 · 타입 override |
 
 ---
 
@@ -108,6 +109,7 @@ open http://localhost:8742
 - **IBM Plex Sans / Mono** (타이포그래피)
 - **CSS Custom Properties** (디자인 토큰 기반 다크/라이트 테마)
 - **IndexedDB** (브라우저 로컬 다중 프로젝트 저장)
+- **SheetJS CE 0.20.3** (로컬 vendoring, XLSX 파싱)
 
 ### 목표 (Phase 3 — 프로덕션 스택)
 - **Frontend**: Next.js + TypeScript + TailwindCSS + shadcn/ui + Zustand + TanStack Table + dnd-kit
@@ -197,11 +199,17 @@ open http://localhost:8742
 - 숨김 행 ID(`__rid`)로 정렬·필터·페이징과 무관하게 안정적 행 지목
 - 모든 편집을 비파괴 스텝으로 기록 → Undo/Redo + Clean 모드 PIPELINE 통합 표시
 
-### 🧪 Core v2 Milestone 1 — 프로젝트 저장·복원 (기능 브랜치 검증 중)
+### ✅ Core v2 Milestone 1 — 프로젝트 저장·복원 (로컬 체크포인트 완료)
 - IndexedDB 다중 프로젝트 생성·전환·이름 변경·복제·삭제
 - Store/데이터셋/분석 이력 1초 debounce 자동저장 + 즉시 저장 상태
 - schema version 1 JSON 백업·복원과 미래 버전 거부
 - 데이터셋 등록 API 중앙화와 `__rid` 복원 연속성
+
+### 🧪 Core v2 Milestone 2 — XLSX Import와 타입 추론 (기능 브랜치)
+- SheetJS CE 0.20.3 로컬 고정 + 라이선스/SHA-256 기록
+- CSV/TSV/JSON/XLSX 공통 ImportEngine과 원문 기반 결정적 타입 추론
+- XLSX 시트 범위·행/열·첫 20행 Preview, 복수 시트 선택, 컬럼별 타입 override
+- 중복 데이터셋명 `_2`, `_3` 처리와 Import 완료 후 프로젝트 즉시 저장
 
 ### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
 

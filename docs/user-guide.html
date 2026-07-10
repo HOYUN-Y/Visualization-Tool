@@ -629,7 +629,7 @@ svg[aria-hidden="true"] { display: none; }
     <table>
       <thead><tr><th>영역</th><th>위치</th><th>설명</th></tr></thead>
       <tbody>
-        <tr><td><strong>TopBar</strong></td><td>최상단</td><td>로고, Import/Export, Ask Insight, Tweaks, 테마 전환. Save는 현재 프로젝트 영속화 전의 비활성 UI입니다.</td></tr>
+        <tr><td><strong>TopBar</strong></td><td>최상단</td><td>프로젝트 전환·저장 상태, Import/Export, Ask Insight, Tweaks, 테마 전환을 제공합니다.</td></tr>
         <tr><td><strong>Rail</strong></td><td>좌측 세로 아이콘 바</td><td>8개 모드 전환. 클릭으로 모드 변경. 아이콘 + 레이블(Tweaks로 토글 가능)</td></tr>
         <tr><td><strong>좌측 패널</strong></td><td>Rail 오른쪽</td><td>데이터셋 탐색기 (모든 모드에서 공유). 드래그로 폭 조절 가능.</td></tr>
         <tr><td><strong>중앙 영역</strong></td><td>메인 콘텐츠</td><td>모드별 주요 작업 공간 (차트, 그리드, 분석 결과 등)</td></tr>
@@ -653,7 +653,7 @@ svg[aria-hidden="true"] { display: none; }
     <table>
       <thead><tr><th>버튼</th><th>기능</th></tr></thead>
       <tbody>
-        <tr><td><strong>Import</strong></td><td>CSV/TSV/JSON 파일을 드래그앤드롭 또는 파일 선택으로 불러옵니다.</td></tr>
+        <tr><td><strong>Import</strong></td><td>CSV/TSV/JSON/XLSX를 Preview 후 불러옵니다. XLSX는 복수 시트 선택과 컬럼 타입 변경을 지원합니다.</td></tr>
         <tr><td><strong>Export</strong></td><td>현재 차트를 PNG로, 활성 데이터를 CSV로 내보냅니다.</td></tr>
         <tr><td><strong>Save</strong></td><td>현재 동작하지 않습니다. 프로젝트 저장/복원은 Phase 2 예정 기능입니다.</td></tr>
         <tr><td><svg class="icon icon-sm" style="margin-right:5px"><use href="#i-insight"></use></svg><strong>Ask Insight</strong></td><td>AI 분석 드로어 열기. 자연어 질문, 자동 인사이트, 마지막 분석 결과 확인.</td></tr>
@@ -1704,7 +1704,7 @@ LIMIT 5</pre>
     </div>
     <div class="card ok">
       <div class="card-title"><svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg>Export / Import</div>
-      <div class="card-body">차트 PNG·CSV 내보내기. CSV/TSV/JSON 드래그앤드롭 임포트.</div>
+      <div class="card-body">차트 PNG·CSV 내보내기. CSV/TSV/JSON/XLSX Preview·타입 추론·복수 시트 임포트.</div>
     </div>
   </div>
 

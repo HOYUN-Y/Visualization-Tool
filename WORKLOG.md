@@ -15,28 +15,28 @@
 |---|---|
 | Plan version | `core-v2-plan-v2` |
 | Current milestone | Milestone 2 — XLSX Import and deterministic type inference |
-| Status | In progress — feature branch initialized |
+| Status | Ready for approval — automated verification complete, browser round trip pending |
 | Branch | `feat/xlsx-import` |
 | Base commit | `b5aeaec` — project persistence merge (`checkpoint/project-persistence`) |
-| Last checkpoint commit | `b5aeaec` — Milestone 1 local merge checkpoint |
-| Working tree | Milestone 2 상태판 갱신 중; `.DS_Store` 사용자 변경 제외 |
-| Last verified | 2026-07-11 — Node 5/5, diff check, HTML/JSON parse, HTTP 200, local assets 34/34 통과 |
+| Last checkpoint commit | `120c1c8` — workbook preview and multi-sheet import UI |
+| Working tree | final test/docs checkpoint 준비; `.DS_Store` 사용자 변경 제외 |
+| Last verified | 2026-07-11 — Node 10/10, Babel 17/17, diff check, local assets 36/36, HTTP 200 통과 |
 | Updated at | 2026-07-11 |
 
 ## NEXT EXACT ACTION
 
-1. Milestone 2 시작 상태를 WORKLOG 체크포인트로 커밋한다.
-2. SheetJS CE 0.20.3 standalone build의 공식 배포 위치, 라이선스, SHA-256을 확인하고 `vendor/`에 고정한다.
-3. CSV/TSV/JSON/XLSX 공통 `ImportEngine`과 결정적 타입 추론 테스트를 먼저 구현한다.
-4. Workbook preview·복수 시트 선택·타입 override UI를 연결한다.
+1. Node tests와 diff check를 재실행하고 local branch HEAD를 확인한다.
+2. 제어 가능한 Chromium에서 `tests/runner.html`과 Import modal CSV/XLSX 왕복을 실행한다.
+3. 성공 시 사용자에게 결과를 보고하고 Milestone 2 승인 게이트에서 대기한다.
+4. 승인 후 `main`에 `--no-ff` 병합, tag `checkpoint/xlsx-import` 생성, `feat/data-combine` 시작 순서로 진행한다.
 
 ## ACTIVE CHECKPOINT
 
 - **목표:** CSV/TSV/JSON/XLSX를 동일한 Import 파이프라인으로 처리하고 재현 가능한 타입 추론과 XLSX 복수 시트 선택을 제공한다.
 - **포함:** SheetJS 로컬 vendoring, 공통 ImportEngine, preview/override, 복수 시트 dataset 등록, 프로젝트 autosave 연동.
 - **제외:** Union/Join, Pivot, Dashboard/KPI 개선.
-- **완료:** Milestone 1 로컬 병합 `b5aeaec`, tag `checkpoint/project-persistence`, Milestone 2 브랜치 생성.
-- **남음:** vendor 검증, ImportEngine, UI, fixtures/tests, 문서 동기화.
+- **완료:** vendor `b369ba8`, ImportEngine/tests `3b336c3`, workbook UI `120c1c8`.
+- **남음:** 실제 브라우저 Import round trip과 사용자 승인. 다음 절차는 `IMPLEMENTATION_PLAN.md` Milestone 2 하단에 고정.
 - **롤백:** 승인 전 `feat/xlsx-import` 브랜치만 삭제하면 local main 체크포인트에 영향 없음.
 
 ## DECISIONS / BLOCKERS
@@ -61,7 +61,7 @@
 | Source/document audit | `docs/core-v2-planning` | `1e81b9e` | diff check, HTML parse | Complete |
 | Core v2 plan baseline | `main` | `76d5333` / `checkpoint/core-v2-plan` | HTTP/assets, links, diff check, JSON/HTML parse | Complete |
 | Project persistence | `main` | `b5aeaec` / `checkpoint/project-persistence` (local) | Node 5, diff/parse, HTTP/assets; browser round trip deferred | Complete locally |
-| XLSX Import | `feat/xlsx-import` | branch from `b5aeaec` | format/type fixtures | In progress |
+| XLSX Import | `feat/xlsx-import` | `b369ba8`, `3b336c3`, `120c1c8` + final docs checkpoint | Node 10, Babel 17, HTTP/assets; browser round trip pending | Ready for approval |
 | Union/Join | `feat/data-combine` | pending | join matrix | Not started |
 | Pivot Builder | `feat/pivot-builder` | pending | aggregation/totals | Not started |
 | Dashboard/KPI | `feat/dashboard-builder` | pending | formula/cross-filter/restore | Not started |
@@ -75,6 +75,8 @@
 - annotated tag `checkpoint/project-persistence` 생성.
 - 원격 push는 외부 전송 명시 승인 부족으로 보류; local main은 `origin/main`보다 7커밋 앞섬.
 - `feat/xlsx-import` 브랜치를 local main 체크포인트에서 생성.
+- SheetJS CE 0.20.3 vendor `b369ba8`, ImportEngine/tests `3b336c3`, workbook UI `120c1c8` 체크포인트 생성.
+- CSV leading-zero, multiline quote, JSON union keys, XLSX dates/multi-sheet/preview, duplicate naming 테스트 포함; Node 10/10 통과.
 
 ---
 
