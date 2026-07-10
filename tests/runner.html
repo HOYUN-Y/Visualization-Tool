@@ -20,6 +20,8 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
 <script src="../js/logistic.js"></script>
 <script src="../js/timeSeries.js"></script>
 <script src="../js/distributionFit.js"></script>
+<script src="../js/spc.js"></script>
+<script src="../js/clustering.js"></script>
 <script>
 (async function(){
   const results=[];
@@ -107,6 +109,17 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
   await check("DistFit normInv/normCdf round-trip",async()=>{
     if(Math.abs(DistFit.normInv(0.975)-1.959964)>1e-4)throw new Error("normInv");
     if(Math.abs(DistFit.normCdf(0)-0.5)>1e-4)throw new Error("normCdf");
+  });
+
+  await check("SPC X-bar/R uses control constants",async()=>{
+    const r=SPC.xbarR([[2,4],[4,6]]);
+    if(Math.abs(r.xbar.ucl-7.76)>1e-3)throw new Error("ucl "+r.xbar.ucl);
+    if(Math.abs(r.range.ucl-6.534)>1e-3)throw new Error("range ucl");
+  });
+  await check("Clustering DBSCAN separates two blobs",async()=>{
+    const rows=[{x:0,y:0},{x:.5,y:0},{x:0,y:.5},{x:10,y:10},{x:10.5,y:10},{x:10,y:10.5}];
+    const r=Clustering.dbscan(rows,["x","y"],{eps:1.5,minPts:2,standardize:false});
+    if(r.clusters!==2)throw new Error("clusters "+r.clusters);
   });
 
   const passed=results.filter(r=>r.ok).length;
