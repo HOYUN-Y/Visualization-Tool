@@ -66,3 +66,13 @@
   background: var(--bg-2); border: 1px solid var(--line); font-size: var(--fs-11); color: var(--tx-mid); line-height: 1.45; }
 .cf-info svg { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
 .cf-status { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: var(--fs-11); color: var(--tx-mid); }
+
+/* Widget configuration inspector (M5) */
+.insp .insp-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; flex: 1; }
+.insp-label { font-size: var(--fs-11); color: var(--tx-faint); }
+.insp .inp, .insp .sel, .insp textarea.inp { width: 100%; }
+.insp textarea.inp { resize: vertical; line-height: 1.4; }
+.insp-seg { display: flex; gap: 6px; margin-bottom: 8px; }
+.insp-seg .btn { flex: 1; }
+.insp-hint { font-size: var(--fs-11); color: var(--tx-faint); line-height: 1.4; margin: -2px 0 8px; }
+.widget.selected { outline: 2px solid var(--accent); outline-offset: 1px; }

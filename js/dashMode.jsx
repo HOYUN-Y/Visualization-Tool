@@ -29,19 +29,23 @@
   // ---------- KPI ----------
   function KPIWidget({ w, rows, columns, cross }) {
     const data = applyCross(rows, cross, w.id);
-    const s = w.spec; const col = getCol(columns, s.measure);
-    const val = aggFn[s.agg] ? aggFn[s.agg](data.map((r) => r[s.measure])) : 0;
-    const allVal = aggFn[s.agg] ? aggFn[s.agg](rows.map((r) => r[s.measure])) : 0;
-    const text = s.fmt === "won" ? NODE.fmtWon(val) : (s.agg === "avg" ? NODE.fmtNum(val, 0) : NODE.fmtNum(val, 0));
+    const s = w.spec;
+    const decimals = s.decimals != null ? s.decimals : 0;
+    let val = null, err = null, isFormula = !!s.formula;
+    if (isFormula) { const r = window.KPIFormula.compute(s.formula, data, columns); val = r.value; err = r.error; }
+    else { val = aggFn[s.agg] ? aggFn[s.agg](data.map((r) => r[s.measure])) : 0; }
+    const text = err ? "—" : (val == null ? "—" : (s.fmt === "won" ? NODE.fmtWon(val) : NODE.fmtNum(val, decimals)));
+    const allVal = !isFormula && aggFn[s.agg] ? aggFn[s.agg](rows.map((r) => r[s.measure])) : 0;
     const pct = allVal ? (val / allVal * 100) : 100;
     const filtered = cross && cross.source !== w.id;
     return (
-      <div className="kpi">
+      <div className="kpi" title={err || undefined}>
         <div className="kpi-label">{s.label}{s.unit ? <span className="kpi-unit"> {s.unit}</span> : ""}</div>
-        <div className="kpi-val mono">{text}</div>
+        <div className="kpi-val mono" style={err ? { color: "var(--neg)" } : undefined}>{text}</div>
         <div className="kpi-sub">
-          {filtered ? <span className="kpi-filt"><Icon name="filter" size={10} /> {pct.toFixed(0)}% of total</span>
-            : <span className="mono" style={{ color: "var(--tx-faint)" }}>{s.agg.toUpperCase()} · {data.length} rows</span>}
+          {isFormula ? <span className="mono ell" style={{ color: err ? "var(--neg)" : "var(--tx-faint)" }} title={s.formula}>{err ? "formula error" : "ƒ " + s.formula}</span>
+            : filtered ? <span className="kpi-filt"><Icon name="filter" size={10} /> {pct.toFixed(0)}% of total</span>
+              : <span className="mono" style={{ color: "var(--tx-faint)" }}>{s.agg.toUpperCase()} · {data.length} rows</span>}
         </div>
       </div>
     );
@@ -54,7 +58,7 @@
     const cols = (s.cols || []).map((k) => getCol(columns, k));
     const measures = (s.measures || []).map(([k, agg]) => ({ ...getCol(columns, k), agg, id: k + "_" + agg }));
     const color = s.color ? getCol(columns, s.color) : null;
-    const option = React.useMemo(() => window.buildVizOption(s.chartType, { rows: data, cols, measures, color, sortDesc: true, topN: s.chartType === "pie" ? 8 : 0 }),
+    const option = React.useMemo(() => window.buildVizOption(s.chartType, { rows: data, cols, measures, color, sortDesc: true, topN: s.topN != null ? s.topN : (s.chartType === "pie" ? 8 : 0) }),
       [data, theme, JSON.stringify(s)]);
     const onEvents = {
       click: (p) => {
@@ -76,7 +80,7 @@
     const data = applyCross(rows, cross, w.id);
     const s = w.spec; const dimCol = getCol(columns, s.dim), measCol = getCol(columns, s.measure);
     const agg = derive.aggregate(data, [s.dim], [{ key: s.measure, agg: s.agg, id: "v" }])
-      .sort((a, b) => b.v - a.v).slice(0, 30);
+      .sort((a, b) => b.v - a.v).slice(0, s.limit || 30);
     const max = Math.max(...agg.map((r) => r.v), 1);
     return (
       <div className="tablewidget">
@@ -95,8 +99,15 @@
     );
   }
 
+  // Migrate any legacy spec.html (rich text) to safe plain spec.text by stripping tags.
+  function widgetText(spec) {
+    if (spec.text != null) return spec.text;
+    if (spec.html != null) return String(spec.html).replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+    return "";
+  }
   function TextWidget({ w }) {
-    return <div className="textwidget" dangerouslySetInnerHTML={{ __html: w.spec.html || "Double-click to edit text" }} />;
+    const text = widgetText(w.spec);
+    return <div className="textwidget" style={{ whiteSpace: "pre-wrap" }}>{text || "Double-click or use the inspector to edit text"}</div>;
   }
 
   // ---------- Canvas ----------
@@ -125,6 +136,7 @@
 
     const onHeadDown = (e, wd) => {
       if (!edit) return; e.preventDefault();
+      actions.setDash({ selectedWidgetId: wd.id });
       const sx = e.clientX, sy = e.clientY, ox = wd.x, oy = wd.y;
       setDrag(wd.id);
       const move = (ev) => {
@@ -175,7 +187,8 @@
             {widgets.map((w) => {
               const style = { left: w.x * colW + GAP, top: w.y * (ROWH + GAP) + GAP, width: w.w * colW - GAP, height: w.h * (ROWH + GAP) - GAP };
               return (
-                <div key={w.id} className={"widget" + (drag === w.id ? " drag" : "") + (w.type === "kpi" ? " is-kpi" : "")} style={style}>
+                <div key={w.id} className={"widget" + (drag === w.id ? " drag" : "") + (w.type === "kpi" ? " is-kpi" : "") + (edit && dash.selectedWidgetId === w.id ? " selected" : "")} style={style}
+                  onMouseDown={edit && w.type === "kpi" ? () => actions.setDash({ selectedWidgetId: w.id }) : undefined}>
                   {w.type !== "kpi" && (
                     <div className="widget-head" onMouseDown={(e) => onHeadDown(e, w)} style={{ cursor: edit ? "move" : "default" }}>
                       <span className="wh-title ell">{w.title}</span>
@@ -206,15 +219,103 @@
     );
   }
 
-  // ---------- Right: add widgets ----------
+  // ---------- Right: widget configuration inspector ----------
+  const AGG_OPTS = ["sum", "avg", "count", "countd", "min", "max", "median"];
+  const CHART_OPTS = ["bar", "line", "area", "pie", "scatter"];
+
+  function Field({ label, children }) {
+    return <label className="insp-field"><span className="insp-label">{label}</span>{children}</label>;
+  }
+
+  function WidgetInspector({ w, columns, onChange, onClose }) {
+    const measures = columns.filter((c) => c.role === "measure");
+    const dims = columns.filter((c) => c.role === "dimension");
+    const s = w.spec || {};
+    const setSpec = (patch) => onChange({ spec: { ...s, ...patch } });
+    const setTop = (patch) => onChange(patch);
+    const formulaErr = s.formula ? (window.KPIFormula.compute(s.formula, [], columns).error) : null;
+    const useFormula = !!s.formula;
+
+    return (
+      <div className="cp-block insp">
+        <div className="cp-blocktitle" style={{ display: "flex", alignItems: "center" }}>
+          <Icon name="sliders" size={13} style={{ marginRight: 6, color: "var(--accent)" }} />{w.type.toUpperCase()} settings
+          <div style={{ flex: 1 }} /><button className="iconbtn" onClick={onClose} title="Done"><Icon name="x" size={13} /></button>
+        </div>
+
+        {w.type === "kpi" ? (
+          <React.Fragment>
+            <Field label="Label"><input className="inp" value={s.label || ""} onChange={(e) => setSpec({ label: e.target.value })} /></Field>
+            <div className="insp-seg">
+              <button className={"btn sm " + (!useFormula ? "primary" : "ghost")} onClick={() => setSpec({ formula: undefined, measure: s.measure || (measures[0] && measures[0].key), agg: s.agg || "avg" })}>Aggregate</button>
+              <button className={"btn sm " + (useFormula ? "primary" : "ghost")} onClick={() => setSpec({ formula: s.formula || `AVG(${(measures[0] || {}).key || "value"})` })}>Formula</button>
+            </div>
+            {useFormula ? (
+              <React.Fragment>
+                <Field label="Formula"><textarea className="inp mono" rows={2} value={s.formula} onChange={(e) => setSpec({ formula: e.target.value })} placeholder="SUM(profit) / SUM(revenue) * 100" /></Field>
+                <div className="insp-hint" style={formulaErr ? { color: "var(--neg)" } : undefined}>{formulaErr ? "⚠ " + formulaErr : "SUM·AVG·COUNT(*)·COUNTD·MIN·MAX·MEDIAN(field) + - * / ( )"}</div>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <Field label="Measure"><select className="sel" value={s.measure || ""} onChange={(e) => setSpec({ measure: e.target.value })}>{columns.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+                <Field label="Aggregation"><select className="sel" value={s.agg || "avg"} onChange={(e) => setSpec({ agg: e.target.value })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
+              </React.Fragment>
+            )}
+            <Field label="Format"><select className="sel" value={s.fmt || "num"} onChange={(e) => setSpec({ fmt: e.target.value })}><option value="num">Number</option><option value="won">Won (억/만)</option></select></Field>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Field label="Unit"><input className="inp" value={s.unit || ""} onChange={(e) => setSpec({ unit: e.target.value })} /></Field>
+              <Field label="Decimals"><input className="inp" type="number" min="0" max="4" value={s.decimals != null ? s.decimals : 0} onChange={(e) => setSpec({ decimals: Math.max(0, Math.min(4, parseInt(e.target.value) || 0)) })} /></Field>
+            </div>
+          </React.Fragment>
+        ) : w.type === "chart" ? (
+          <React.Fragment>
+            <Field label="Title"><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
+            <Field label="Chart type"><select className="sel" value={s.chartType} onChange={(e) => setSpec({ chartType: e.target.value })}>{CHART_OPTS.map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
+            <Field label="Dimension"><select className="sel" value={(s.cols || [])[0] || ""} onChange={(e) => setSpec({ cols: e.target.value ? [e.target.value] : [] })}><option value="">(none)</option>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label="Measure"><select className="sel" value={(s.measures && s.measures[0] && s.measures[0][0]) || ""} onChange={(e) => setSpec({ measures: [[e.target.value, (s.measures && s.measures[0] && s.measures[0][1]) || "avg"]] })}>{measures.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label="Aggregation"><select className="sel" value={(s.measures && s.measures[0] && s.measures[0][1]) || "avg"} onChange={(e) => setSpec({ measures: [[(s.measures && s.measures[0] && s.measures[0][0]) || measures[0].key, e.target.value]] })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
+            <Field label="Color by"><select className="sel" value={s.color || ""} onChange={(e) => setSpec({ color: e.target.value || undefined })}><option value="">(none)</option>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label="Top N (0 = all)"><input className="inp" type="number" min="0" max="50" value={s.topN != null ? s.topN : 0} onChange={(e) => setSpec({ topN: Math.max(0, parseInt(e.target.value) || 0) })} /></Field>
+          </React.Fragment>
+        ) : w.type === "table" ? (
+          <React.Fragment>
+            <Field label="Title"><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
+            <Field label="Dimension"><select className="sel" value={s.dim} onChange={(e) => setSpec({ dim: e.target.value })}>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label="Measure"><select className="sel" value={s.measure} onChange={(e) => setSpec({ measure: e.target.value })}>{measures.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label="Aggregation"><select className="sel" value={s.agg} onChange={(e) => setSpec({ agg: e.target.value })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
+            <Field label="Row limit"><input className="inp" type="number" min="1" max="200" value={s.limit || 30} onChange={(e) => setSpec({ limit: Math.max(1, parseInt(e.target.value) || 30) })} /></Field>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <Field label="Title"><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
+            <Field label="Text"><textarea className="inp" rows={5} value={widgetText(s)} onChange={(e) => setSpec({ text: e.target.value, html: undefined })} /></Field>
+          </React.Fragment>
+        )}
+        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+          <Field label="Width"><input className="inp" type="number" min="2" max="12" value={w.w} onChange={(e) => setTop({ w: Math.max(2, Math.min(12, parseInt(e.target.value) || w.w)) })} /></Field>
+          <Field label="Height"><input className="inp" type="number" min="2" max="20" value={w.h} onChange={(e) => setTop({ h: Math.max(2, parseInt(e.target.value) || w.h) })} /></Field>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Right: add widgets / inspector ----------
   function DashPanel() {
     const dash = useStore((s) => s.dash);
     const activeId = useStore((s) => s.activeId);
     const { columns } = derive.getActiveData(activeId);
     const widgets = dash.widgets || defaultWidgets();
     const add = (wd) => actions.setDash({ widgets: [...widgets, { ...wd, id: "w" + Date.now(), x: 0, y: 99 }] });
+    const update = (id, patch) => actions.setDash({ widgets: widgets.map((w) => w.id === id ? { ...w, ...patch } : w) });
     const measures = columns.filter((c) => c.role === "measure");
     const dims = columns.filter((c) => c.role === "dimension" && c.type === "category");
+
+    const selected = dash.edit && dash.selectedWidgetId ? widgets.find((w) => w.id === dash.selectedWidgetId) : null;
+    if (selected) return (
+      <div className="dashpanel">
+        <WidgetInspector w={selected} columns={columns} onChange={(patch) => update(selected.id, patch)} onClose={() => actions.setDash({ selectedWidgetId: null })} />
+      </div>
+    );
 
     return (
       <div className="dashpanel">
@@ -224,7 +325,7 @@
             <button className="addtile" onClick={() => add({ type: "kpi", w: 3, h: 2, spec: { measure: measures[0].key, agg: "avg", label: measures[0].label, fmt: "num" } })}><Icon name="kpi" size={18} /><span>KPI</span></button>
             <button className="addtile" onClick={() => add({ type: "chart", w: 6, h: 6, title: "New chart", spec: { chartType: "bar", cols: [dims[0].key], measures: [[measures[0].key, "avg"]] } })}><Icon name="bar" size={18} /><span>Chart</span></button>
             <button className="addtile" onClick={() => add({ type: "table", w: 5, h: 6, title: "New table", spec: { dim: dims[0].key, measure: measures[0].key, agg: "avg" } })}><Icon name="table" size={18} /><span>Table</span></button>
-            <button className="addtile" onClick={() => add({ type: "text", w: 4, h: 2, spec: { html: "<b>Note</b> — add commentary here." } })}><Icon name="text" size={18} /><span>Text</span></button>
+            <button className="addtile" onClick={() => add({ type: "text", w: 4, h: 2, title: "Note", spec: { text: "Add commentary here." } })}><Icon name="text" size={18} /><span>Text</span></button>
           </div>
         </div>
 

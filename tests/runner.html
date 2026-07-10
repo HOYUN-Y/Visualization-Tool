@@ -15,6 +15,7 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
 <script src="../js/importEngine.js"></script>
 <script src="../js/dataOps.js"></script>
 <script src="../js/pivotEngine.js"></script>
+<script src="../js/kpiFormula.js"></script>
 <script>
 (async function(){
   const results=[];
@@ -75,6 +76,15 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
     equal([res.grandTotal["v__sum"],rowB.cells[leafQ2]],[160,0]);
     const avg=PivotEngine.build(data,cols,{rows:["r"],columns:["c"],values:[{key:"v",agg:"avg"}]});
     equal(avg.rows.find(x=>x.key[0]==="A").total["v__avg"],20); // recomputed, not (15+30)/2
+  });
+
+  await check("KPIFormula computes safe aggregate ratios and rejects code",async()=>{
+    const rows=[{revenue:100,profit:30},{revenue:200,profit:40},{revenue:300,profit:null}];
+    const cols=[{key:"revenue"},{key:"profit"}];
+    equal(Math.round(KPIFormula.compute("SUM(profit)/SUM(revenue)*100",rows,cols).value*100)/100,11.67);
+    equal(KPIFormula.compute("COUNT(*)",rows,cols).value,3);
+    if(!KPIFormula.compute("process.exit(1)",rows,cols).error) throw new Error("should reject bare identifiers");
+    if(!/Division by zero/.test(KPIFormula.compute("1/(SUM(profit)-70)",rows,cols).error||"")) throw new Error("should catch div by zero");
   });
 
   const passed=results.filter(r=>r.ok).length;
