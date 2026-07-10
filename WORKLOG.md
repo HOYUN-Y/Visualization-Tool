@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | Milestone 5 — Dashboard 설정 + KPI Builder (완료, 자율) |
-| Status | Core v2 M3~M5 엔진+UI 완료. 다음 Batch E(Phase 2 분석). 병합/브라우저 왕복은 아침 게이트 |
-| Branch | `feat/dashboard-builder` (feat/pivot-builder 팁에서 분기) |
-| Base commit | `cb236be` — M4 pivot docs checkpoint |
-| Last checkpoint commit | `25e1234` — widget inspector + safe KPI formulas |
-| Working tree | M5 완료, Batch E(분석 엔진)로 진행 예정; `.DS_Store` 사용자 변경 제외 |
-| Last verified | 2026-07-11 — Node 34/34, JSX 구문검사(tsc) OK, diff clean, dangerouslySetInnerHTML 0건, runner DataOps+Pivot+KPI 케이스 |
+| Current milestone | Batch E/F — Phase 2 분석 엔진 (완료, 자율) |
+| Status | Core v2 M3~M5 + 분석 엔진 6종(PCA/Logistic/시계열/분포/SPC/클러스터링) 완료. UI 배선 일부는 아침 게이트 |
+| Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
+| Base commit | `07dab60` — M5 dashboard docs checkpoint |
+| Last checkpoint commit | `d4529b7` — SPC + clustering engines |
+| Working tree | 분석 엔진 완료, 최종 재검증+스모크 테스트 진행; `.DS_Store` 사용자 변경 제외 |
+| Last verified | 2026-07-11 — Node 101/101, JSX 구문검사(tsc) OK, diff clean, runner에 8개 분석 케이스 |
 | Updated at | 2026-07-11 (밤샘 자율 세션) |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
@@ -34,10 +34,9 @@
 
 ## NEXT EXACT ACTION
 
-1. (진행) Batch E — Phase 2 순수-JS 분석 엔진. `feat/dashboard-builder` 팁에서 `feat/analytics-*` 분기(또는 병렬 서브에이전트). 우선순위: PCA → Logistic+ROC/AUC → 시계열(MA/ES) → QQ/Normal → Decision Tree/NB. 각 엔진+Node 테스트 필수.
-2. 이후 Batch F(규모제한, 경고) → Batch G(JMP/Tableau/Excel 차용 재량).
-3. 각 배치: 엔진→테스트→즉시수정→(결정적이면 UI)→커밋→문서갱신. 컨텍스트 경계 시 `wip(...)` 커밋.
-4. **최종:** 전체 재검증 + 스모크 테스트(사용자 지시) — 문제 시 수정·재검증 반복.
+1. (진행) 최종 전체 재검증 + 브라우저 스모크 테스트(사용자 지시): 로컬 서버 + Chrome로 index.html 로드, 콘솔 오류 0 확인, Pivot/Combine/Dashboard Inspector 클릭 확인. 문제 시 수정→재검증 반복.
+2. 분석 엔진 6종은 window.* 라이브러리로 로드됨. Stats/ML 모드 UI 배선(PCA/Logistic/시계열/QQ/SPC/클러스터링 시각화)은 아침 게이트에서 논의·구현.
+3. 아침: 브랜치 스택 순서 병합 게이트(§아침 인계).
 
 ## ACTIVE CHECKPOINT (Core v2 M3~M5 완료)
 
@@ -74,6 +73,7 @@
 | Union/Join | `feat/data-combine` | `fd8a9d6`, `432f1d6` | Node 9/9 (union/join matrix), runner cases, JSX syntax OK | Engine+UI done, awaiting browser round trip |
 | Pivot Builder | `feat/pivot-builder` | `d2c78dd`, `86ffd60` | Node 8/8 (agg/totals/filters), runner case, JSX syntax OK | Engine+UI done, awaiting browser round trip |
 | Dashboard/KPI | `feat/dashboard-builder` | `8d3bab3`, `25e1234` | Node 7/7 (KPI parser/eval), runner case, JSX syntax OK, innerHTML removed | Engine+UI done, awaiting browser round trip |
+| Analytics engines E/F | `feat/analytics` | `edbe287`, `d4529b7` | Node: PCA 11, Logistic 7, TimeSeries 17, DistFit 10, SPC 7, Clustering 4 | Engines done, UI wiring deferred |
 | Core v2 release | `release/core-product-v2` | pending | end-to-end regression | Not started |
 
 ## LATEST SESSION CHECKPOINT — 2026-07-11

@@ -231,6 +231,12 @@ open http://localhost:8742
 - Text 위젯 `dangerouslySetInnerHTML` 제거(보안) + 기존 HTML→평문 마이그레이션
 - Node 7/7 회귀 테스트 + 브라우저 러너 케이스
 
+### 🧪 Phase 2 분석 엔진 — 순수 JS 라이브러리 완료 (UI 배선 예정, `feat/analytics`)
+> 아래 항목은 결정적 window.* 엔진 + Node 테스트가 완료되어 로드됨. Stats/ML 모드 시각화 배선은 후속 작업.
+- **PCA** (`window.PCA`) · **Logistic Regression + ROC/AUC/PR** (`window.Logistic`)
+- **시계열** MA/EMA/Holt/ACF/PACF (`window.TimeSeries`) · **QQ/정규적합/Jarque-Bera** (`window.DistFit`)
+- **SPC 관리도 + Cp/Cpk + Pareto** (`window.SPC`) · **DBSCAN/계층군집** (`window.Clustering`)
+
 ### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
 
 > 순수 JS로 구현 가능. 백엔드 불필요. 데이터 규모 ~10k 행까지 실용적.

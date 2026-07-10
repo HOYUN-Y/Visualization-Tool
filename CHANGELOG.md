@@ -66,6 +66,16 @@ All notable changes to insight Analytics Workbench are documented here.
 ### Security
 - Dashboard Text 위젯의 임의 HTML 주입 경로(`dangerouslySetInnerHTML`) 제거
 
+### Added — Phase 2 분석 엔진 (기능 브랜치 `feat/analytics`, 밤샘 자율)
+> 모두 순수·결정적 window.* 라이브러리로 로드됨. Stats/ML 모드 UI 배선은 후속.
+- `window.PCA` — 표준화 공분산 + Jacobi 고유분해, Scree/Biplot (Node 11)
+- `window.Logistic` — 경사하강 로지스틱 회귀, ROC/AUC·PR 곡선·지표 (Node 7)
+- `window.TimeSeries` — MA/WMA/EMA, Holt 이중지수, diff, ACF/PACF, rolling std (Node 17)
+- `window.DistFit` — normInv/normCdf, QQ-정규, 정규 적합, Jarque-Bera, 히스토그램 (Node 10)
+- `window.SPC` — I-MR·X-bar/R·X-bar/S·p·c·u 관리도, Cp/Cpk/Pp/Ppk, Pareto (Node 7)
+- `window.Clustering` — DBSCAN + 병합형 계층군집(single/complete/average/ward), O(n²) ~5k행 (Node 4)
+- 전체 Node 테스트 101/101, `tests/runner.html` 8개 분석 케이스 추가
+
 ---
 
 ## [1.9.0] — 2026-06-19 — 데이터 직접 편집 (JMP/Excel 스타일)

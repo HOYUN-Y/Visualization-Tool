@@ -100,6 +100,12 @@ js/
   pivotEngine.js           # window.PivotEngine — pure cross-tab aggregation, grand totals, toDataset
   pivotMode.jsx            # window.PivotMode — drag-and-drop Pivot workspace (Rows/Columns/Values)
   kpiFormula.js            # window.KPIFormula — safe aggregate formula parser/evaluator (no eval), compute()
+  pca.js                   # window.PCA — standardized covariance + Jacobi eigen, scree/biplot
+  logistic.js              # window.Logistic — logistic regression, ROC/AUC, PR curve, metrics
+  timeSeries.js            # window.TimeSeries — MA/WMA/EMA, Holt, diff, ACF/PACF, rolling std
+  distributionFit.js       # window.DistFit — normInv/normCdf, QQ-normal, normal fit, Jarque-Bera
+  spc.js                   # window.SPC — control charts (I-MR/X-bar/p/c/u), Cp/Cpk, Pareto
+  clustering.js            # window.Clustering — DBSCAN + agglomerative hierarchical (Lance-Williams)
   charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors
   grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap
   shell.jsx                # window.TopBar, Rail, StatusBar, Workspace, MODES
