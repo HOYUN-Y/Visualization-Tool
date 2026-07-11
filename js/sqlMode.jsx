@@ -158,7 +158,7 @@ LIMIT 10`;
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
             <Icon name="sql" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />SQL Workspace
           </span>
-          <span className="badge mono"><Icon name="db" size={11} /> DuckDB engine</span>
+          <span className="badge mono"><Icon name="db" size={11} /> in-browser SQL</span>
           <div className="spacer" />
           <button className="btn ghost sm" disabled={!result || result.error} onClick={save}><Icon name="save" /> Save as dataset</button>
           <button className="btn primary sm" onClick={run}><Icon name="play" size={12} /> Run <span className="kbd" style={{ marginLeft: 4 }}>⌘↵</span></button>
