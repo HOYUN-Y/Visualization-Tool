@@ -31,3 +31,11 @@
 .model-comparison-table td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line-2); color: var(--tx-mid); }
 .model-comparison-table td:first-child { text-align: left; }
 .model-comparison-table tbody tr:hover td { background: var(--bg-hover); }
+
+/* ML task grid (extended models) */
+.ml-tasks { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.ml-taskbtn { height: 30px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  background: var(--bg-0); color: var(--tx-mid); font-size: var(--fs-11); cursor: pointer; transition: .12s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ml-taskbtn:hover { border-color: var(--accent-line, var(--accent)); color: var(--tx-hi); }
+.ml-taskbtn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-hi, var(--accent)); font-weight: 600; }
