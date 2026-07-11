@@ -77,8 +77,14 @@ All notable changes to insight Analytics Workbench are documented here.
 - **SPC**: 선택적 LSL/USL 입력 → 공정능력 **Cp/Cpk/Pp/Ppk** 카드(1.33/1.0 임계 색상).
 - **Logistic**: ROC 외 **Precision-Recall 곡선 + AP** 추가.
 
+### Added — Combo 차트 & 이중 축
+- **Combo 차트 타입** — 측정값마다 마크(막대/라인/영역)와 축(좌 주축 / 우 보조축)을 개별 선택. 막대+라인 혼합, 엑셀식 보조축(스케일 상이한 지표) 지원. 기본값: 첫 측정값 막대, 나머지 라인.
+- **캔들 + 라인** — 캔들차트에 MA5/MA20 이동평균선 오버레이.
+
 ### Changed
 - StatusBar·SQL 배지의 가짜 "DuckDB" 표기를 실제 "in-browser JS/SQL"로 정정 (IMPLEMENTATION_PLAN §9).
+- Chart 헤더 **PNG / Save to dashboard** 버튼 동작 연결(기존 무동작).
+- **Tweaks 패널 → 설정/Setting** 이름 변경, **Accent 색상 선택 제거**(브랜드 오렌지 고정).
 
 ### Fixed
 - **차트 전체가 빈 화면으로 렌더되던 문제 수정** — `charts.jsx`의 `resolveVar`가 `oklch()` 색을 canvas로만 변환하던 탓에, canvas가 oklch를 지원하지 않는 브라우저에서 모든 색이 검정(rgb(0,0,0))으로 폴백 → 다크 배경에서 차트가 보이지 않음. oklch→sRGB 변환을 JS(Ottosson 행렬)로 직접 수행하도록 개선하여 canvas 색공간 지원과 무관하게 정상 색 반환. Chart/Dashboard/Map/Stats 등 ECharts 전반에 적용.
