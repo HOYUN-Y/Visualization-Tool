@@ -8,16 +8,18 @@
 
 ## 0. 우선순위 요약
 
-| # | 항목 | 분류 | 노력 | 효과 | 권장 |
-|---|---|---|---|---|---|
-| P1 | IndexedDB 리로드 왕복 검증 (release blocker 해소) | QA | 소 | ★★★ | 즉시 |
-| P2 | `main` 병합 게이트 + 태그 (52+커밋 스택) | 프로세스 | 소 | ★★★ | 즉시 |
-| P3 | 구현 완료 엔진 3종 UI 배선 (TSDecomp·Outliers·GeoMatch) | 기능 | 중 | ★★★ | 단기 |
-| P4 | `getActiveData` 메모이제이션 | 성능 | 소 | ★★★ | 단기 |
-| P5 | 편집 op 견고성 3종 (rename 충돌·set_cell 타입·IME Enter) | 버그예방 | 소 | ★★ | 단기 |
-| P6 | `.gitignore` 추가 + 문서 드리프트 3건 정정 | 위생 | 극소 | ★★ | 즉시 |
-| P7 | i18n 커버리지 완성 (영문 잔존 라벨) | UX | 중 | ★★ | 단기 |
-| P8 | 언가드 플레이스홀더 카피 정비 ("Module — In this build iteration") | UX | 극소 | ★ | 단기 |
+> ✅ = 2026-07-12 저위험 quick-win으로 처리 완료 (커밋: P5/P8 코드, P6 위생·드리프트).
+
+| # | 항목 | 분류 | 노력 | 효과 | 권장 | 상태 |
+|---|---|---|---|---|---|---|
+| P1 | IndexedDB 리로드 왕복 검증 (release blocker 해소) | QA | 소 | ★★★ | 즉시 | 대기 |
+| P2 | `main` 병합 게이트 + 태그 (87+커밋 스택) | 프로세스 | 소 | ★★★ | 즉시 | 대기(사용자) |
+| P3 | 구현 완료 엔진 3종 UI 배선 (TSDecomp·Outliers·GeoMatch) | 기능 | 중 | ★★★ | 단기 | 대기(시각검증) |
+| P4 | `getActiveData` 메모이제이션 | 성능 | 소 | ★★★ | 단기 | 대기 |
+| P5 | 편집 op 견고성 3종 (rename 충돌·set_cell 타입·IME Enter) | 버그예방 | 소 | ★★ | 단기 | ✅ 완료 |
+| P6 | `.gitignore` 추가 + 문서 드리프트 3건 정정 | 위생 | 극소 | ★★ | 즉시 | ✅ 완료 |
+| P7 | i18n 커버리지 완성 (영문 잔존 라벨) | UX | 중 | ★★ | 단기 | 대기 |
+| P8 | 언가드 플레이스홀더 카피 정비 ("Module — In this build iteration") | UX | 극소 | ★ | 단기 | ✅ 완료 |
 | P9 | Excel식 편집 확장 (다중셀 붙여넣기·방향키 이동·Cmd+Z) | 기능 | 중 | ★★ | 중기 |
 | P10 | CHANGELOG Planned 잔여 (DT/NB/CV·SQL JOIN·공유링크·PPT 매핑 확장) | 기능 | 대 | ★★ | 중기 |
 | P11 | Playwright 스모크 E2E 자동화 | QA | 중 | ★★ | 중기 |
@@ -32,12 +34,12 @@ plan v2부터 `v2.0.0` release blocker로 지정된 항목. 이제 제어 브라
 프로젝트 편집 → `Saved` 확인 → `location.reload()` → 상태(데이터셋·clean 스텝·vizSheets·pivotSheets·dash) 복원 대조 → JSON 백업/복원 왕복까지.
 
 ### P2. main 병합 게이트
-`feat/analytics`가 local `main` 대비 80+커밋. 스택이 길어질수록 리뷰·롤백 비용 증가.
+`feat/analytics`가 local `main` 대비 87+커밋. 스택이 길어질수록 리뷰·롤백 비용 증가.
 - 검토 → `--no-ff` 병합 → annotated tag (`checkpoint/core-v2-*`)
 - 원격 push는 기존 방침대로 별도 외부전송 승인.
 
 ### P6. 저장소 위생 + 문서 드리프트
-- **`.gitignore` 신설**: `.DS_Store` 2건이 모든 세션의 `git status`를 오염 중. (`.DS_Store`, `**/.DS_Store`)
+- **`.gitignore` 신설**: 추적 중인 `.DS_Store` **5건**이 모든 세션의 `git status`를 오염 중. `.gitignore`(`.DS_Store`, `**/.DS_Store`) + `git rm --cached`로 인덱스에서 제거 필요.
 - **WORKLOG Quick Start 경로 오류**: `/Users/hoyun/…/Visualization-Tool` → 실제 `/Users/lyuhoyun/…/Visualization Tool` (복붙 시 실패).
 - **IMPLEMENTATION_PLAN 헤더 버전**: 헤더 `core-v2-plan-v2` vs Revision 표·WORKLOG `v3` — 헤더만 미갱신.
 - **`.claude` 과거 자동 푸시 훅**: 이전 절대경로 참조로 이미 "비공식" 선언됨 → 파일 자체 제거/무력화로 혼란 원천 차단.
