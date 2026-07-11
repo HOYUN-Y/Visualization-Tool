@@ -535,9 +535,11 @@
     const theme = useStore((s) => s.theme);
     const cfgS = useStore((s) => s.ui.stats);
     const { rows, columns } = derive.getActiveData(activeId);
-    const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
-    const cfg = cfgS || defaultCfg(columns);
+    const numCols = numsOf(columns);
+    const catCols = catsOf(columns);
+    const cfg = resolveCfg(cfgS, columns, rows);
     const test = cfg.test;
+    const levelsOf = (key) => key ? [...new Set(rows.map((r) => String(r[key])))].filter((v) => v !== "null" && v !== "") : [];
 
     if (test === "distribution") return <DistributionCenter rows={rows} columns={columns} cfg={cfg} theme={theme} />;
     if (test === "builder") return <AnalysisBuilderCenter rows={rows} columns={columns} cfg={cfg} theme={theme} />;
@@ -547,11 +549,18 @@
 
     let body, title;
     try {
+    const needNote = (msg) => (
+      <div className="empty" style={{ padding: 24 }}><Icon name="info" />
+        <div className="t">이 분석을 실행할 수 없습니다</div><div className="s">{msg}</div></div>
+    );
+    const groupLevels = levelsOf(cfg.group);
     if (test === "descriptive") {
       title = "Descriptive statistics";
-      body = <DescTable rows={rows} cols={numCols} />;
+      body = numCols.length ? <DescTable rows={rows} cols={numCols} /> : needNote("숫자 컬럼이 없습니다. Data/Clean에서 컬럼 타입을 확인하세요.");
     } else if (test === "corr") {
       title = `Correlation matrix · ${cfg.method === "spearman" ? "Spearman" : "Pearson"}`;
+      if (numCols.length < 2) { body = needNote("상관분석에는 숫자 컬럼이 2개 이상 필요합니다. Data/Clean에서 컬럼 타입을 숫자로 바꿔보세요."); }
+      else {
       const m = corrMatrix(rows, numCols, cfg.method);
       const summary = IE ? IE.summarizeCorrelation({ cols: numCols, matrix: m }) : "";
       body = (
@@ -561,9 +570,14 @@
           <NextStepPanel context={{ lastTest: "corr" }} />
         </React.Fragment>
       );
+      }
     } else if (test === "ttest") {
+      title = `Independent t-test · ${cfg.measure || ""}`;
+      if (!cfg.measure || !cfg.group) { body = needNote("측정값(숫자)과 그룹(범주) 컬럼을 선택하세요."); }
+      else if (groupLevels.length < 2) { body = needNote(`그룹 컬럼 "${cfg.group}"에 비교할 수준이 2개 이상 필요합니다.`); }
+      else if (!cfg.l1 || !cfg.l2 || cfg.l1 === cfg.l2) { body = needNote("우측에서 비교할 두 그룹을 서로 다르게 선택하세요."); }
+      else {
       const r = ttest(rows, cfg.measure, cfg.group, cfg.l1, cfg.l2);
-      title = `Independent t-test · ${cfg.measure}`;
       body = (
         <React.Fragment>
           <Cards items={[["t", r.t.toFixed(3), sigStars(r.p)], ["df", r.df.toFixed(1)], ["p-value", fmtP(r.p)], ["Cohen's d", r.d.toFixed(2)]]} />
@@ -574,10 +588,16 @@
           <NextStepPanel context={{ lastTest: "ttest" }} />
         </React.Fragment>
       );
+      }
     } else if (test === "anova") {
+      title = `One-way ANOVA · ${cfg.measure || ""} by ${cfg.group || ""}`;
+      if (!cfg.measure || !cfg.group) { body = needNote("측정값(숫자)과 그룹(범주) 컬럼을 선택하세요."); }
+      else if (groupLevels.length < 2) { body = needNote(`그룹 컬럼 "${cfg.group}"에 2개 이상 수준이 필요합니다.`); }
+      else {
       const r = anova(rows, cfg.measure, cfg.group);
-      title = `One-way ANOVA · ${cfg.measure} by ${cfg.group}`;
       const top = Object.entries(r.means).sort((a, b) => b[1].mean - a[1].mean);
+      if (!top.length) { body = needNote("선택한 측정값에 유효한 숫자 값이 없습니다."); }
+      else {
       body = (
         <React.Fragment>
           <Cards items={[["F", r.F.toFixed(2), sigStars(r.p)], ["df", `${r.df1}, ${r.df2}`], ["p-value", fmtP(r.p)], ["η²", r.eta2.toFixed(3)]]} />
@@ -586,9 +606,14 @@
           <NextStepPanel context={{ lastTest: "anova" }} />
         </React.Fragment>
       );
+      }
+      }
     } else if (test === "chisq") {
+      title = `Chi-square test · ${cfg.a || ""} × ${cfg.b || ""}`;
+      if (!cfg.a || !cfg.b) { body = needNote("연관성을 볼 두 범주 컬럼(A·B)을 선택하세요."); }
+      else if (cfg.a === cfg.b) { body = needNote("A와 B는 서로 다른 컬럼이어야 합니다."); }
+      else {
       const r = chisq(rows, cfg.a, cfg.b);
-      title = `Chi-square test · ${cfg.a} × ${cfg.b}`;
       body = (
         <React.Fragment>
           <Cards items={[["χ²", r.chi.toFixed(2), sigStars(r.p)], ["df", r.df], ["p-value", fmtP(r.p)], ["Cramér's V", r.V.toFixed(3)]]} />
@@ -597,9 +622,13 @@
           <NextStepPanel context={{ lastTest: "chisq" }} />
         </React.Fragment>
       );
+      }
     } else {
+      title = `Linear regression · ${cfg.target || ""} ~ ${(cfg.preds || []).join(" + ")}`;
+      if (!cfg.target) { body = needNote("종속변수(Y)로 쓸 숫자 컬럼을 선택하세요."); }
+      else if (!cfg.preds.length) { body = needNote("예측변수(X)를 1개 이상 선택하세요."); }
+      else {
       const r = regression(rows, cfg.target, cfg.preds);
-      title = `Linear regression · ${cfg.target} ~ ${cfg.preds.join(" + ")}`;
       const summary = IE ? IE.summarizeRegression(r) : "";
       body = (
         <React.Fragment>
@@ -617,6 +646,7 @@
           <NextStepPanel context={{ lastTest: "reg", lastResult: r }} />
         </React.Fragment>
       );
+      }
     }
     } catch (e) {
       // A bad column/group combo (e.g. ANOVA with no valid groups) must not crash the whole app.
@@ -705,28 +735,63 @@
   }
 
   // ---------- right config panel ----------
+  // Categorical = category OR string (many datasets type their categoricals as string).
+  const catsOf = (columns) => columns.filter((c) => c.type === "category" || c.type === "string");
+  const numsOf = (columns) => columns.filter((c) => c.type === "integer" || c.type === "float");
+
+  // Starter config derived from the ACTIVE dataset's real columns (no hardcoded fields).
   function defaultCfg(columns) {
-    const cats = columns.filter((c) => c.type === "category");
-    const nums = columns.filter((c) => c.type === "integer" || c.type === "float");
+    const cats = catsOf(columns), nums = numsOf(columns);
+    const num0 = nums[0] ? nums[0].key : "";
+    const cat0 = cats[0] ? cats[0].key : "";
+    const cat1 = cats[1] ? cats[1].key : cat0;
     return {
-      test: "corr", method: "pearson",
-      measure: "price_per_m2", group: cats[1] ? cats[1].key : (cats[0] ? cats[0].key : ""),
-      l1: "아파트", l2: "오피스텔",
-      a: cats[0] ? cats[0].key : "", b: cats[1] ? cats[1].key : (cats[0] ? cats[0].key : ""),
-      target: "price_manwon", preds: ["area_m2", "floor", "built_year"],
-      distCol: nums[0] ? nums[0].key : "",
-      builder: { target: "price_manwon", inputs: ["area_m2", "floor", "built_year"], result: null },
+      test: "descriptive", method: "pearson",
+      measure: num0, group: cat0,
+      l1: "", l2: "",
+      a: cat0, b: cat1,
+      target: num0, preds: nums.filter((c) => c.key !== num0).slice(0, 3).map((c) => c.key),
+      distCol: num0,
+      builder: { target: num0, inputs: [], result: null },
     };
+  }
+
+  // Heal a (possibly persisted / cross-dataset) config against the current columns so
+  // no test ever references a missing column. Fills group levels from actual rows.
+  function resolveCfg(cfgS, columns, rows) {
+    const base = defaultCfg(columns);
+    const cfg = { ...base, ...(cfgS || {}) };
+    const has = (k) => !!k && columns.some((c) => c.key === k);
+    const nums = numsOf(columns), cats = catsOf(columns);
+    const num0 = nums[0] ? nums[0].key : "";
+    const cat0 = cats[0] ? cats[0].key : "";
+    const cat1 = cats[1] ? cats[1].key : cat0;
+    if (!has(cfg.measure)) cfg.measure = num0;
+    if (!has(cfg.group))   cfg.group   = cat0;
+    if (!has(cfg.a))       cfg.a       = cat0;
+    if (!has(cfg.b))       cfg.b       = cat1;
+    if (!has(cfg.target))  cfg.target  = num0;
+    cfg.preds = (cfg.preds || []).filter(has);
+    if (!cfg.preds.length) cfg.preds = nums.filter((c) => c.key !== cfg.target).slice(0, 3).map((c) => c.key);
+    if (!has(cfg.distCol)) cfg.distCol = num0;
+    if (has(cfg.group)) {
+      const lv = [...new Set(rows.map((r) => String(r[cfg.group])))];
+      if (!lv.includes(cfg.l1)) cfg.l1 = lv[0] || "";
+      if (!lv.includes(cfg.l2)) cfg.l2 = lv[1] || lv[0] || "";
+    }
+    const b = cfg.builder || {};
+    cfg.builder = { target: has(b.target) ? b.target : num0, inputs: (b.inputs || []).filter(has), result: b.result || null };
+    return cfg;
   }
 
   function StatsPanel() {
     const activeId = useStore((s) => s.activeId);
     const cfgS = useStore((s) => s.ui.stats);
     const { columns, rows } = derive.getActiveData(activeId);
-    const cfg = cfgS || defaultCfg(columns);
+    const cfg = resolveCfg(cfgS, columns, rows);
     const set = (patch) => actions.setUI({ stats: { ...cfg, ...patch } });
-    const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
-    const catCols = columns.filter((c) => c.type === "category");
+    const numCols = numsOf(columns);
+    const catCols = catsOf(columns);
     const levels = (key) => [...new Set(rows.map((r) => String(r[key])))];
 
     const bld = cfg.builder || { target: numCols[0] ? numCols[0].key : "", inputs: [], result: null };
