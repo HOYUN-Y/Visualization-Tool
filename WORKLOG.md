@@ -14,14 +14,14 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 차트 서식·내보내기 대폭 확장 (사용자 대화형, 진행) |
-| Status | Core v2 M3~M5 + 분석엔진 6종 UI + **차트 Format/Export 전면 확장** 완료. main 대비 52커밋. |
+| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A 완료, Batch B 진행 예정 |
+| Status | Core v2 M3~M5 + 분석엔진 6종 UI + 차트 Format/Export + **Batch A 테스트 잠금(5모듈 추출)** 완료. main 대비 76커밋. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `e39d1b1` — Series 다중선택 리스트 |
-| Working tree | 차트 서식(제목/범례/축/격자/배경/텍스트/계열)·리사이즈·내보내기(PNG/SVG/클립보드/PPTX) 완료; `.DS_Store` 제외 |
-| Last verified | 2026-07-11 — Node 98/98, JSX 구문검사(tsc) OK, PptxGenJS 벤더링(SHA기록), asset v=229 |
-| Updated at | 2026-07-11 |
+| Last checkpoint commit | `3034677` — 제네릭 시트 리듀서(js/sheets.js) 엔진+테스트 |
+| Working tree | 깨끗(`.DS_Store` 제외). Batch A: statsCfg/mlCfg/dashWidgets/aiIntent/sheets dual-mode 추출 |
+| Last verified | 2026-07-12 — Node 136/136, JSX 구문검사(tsc TS1xxx 0), asset v=247 |
+| Updated at | 2026-07-12 |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
 
@@ -31,6 +31,18 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (밤샘 자율: Batch A — 테스트 잠금)
+
+`docs/OVERNIGHT_PLAN.md`의 START 신호 수신 → Batch A 실행. 이번 세션의 하드코딩-치유/동적생성 로직을 JSX IIFE 밖 **dual-mode 순수 모듈**로 추출해 **실제 코드에 대한 영구 Node 회귀 테스트** 확보. 각 항목 tsc(TS1xxx 0)+Node 그린+asset bump 후 커밋. Node **98→136**(+38 테스트).
+
+- `1481315` A1 `js/statsCfg.js` (window.StatsCfg) ← statsMode.jsx: catsOf/numsOf/defaultCfg/resolveCfg + 6케이스
+- `4385e78` A2 `js/mlCfg.js` (window.MlCfg) ← mlMode.jsx: mlNums/mlCats/mlDefaultCfg/mlResolveCfg + 7케이스
+- `95a2f1c` A3 `js/dashWidgets.js` (window.DashWidgets) ← dashMode.jsx: dashMeasures/dashDims/defaultWidgets/colExists/widgetStale + 8케이스
+- `d50208c` A4 `js/aiIntent.js` (window.AiIntent) ← aiDrawer.jsx: dimsOf/measOf/dateOf/cardinality/lowCardDim/suggestions/interpret/dimChipOf/measChipOf + 9케이스 (buildInsights/runIntent는 stat/derive/NODE 의존이라 잔류)
+- `3034677` A5 `js/sheets.js` (window.Sheets) 제네릭 시트 리듀서 + 10케이스 — **store.jsx 실배선은 아침 게이트 보류**(작동 중 store 리팩터 위험).
+
+**아침 게이트:** (1) A5 store.jsx 배선 검토, (2) 실브라우저 왕복(각 모드가 추출 모듈로 정상 동작하는지). **NEXT: Batch B(엔진 엣지케이스 테스트 보강).**
 
 ## 세션 기록 — 2026-07-11 (대화형: 차트 서식·내보내기)
 

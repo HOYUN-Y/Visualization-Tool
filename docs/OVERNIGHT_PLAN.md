@@ -67,7 +67,7 @@ test("...", () => { assert.equal(...); });
 
 ## 3. 반복 항목 (★ 매 배치 종료마다 반드시 — 잊지 말 것)
 
-- [ ] **★ 배치 A 종료 → WORKLOG.md 갱신** (CURRENT STATE: 커밋수/asset v/Node N/N + 배치 A 요약 항목)
+- [x] **★ 배치 A 종료 → WORKLOG.md 갱신** (CURRENT STATE: 커밋수/asset v/Node N/N + 배치 A 요약 항목)  ✅
 - [ ] **★ 배치 B 종료 → WORKLOG.md 갱신**
 - [ ] **★ 배치 C 종료 → WORKLOG.md 갱신**
 - [ ] **★ 배치 D 종료 → WORKLOG.md 갱신**
@@ -87,24 +87,24 @@ test("...", () => { assert.equal(...); });
 4. `tests/<name>.test.js` 작성.
 5. 검증 프로토콜 6단계 → 커밋.
 
-- [ ] **A1. `js/statsCfg.js` (window.StatsCfg)** ← `statsMode.jsx`
+- [x] **A1. `js/statsCfg.js` (window.StatsCfg)** ← `statsMode.jsx`  ✅ 커밋 `1481315` · Node 103/103 · asset v=247
   - 이동 함수: `catsOf, numsOf, defaultCfg, resolveCfg` (statsMode.jsx의 "Categorical = category OR string" 주석부터 `resolveCfg` 끝까지).
   - 배선: statsMode 상단 `const { catsOf, numsOf, defaultCfg, resolveCfg } = window.StatsCfg;`
   - 테스트: (a) defaultCfg 동적·하드코딩 없음(measure=첫 숫자, group=첫 범주, test="descriptive"), (b) stale 서울설정→지하철 컬럼 치유(measure/group/a/b/target/preds 전부 존재 컬럼, l1/l2=실제 행 레벨, builder.inputs 정리), (c) 유효설정 보존, (d) 빈 컬럼 무크래시.
   - 주의: statsMode가 이 4개를 StatsCenter/StatsPanel 여러 곳에서 사용. 배선 후 tsc 필수.
-- [ ] **A2. `js/mlCfg.js` (window.MlCfg)** ← `mlMode.jsx`
+- [x] **A2. `js/mlCfg.js` (window.MlCfg)** ← `mlMode.jsx`  ✅ 커밋 `4385e78` · Node 110/110
   - 이동 함수: `mlNums, mlCats, mlDefaultCfg, mlResolveCfg` (mlMode.jsx의 "Categorical = category OR string" 주석부터).
   - 배선: `const { mlNums, mlCats, mlDefaultCfg, mlResolveCfg } = window.MlCfg;`
   - 테스트: 태스크별 target 유효성(clf/logit→범주 cats[0], reg→숫자 num0), feats 치유(존재+≠target), stale 서울설정(target:"price_manwon", feats:["area_m2"...]) 치유.
-- [ ] **A3. `js/dashWidgets.js` (window.DashWidgets)** ← `dashMode.jsx`
+- [x] **A3. `js/dashWidgets.js` (window.DashWidgets)** ← `dashMode.jsx`  ✅ 커밋 `95a2f1c` · Node 118/118
   - 이동 함수: `dashMeasures, dashDims, defaultWidgets, colExists, widgetStale`.
   - 배선: `const { dashMeasures, dashDims, defaultWidgets, colExists, widgetStale } = window.DashWidgets;`
   - 테스트: 위젯 다양성(subway 3측정2차원→~10위젯 bar/pie/scatter/treemap/hbar; sales+datetime→line 포함; minimal 1측정1차원→8위젯), stale 감지, count-KPI는 stale 예외, 측정·차원 없으면 안내 텍스트 위젯.
-- [ ] **A4. `js/aiIntent.js` (window.AiIntent)** ← `aiDrawer.jsx`
+- [x] **A4. `js/aiIntent.js` (window.AiIntent)** ← `aiDrawer.jsx`  ✅ 커밋 `d50208c` · Node 126/126
   - 이동 함수(순수만): `dimsOf, measOf, dateOf, lowCardDim, interpret, suggestions`, 헬퍼 `dimChipOf, measChipOf`도 함께 이동 가능. `buildInsights`/`runIntent`/`fmtMd`는 stat/derive/NODE/actions 런타임 의존 → aiDrawer에 유지(단 interpret/suggestions/컬럼헬퍼는 window.AiIntent 참조).
   - 배선: aiDrawer 상단 `const { dimsOf, measOf, dateOf, lowCardDim, interpret, suggestions } = window.AiIntent;`
   - 테스트: 제안칩이 저cardinality 차원 사용(역명600 대신 노선명27), 각 칩→interpret 왕복(bar/top/mix/outlier/goStats/last), 자유텍스트 컬럼명 인식.
-- [ ] **A5. (선택·higher-risk) `js/sheets.js` (window.Sheets)** ← `store.jsx`
+- [x] **A5. (선택·higher-risk) `js/sheets.js` (window.Sheets)** ← `store.jsx`  ✅ 엔진+테스트 커밋 `3034677` · Node 136/136 · **store.jsx 배선은 아침 게이트로 보류**(작동 중 store 리팩터 위험)
   - 제네릭 시트 리듀서(순수): `addSheet(list,factory)`, `setActiveId(list,active,id)`, `renameSheet`, `removeSheet(list,active,id)`, `duplicateSheet`, `updateActive(list,active,fn)`. viz/pivot/dash 3중복 로직 통합 → 테스트 가능.
   - **위험도 중간**(store 리팩터). A1~A4 안정 후에만. 불안하면 엔진+테스트까지만 커밋하고 store 배선은 아침 게이트(그 경우 "보류"로 표시).
 
@@ -161,3 +161,11 @@ test("...", () => { assert.equal(...); });
 
 ## 진행 로그
 - 2026-07-12: 계획 문서 작성 완료. **START 신호 대기 중.** (아직 코드 작업 전혀 시작 안 함 — 앞서 손댔던 statsCfg 시험 추출은 되돌려 깨끗한 상태.)
+- 2026-07-12: **START 수신 → Batch A 전체 완료.** 테스트 잠금 5개 모듈 추출(dual-mode). Node **98→136**(+38), asset v=247, main 대비 **76커밋**.
+  - A1 `js/statsCfg.js` (catsOf/numsOf/defaultCfg/resolveCfg) 커밋 `1481315`
+  - A2 `js/mlCfg.js` (mlNums/mlCats/mlDefaultCfg/mlResolveCfg) 커밋 `4385e78`
+  - A3 `js/dashWidgets.js` (dashMeasures/dashDims/defaultWidgets/colExists/widgetStale) 커밋 `95a2f1c`
+  - A4 `js/aiIntent.js` (dimsOf/measOf/dateOf/cardinality/lowCardDim/suggestions/interpret/dimChipOf/measChipOf) 커밋 `d50208c`
+  - A5 `js/sheets.js` 제네릭 시트 리듀서 엔진+테스트 커밋 `3034677` — **store.jsx 배선은 아침 게이트 보류**.
+  - 각 소비 .jsx는 인라인 정의 삭제 후 `const {...} = window.X;` 로 배선. 매 항목 tsc(TS1xxx 0)+Node 그린 확인.
+  - **다음 정확한 행동(NEXT): Batch B1 — dataOps 엣지케이스 테스트 보강.**
