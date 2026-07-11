@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor / OS cruft
+*.swp
+*~
+Thumbs.db
+
+# Node (if tooling is ever added; source stays no-build)
+node_modules/
+
+# Scratch / local
+*.log
