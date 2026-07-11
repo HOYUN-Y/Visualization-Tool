@@ -17,6 +17,8 @@
 
   // ---------- KPI ----------
   function KPIWidget({ w, rows, columns, cross }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const data = applyCross(rows, cross, w.id);
     const s = w.spec;
     const decimals = s.decimals != null ? s.decimals : 0;
@@ -40,9 +42,9 @@
         <div className="kpi-label">{s.label}{s.unit ? <span className="kpi-unit"> {s.unit}</span> : ""}</div>
         <div className="kpi-val mono" style={err ? { color: "var(--neg)" } : undefined}>{text}</div>
         <div className="kpi-sub">
-          {isFormula ? <span className="mono ell" style={{ color: err ? "var(--neg)" : "var(--tx-faint)" }} title={s.formula}>{err ? "formula error" : "ƒ " + s.formula}</span>
-            : filtered ? <span className="kpi-filt"><Icon name="filter" size={10} /> {pct.toFixed(0)}% of total</span>
-              : <span className="mono" style={{ color: "var(--tx-faint)" }}>{s.agg.toUpperCase()} · {data.length} rows</span>}
+          {isFormula ? <span className="mono ell" style={{ color: err ? "var(--neg)" : "var(--tx-faint)" }} title={s.formula}>{err ? T("dashFormulaError") : "ƒ " + s.formula}</span>
+            : filtered ? <span className="kpi-filt"><Icon name="filter" size={10} /> {pct.toFixed(0)}{T("dashPctOfTotal")}</span>
+              : <span className="mono" style={{ color: "var(--tx-faint)" }}>{s.agg.toUpperCase()} · {data.length} {T("rows")}</span>}
         </div>
       </div>
     );
@@ -116,8 +118,10 @@
     return "";
   }
   function TextWidget({ w }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const text = widgetText(w.spec);
-    return <div className="textwidget" style={{ whiteSpace: "pre-wrap" }}>{text || "Double-click or use the inspector to edit text"}</div>;
+    return <div className="textwidget" style={{ whiteSpace: "pre-wrap" }}>{text || T("dashTextPlaceholder")}</div>;
   }
 
   // ---------- Dashboard tab bar (multiple dashboards) ----------
@@ -160,6 +164,8 @@
 
   // ---------- Canvas ----------
   function DashCanvas() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const activeId = useStore((s) => s.activeId);
     const dash = useStore((s) => s.dash);
     const theme = useStore((s) => s.theme);
@@ -220,7 +226,7 @@
             <Icon name="dashboard" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{ds.short} · 대시보드
           </span>
           <div className="spacer" />
-          <button className={"btn sm" + (edit ? " primary" : " ghost")} onClick={() => actions.setDash({ edit: !edit })}><Icon name="move" /> {edit ? "Editing" : "Edit layout"}</button>
+          <button className={"btn sm" + (edit ? " primary" : " ghost")} onClick={() => actions.setDash({ edit: !edit })}><Icon name="move" /> {edit ? T("dEditing") : T("dashEditLayout")}</button>
           <button className="btn ghost sm" onClick={rebuild} title="현재 데이터셋 기준으로 기본 위젯 재생성"><Icon name="undo" /> 재생성</button>
         </div>
 
@@ -236,11 +242,11 @@
         {dash.cross && (
           <div className="crossbar">
             <Icon name="filter" size={13} />
-            <span>Cross-filter active:</span>
+            <span>{T("dashCrossFilterActive")}</span>
             <span className="cross-chip">{getCol(columns, dash.cross.key).label} = <b>{dash.cross.value}</b></span>
-            <span className="cross-hint">All widgets filtered · click the same mark again or here to clear</span>
+            <span className="cross-hint">{T("dashCrossFilterHint")}</span>
             <div className="spacer" />
-            <button className="btn ghost sm" onClick={() => actions.setCross(null)}><Icon name="x" /> Clear</button>
+            <button className="btn ghost sm" onClick={() => actions.setCross(null)}><Icon name="x" /> {T("gClear")}</button>
           </div>
         )}
 
@@ -255,8 +261,8 @@
                     <div className="widget-head" onMouseDown={(e) => onHeadDown(e, w)} style={{ cursor: edit ? "move" : "default" }}>
                       <span className="wh-title ell">{w.title}</span>
                       <span className="wh-tools">
-                        {edit && <button className="iconbtn" style={{ width: 22, height: 22 }} onClick={() => dup(w)} title="Duplicate"><Icon name="duplicate" size={12} /></button>}
-                        {edit && <button className="iconbtn" style={{ width: 22, height: 22 }} onClick={() => remove(w.id)} title="Delete"><Icon name="x" size={13} /></button>}
+                        {edit && <button className="iconbtn" style={{ width: 22, height: 22 }} onClick={() => dup(w)} title={T("dashDuplicate")}><Icon name="duplicate" size={12} /></button>}
+                        {edit && <button className="iconbtn" style={{ width: 22, height: 22 }} onClick={() => remove(w.id)} title={T("dashDelete")}><Icon name="x" size={13} /></button>}
                       </span>
                     </div>
                   )}
@@ -290,6 +296,8 @@
   }
 
   function WidgetInspector({ w, columns, onChange, onClose }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const measures = columns.filter((c) => c.role === "measure");
     const dims = columns.filter((c) => c.role === "dimension");
     const s = w.spec || {};
@@ -301,61 +309,61 @@
     return (
       <div className="cp-block insp">
         <div className="cp-blocktitle" style={{ display: "flex", alignItems: "center" }}>
-          <Icon name="sliders" size={13} style={{ marginRight: 6, color: "var(--accent)" }} />{w.type.toUpperCase()} settings
-          <div style={{ flex: 1 }} /><button className="iconbtn" onClick={onClose} title="Done"><Icon name="x" size={13} /></button>
+          <Icon name="sliders" size={13} style={{ marginRight: 6, color: "var(--accent)" }} />{w.type.toUpperCase()} {T("dashSettings")}
+          <div style={{ flex: 1 }} /><button className="iconbtn" onClick={onClose} title={T("dashDone")}><Icon name="x" size={13} /></button>
         </div>
 
         {w.type === "kpi" ? (
           <React.Fragment>
-            <Field label="Label"><input className="inp" value={s.label || ""} onChange={(e) => setSpec({ label: e.target.value })} /></Field>
+            <Field label={T("dashFieldLabel")}><input className="inp" value={s.label || ""} onChange={(e) => setSpec({ label: e.target.value })} /></Field>
             <div className="insp-seg">
-              <button className={"btn sm " + (!useFormula ? "primary" : "ghost")} onClick={() => setSpec({ formula: undefined, measure: s.measure || (measures[0] && measures[0].key), agg: s.agg || "avg" })}>Aggregate</button>
-              <button className={"btn sm " + (useFormula ? "primary" : "ghost")} onClick={() => setSpec({ formula: s.formula || `AVG(${(measures[0] || {}).key || "value"})` })}>Formula</button>
+              <button className={"btn sm " + (!useFormula ? "primary" : "ghost")} onClick={() => setSpec({ formula: undefined, measure: s.measure || (measures[0] && measures[0].key), agg: s.agg || "avg" })}>{T("dashAggregate")}</button>
+              <button className={"btn sm " + (useFormula ? "primary" : "ghost")} onClick={() => setSpec({ formula: s.formula || `AVG(${(measures[0] || {}).key || "value"})` })}>{T("dashFormula")}</button>
             </div>
             {useFormula ? (
               <React.Fragment>
-                <Field label="Formula"><textarea className="inp mono" rows={2} value={s.formula} onChange={(e) => setSpec({ formula: e.target.value })} placeholder="SUM(profit) / SUM(revenue) * 100" /></Field>
+                <Field label={T("dashFormula")}><textarea className="inp mono" rows={2} value={s.formula} onChange={(e) => setSpec({ formula: e.target.value })} placeholder="SUM(profit) / SUM(revenue) * 100" /></Field>
                 <div className="insp-hint" style={formulaErr ? { color: "var(--neg)" } : undefined}>{formulaErr ? "⚠ " + formulaErr : "SUM·AVG·COUNT(*)·COUNTD·MIN·MAX·MEDIAN(field) + - * / ( )"}</div>
               </React.Fragment>
             ) : (
               <React.Fragment>
-                <Field label="Measure"><select className="sel" value={s.measure || ""} onChange={(e) => setSpec({ measure: e.target.value })}>{columns.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
-                <Field label="Aggregation"><select className="sel" value={s.agg || "avg"} onChange={(e) => setSpec({ agg: e.target.value })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
+                <Field label={T("dashMeasure")}><select className="sel" value={s.measure || ""} onChange={(e) => setSpec({ measure: e.target.value })}>{columns.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+                <Field label={T("dashAggregation")}><select className="sel" value={s.agg || "avg"} onChange={(e) => setSpec({ agg: e.target.value })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
               </React.Fragment>
             )}
-            <Field label="Format"><select className="sel" value={s.fmt || "num"} onChange={(e) => setSpec({ fmt: e.target.value })}><option value="num">Number</option><option value="won">Won (억/만)</option></select></Field>
+            <Field label={T("dashFormat")}><select className="sel" value={s.fmt || "num"} onChange={(e) => setSpec({ fmt: e.target.value })}><option value="num">{T("dashNumber")}</option><option value="won">{T("dashWon")}</option></select></Field>
             <div style={{ display: "flex", gap: 8 }}>
-              <Field label="Unit"><input className="inp" value={s.unit || ""} onChange={(e) => setSpec({ unit: e.target.value })} /></Field>
-              <Field label="Decimals"><input className="inp" type="number" min="0" max="4" value={s.decimals != null ? s.decimals : 0} onChange={(e) => setSpec({ decimals: Math.max(0, Math.min(4, parseInt(e.target.value) || 0)) })} /></Field>
+              <Field label={T("dashUnit")}><input className="inp" value={s.unit || ""} onChange={(e) => setSpec({ unit: e.target.value })} /></Field>
+              <Field label={T("dashDecimals")}><input className="inp" type="number" min="0" max="4" value={s.decimals != null ? s.decimals : 0} onChange={(e) => setSpec({ decimals: Math.max(0, Math.min(4, parseInt(e.target.value) || 0)) })} /></Field>
             </div>
           </React.Fragment>
         ) : w.type === "chart" ? (
           <React.Fragment>
-            <Field label="Title"><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
-            <Field label="Chart type"><select className="sel" value={s.chartType} onChange={(e) => setSpec({ chartType: e.target.value })}>{CHART_OPTS.map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
-            <Field label="Dimension"><select className="sel" value={(s.cols || [])[0] || ""} onChange={(e) => setSpec({ cols: e.target.value ? [e.target.value] : [] })}><option value="">(none)</option>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
-            <Field label="Measure"><select className="sel" value={(s.measures && s.measures[0] && s.measures[0][0]) || ""} onChange={(e) => setSpec({ measures: [[e.target.value, (s.measures && s.measures[0] && s.measures[0][1]) || "avg"]] })}>{measures.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
-            <Field label="Aggregation"><select className="sel" value={(s.measures && s.measures[0] && s.measures[0][1]) || "avg"} onChange={(e) => setSpec({ measures: [[(s.measures && s.measures[0] && s.measures[0][0]) || (measures[0] && measures[0].key) || "", e.target.value]] })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
-            <Field label="Color by"><select className="sel" value={s.color || ""} onChange={(e) => setSpec({ color: e.target.value || undefined })}><option value="">(none)</option>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
-            <Field label="Top N (0 = all)"><input className="inp" type="number" min="0" max="50" value={s.topN != null ? s.topN : 0} onChange={(e) => setSpec({ topN: Math.max(0, parseInt(e.target.value) || 0) })} /></Field>
+            <Field label={T("dashTitle")}><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
+            <Field label={T("dashChartType")}><select className="sel" value={s.chartType} onChange={(e) => setSpec({ chartType: e.target.value })}>{CHART_OPTS.map((t) => <option key={t} value={t}>{t}</option>)}</select></Field>
+            <Field label={T("dashDimension")}><select className="sel" value={(s.cols || [])[0] || ""} onChange={(e) => setSpec({ cols: e.target.value ? [e.target.value] : [] })}><option value="">{T("dashNone")}</option>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label={T("dashMeasure")}><select className="sel" value={(s.measures && s.measures[0] && s.measures[0][0]) || ""} onChange={(e) => setSpec({ measures: [[e.target.value, (s.measures && s.measures[0] && s.measures[0][1]) || "avg"]] })}>{measures.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label={T("dashAggregation")}><select className="sel" value={(s.measures && s.measures[0] && s.measures[0][1]) || "avg"} onChange={(e) => setSpec({ measures: [[(s.measures && s.measures[0] && s.measures[0][0]) || (measures[0] && measures[0].key) || "", e.target.value]] })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
+            <Field label={T("dashColorBy")}><select className="sel" value={s.color || ""} onChange={(e) => setSpec({ color: e.target.value || undefined })}><option value="">{T("dashNone")}</option>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label={T("dashTopN")}><input className="inp" type="number" min="0" max="50" value={s.topN != null ? s.topN : 0} onChange={(e) => setSpec({ topN: Math.max(0, parseInt(e.target.value) || 0) })} /></Field>
           </React.Fragment>
         ) : w.type === "table" ? (
           <React.Fragment>
-            <Field label="Title"><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
-            <Field label="Dimension"><select className="sel" value={s.dim} onChange={(e) => setSpec({ dim: e.target.value })}>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
-            <Field label="Measure"><select className="sel" value={s.measure} onChange={(e) => setSpec({ measure: e.target.value })}>{measures.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
-            <Field label="Aggregation"><select className="sel" value={s.agg} onChange={(e) => setSpec({ agg: e.target.value })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
-            <Field label="Row limit"><input className="inp" type="number" min="1" max="200" value={s.limit || 30} onChange={(e) => setSpec({ limit: Math.max(1, parseInt(e.target.value) || 30) })} /></Field>
+            <Field label={T("dashTitle")}><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
+            <Field label={T("dashDimension")}><select className="sel" value={s.dim} onChange={(e) => setSpec({ dim: e.target.value })}>{dims.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label={T("dashMeasure")}><select className="sel" value={s.measure} onChange={(e) => setSpec({ measure: e.target.value })}>{measures.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></Field>
+            <Field label={T("dashAggregation")}><select className="sel" value={s.agg} onChange={(e) => setSpec({ agg: e.target.value })}>{AGG_OPTS.map((a) => <option key={a} value={a}>{a}</option>)}</select></Field>
+            <Field label={T("dashRowLimit")}><input className="inp" type="number" min="1" max="200" value={s.limit || 30} onChange={(e) => setSpec({ limit: Math.max(1, parseInt(e.target.value) || 30) })} /></Field>
           </React.Fragment>
         ) : (
           <React.Fragment>
-            <Field label="Title"><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
-            <Field label="Text"><textarea className="inp" rows={5} value={widgetText(s)} onChange={(e) => setSpec({ text: e.target.value, html: undefined })} /></Field>
+            <Field label={T("dashTitle")}><input className="inp" value={w.title || ""} onChange={(e) => setTop({ title: e.target.value })} /></Field>
+            <Field label={T("dashText")}><textarea className="inp" rows={5} value={widgetText(s)} onChange={(e) => setSpec({ text: e.target.value, html: undefined })} /></Field>
           </React.Fragment>
         )}
         <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-          <Field label="Width"><input className="inp" type="number" min="2" max="12" value={w.w} onChange={(e) => setTop({ w: Math.max(2, Math.min(12, parseInt(e.target.value) || w.w)) })} /></Field>
-          <Field label="Height"><input className="inp" type="number" min="2" max="20" value={w.h} onChange={(e) => setTop({ h: Math.max(2, parseInt(e.target.value) || w.h) })} /></Field>
+          <Field label={T("dashWidth")}><input className="inp" type="number" min="2" max="12" value={w.w} onChange={(e) => setTop({ w: Math.max(2, Math.min(12, parseInt(e.target.value) || w.w)) })} /></Field>
+          <Field label={T("dashHeight")}><input className="inp" type="number" min="2" max="20" value={w.h} onChange={(e) => setTop({ h: Math.max(2, parseInt(e.target.value) || w.h) })} /></Field>
         </div>
       </div>
     );
@@ -363,6 +371,8 @@
 
   // ---------- Right: add widgets / inspector ----------
   function DashPanel() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const dash = useStore((s) => s.dash);
     const activeId = useStore((s) => s.activeId);
     const { columns } = derive.getActiveData(activeId);
@@ -384,32 +394,32 @@
     return (
       <div className="dashpanel">
         <div className="cp-block">
-          <div className="cp-blocktitle">Add widget</div>
+          <div className="cp-blocktitle">{T("dashAddWidget")}</div>
           <div className="addgrid">
             <button className="addtile" disabled={!m0} title={m0 ? "" : "측정값(숫자) 컬럼이 필요합니다"} onClick={() => add({ type: "kpi", w: 3, h: 2, spec: { measure: m0.key, agg: "avg", label: m0.label, fmt: "num" } })}><Icon name="kpi" size={18} /><span>KPI</span></button>
-            <button className="addtile" disabled={!m0 || !d0} title={m0 && d0 ? "" : "차원·측정값 컬럼이 필요합니다"} onClick={() => add({ type: "chart", w: 6, h: 6, title: "New chart", spec: { chartType: "bar", cols: [d0.key], measures: [[m0.key, "avg"]] } })}><Icon name="bar" size={18} /><span>Chart</span></button>
-            <button className="addtile" disabled={!m0 || !d0} title={m0 && d0 ? "" : "차원·측정값 컬럼이 필요합니다"} onClick={() => add({ type: "table", w: 5, h: 6, title: "New table", spec: { dim: d0.key, measure: m0.key, agg: "avg" } })}><Icon name="table" size={18} /><span>Table</span></button>
-            <button className="addtile" onClick={() => add({ type: "text", w: 4, h: 2, title: "Note", spec: { text: "Add commentary here." } })}><Icon name="text" size={18} /><span>Text</span></button>
+            <button className="addtile" disabled={!m0 || !d0} title={m0 && d0 ? "" : "차원·측정값 컬럼이 필요합니다"} onClick={() => add({ type: "chart", w: 6, h: 6, title: T("dashNewChart"), spec: { chartType: "bar", cols: [d0.key], measures: [[m0.key, "avg"]] } })}><Icon name="bar" size={18} /><span>{T("dashChart")}</span></button>
+            <button className="addtile" disabled={!m0 || !d0} title={m0 && d0 ? "" : "차원·측정값 컬럼이 필요합니다"} onClick={() => add({ type: "table", w: 5, h: 6, title: T("dashNewTable"), spec: { dim: d0.key, measure: m0.key, agg: "avg" } })}><Icon name="table" size={18} /><span>{T("dashTable")}</span></button>
+            <button className="addtile" onClick={() => add({ type: "text", w: 4, h: 2, title: T("dashNote"), spec: { text: T("dashCommentary") } })}><Icon name="text" size={18} /><span>{T("dashText")}</span></button>
           </div>
         </div>
 
         <div className="cp-block">
-          <div className="cp-blocktitle">Cross-filtering</div>
+          <div className="cp-blocktitle">{T("dashCrossFiltering")}</div>
           <div className="cf-info">
             <Icon name="bolt" size={14} />
-            <div>Click any bar, slice or point in a chart to filter the entire dashboard in real time. Click it again to clear.</div>
+            <div>{T("dashCrossFilterDesc")}</div>
           </div>
           <div className="cf-status">
             <span className="dot" style={{ background: dash.cross ? "var(--accent)" : "var(--pos)" }} />
-            {dash.cross ? `Filtering ${getCol(columns, dash.cross.key).label} = ${dash.cross.value}` : "No active filter"}
+            {dash.cross ? `${T("dashFiltering")} ${getCol(columns, dash.cross.key).label} = ${dash.cross.value}` : T("dashNoFilter")}
           </div>
         </div>
 
         <div className="cp-block">
-          <div className="cp-blocktitle">Layout</div>
+          <div className="cp-blocktitle">{T("dashLayout")}</div>
           <div className="cf-info" style={{ background: "transparent", border: "none", padding: "0 2px" }}>
             <span style={{ fontSize: "var(--fs-11)", color: "var(--tx-lo)", lineHeight: 1.5 }}>
-              {widgets.length} widgets on a {COLS}-column grid. Toggle <b style={{ color: "var(--tx-hi)" }}>Edit layout</b> to drag, resize, duplicate or remove.
+              {T("dashLayoutDescA").replace("{n}", widgets.length).replace("{c}", COLS)}<b style={{ color: "var(--tx-hi)" }}>{T("dashEditLayout")}</b>{T("dashLayoutDescB")}
             </span>
           </div>
         </div>
@@ -418,7 +428,9 @@
   }
 
   window.DashMode = function () {
-    return <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
-      center={<DashCanvas />} right={<DashPanel />} rightTitle="Build Dashboard" />;
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
+    return <window.Workspace left={<window.DatasetTree />} leftTitle={T("dashDataExplorer")}
+      center={<DashCanvas />} right={<DashPanel />} rightTitle={T("dashBuildDashboard")} />;
   };
 })();
