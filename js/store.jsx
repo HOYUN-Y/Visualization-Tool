@@ -82,6 +82,24 @@
     return { ...s, vizSheets: sheets };
   }
 
+  // ---------- pivot sheets (multiple pivot-table tabs) ----------
+  function pivotSheetSpec() { return { rows: [], columns: [], values: [], filters: [] }; }
+  function mkPivotSheet(name, datasetId, id) {
+    return Object.assign({ id: id || mkSheetId(), name: name || "피벗 1", datasetId: datasetId || null }, pivotSheetSpec());
+  }
+  function curPivot(s) {
+    const sheets = s.pivotSheets || [];
+    return sheets.find((x) => x.id === s.pivotActive) || sheets[0];
+  }
+  function updatePivot(s, fn) {
+    const sheets = (s.pivotSheets || []).slice();
+    let i = sheets.findIndex((x) => x.id === s.pivotActive);
+    if (i < 0) i = 0;
+    if (!sheets[i]) return s;
+    sheets[i] = fn(sheets[i]);
+    return { ...s, pivotSheets: sheets };
+  }
+
   const initial = {
     theme: "dark",
     mode: "data",
@@ -90,7 +108,8 @@
     clean: {},          // { datasetId: { steps:[], cursor:0 } }
     vizSheets: [mkVizSheet("시트 1", null, "sheet-1")],   // visualization tabs
     vizActive: "sheet-1",
-    pivot: {},
+    pivotSheets: [mkPivotSheet("피벗 1", null, "pivot-1")], // pivot-table tabs
+    pivotActive: "pivot-1",
     dash: { widgets: null, cross: null, edit: false },
     tweaks: { layout: "classic", sidebar: "rail", tone: "cool", density: "compact" },
   };
@@ -381,6 +400,17 @@
         next.vizSheets = [mkVizSheet("시트 1", null, "sheet-1")];
       }
       if (!next.vizSheets.some((x) => x.id === next.vizActive)) next.vizActive = next.vizSheets[0].id;
+      // Migrate legacy single-pivot projects → one pivot sheet.
+      if (saved.pivot && !(saved.pivotSheets && saved.pivotSheets.length)) {
+        const merged = Object.assign(pivotSheetSpec(), saved.pivot);
+        next.pivotSheets = [Object.assign({ id: "pivot-1", name: "피벗 1", datasetId: null }, merged)];
+        next.pivotActive = "pivot-1";
+      }
+      delete next.pivot;
+      if (!Array.isArray(next.pivotSheets) || !next.pivotSheets.length) {
+        next.pivotSheets = [mkPivotSheet("피벗 1", null, "pivot-1")];
+      }
+      if (!next.pivotSheets.some((x) => x.id === next.pivotActive)) next.pivotActive = next.pivotSheets[0].id;
       state = next;
 
       const analysis = bundle.analysis || {};
@@ -521,8 +551,44 @@
     setDash: (patch) => setState((s) => ({ ...s, dash: { ...s.dash, ...patch } })),
     setCross: (c) => setState((s) => ({ ...s, dash: { ...s.dash, cross: c } })),
 
-    // pivot
-    setPivot: (patch) => setState((s) => ({ ...s, pivot: { ...s.pivot, ...patch } })),
+    // pivot (operates on the active pivot sheet)
+    setPivot: (patch) => setState((s) => updatePivot(s, (p) => ({ ...p, ...patch }))),
+    addPivotSheet: () => setState((s) => {
+      const n = (s.pivotSheets || []).length + 1;
+      const sh = mkPivotSheet("피벗 " + n, s.activeId, undefined);
+      return { ...s, pivotSheets: [...(s.pivotSheets || []), sh], pivotActive: sh.id };
+    }),
+    setPivotActive: (id) => setState((s) => {
+      const sh = (s.pivotSheets || []).find((x) => x.id === id);
+      if (!sh) return s;
+      return { ...s, pivotActive: id, activeId: sh.datasetId || s.activeId, ui: { ...s.ui, selCol: null } };
+    }),
+    renamePivotSheet: (id, name) => setState((s) => ({ ...s, pivotSheets: (s.pivotSheets || []).map((x) => x.id === id ? { ...x, name: name || x.name } : x) })),
+    removePivotSheet: (id) => setState((s) => {
+      const sheets = (s.pivotSheets || []);
+      if (sheets.length <= 1) return s;
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.filter((x) => x.id !== id);
+      let active = s.pivotActive;
+      if (s.pivotActive === id) { const fall = next[Math.max(0, idx - 1)] || next[0]; active = fall.id; }
+      const target = next.find((x) => x.id === active);
+      return { ...s, pivotSheets: next, pivotActive: active, activeId: (target && target.datasetId) || s.activeId };
+    }),
+    duplicatePivotSheet: (id) => setState((s) => {
+      const sheets = (s.pivotSheets || []);
+      const src = sheets.find((x) => x.id === id) || curPivot(s);
+      if (!src) return s;
+      const copy = Object.assign(JSON.parse(JSON.stringify(src)), { id: mkSheetId(), name: src.name + " 복사" });
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.slice(); next.splice(idx < 0 ? sheets.length : idx + 1, 0, copy);
+      return { ...s, pivotSheets: next, pivotActive: copy.id };
+    }),
+    setPivotSheetDataset: (id, datasetId) => setState((s) => ({
+      ...s,
+      pivotSheets: (s.pivotSheets || []).map((x) => x.id === id ? { ...x, datasetId } : x),
+      activeId: id === s.pivotActive ? (datasetId || s.activeId) : s.activeId,
+      ui: id === s.pivotActive ? { ...s.ui, selCol: null } : s.ui,
+    })),
   };
 
   function getDefaultProjectSnapshot() {

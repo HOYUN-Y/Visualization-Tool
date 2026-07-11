@@ -4,7 +4,8 @@
   const Icon = window.Icon, NODE = window.NODE;
 
   const AGGS = ["sum", "avg", "count", "countd", "min", "max", "median"];
-  const pvState = (s) => ({ rows: [], columns: [], values: [], filters: [], ...s.pivot });
+  const curPivotSheet = (s) => (s.pivotSheets || []).find((x) => x.id === s.pivotActive) || (s.pivotSheets || [])[0];
+  const pvState = (s) => ({ rows: [], columns: [], values: [], filters: [], ...(curPivotSheet(s) || {}) });
   const readField = (e) => { try { return JSON.parse(e.dataTransfer.getData("application/node-field")); } catch (x) { return null; } };
   const fmt = (v) => (v == null ? "—" : typeof v === "number" ? NODE.fmtNum(v, 1) : String(v));
   const colLabel = (columns, key) => (columns.find((c) => c.key === key) || {}).label || key;
@@ -27,6 +28,55 @@
 
   function DimChip({ label, onRemove }) {
     return <span className="pv-chip dim">{label}<span className="pv-x" onClick={onRemove}><Icon name="x" size={11} /></span></span>;
+  }
+
+  // ─── Pivot sheet tab bar (multiple pivots) ───────────────────────────────
+  function PivotTabs() {
+    const sheets = useStore((s) => s.pivotSheets);
+    const active = useStore((s) => s.pivotActive);
+    const globalActive = useStore((s) => s.activeId);
+    const [editId, setEditId] = React.useState(null);
+    const [draft, setDraft] = React.useState("");
+    const commit = () => { if (editId) actions.renamePivotSheet(editId, draft.trim()); setEditId(null); };
+    const activeSheet = sheets.find((x) => x.id === active) || sheets[0];
+    const datasets = NODE.datasets;
+    return (
+      <div className="viz-tabs">
+        <div className="viz-tabs-scroll">
+          {sheets.map((sh) => (
+            <div key={sh.id} className={"viz-tab" + (sh.id === active ? " on" : "")}
+              onClick={() => sh.id !== active && actions.setPivotActive(sh.id)}
+              onDoubleClick={() => { setEditId(sh.id); setDraft(sh.name); }}
+              title="더블클릭해서 이름 변경">
+              <Icon name="grid" size={12} style={{ opacity: 0.6 }} />
+              {editId === sh.id
+                ? <input autoFocus className="viz-tab-edit" value={draft}
+                    onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+                    onKeyDown={(e) => { if (e.key === "Enter") commit(); else if (e.key === "Escape") setEditId(null); }}
+                    onClick={(e) => e.stopPropagation()} />
+                : <span className="viz-tab-nm">{sh.name}</span>}
+              {sh.id === active && (
+                <span className="viz-tab-dup" title="탭 복제"
+                  onClick={(e) => { e.stopPropagation(); actions.duplicatePivotSheet(sh.id); }}><Icon name="duplicate" size={11} /></span>
+              )}
+              {sheets.length > 1 && (
+                <span className="viz-tab-x" title="탭 닫기"
+                  onClick={(e) => { e.stopPropagation(); actions.removePivotSheet(sh.id); }}><Icon name="x" size={11} /></span>
+              )}
+            </div>
+          ))}
+          <button className="viz-tab-add" title="새 피벗 탭" onClick={() => actions.addPivotSheet()}><Icon name="plus" size={13} /></button>
+        </div>
+        <div className="spacer" />
+        <div className="viz-tab-ds" title="이 탭의 데이터셋">
+          <Icon name="layers" size={12} style={{ opacity: 0.6 }} />
+          <select className="sel" value={activeSheet.datasetId || globalActive}
+            onChange={(e) => actions.setPivotSheetDataset(activeSheet.id, e.target.value)}>
+            {datasets.map((d) => <option key={d.id} value={d.id}>{d.short}</option>)}
+          </select>
+        </div>
+      </div>
+    );
   }
 
   function PivotPanel() {
@@ -71,6 +121,11 @@
   function PivotCenter() {
     const activeId = useStore((s) => s.activeId);
     const pv = useStore(pvState);
+    const sheet = useStore(curPivotSheet);
+    // Keep this tab's remembered dataset in sync with the active dataset.
+    React.useEffect(() => {
+      if (sheet && sheet.datasetId !== activeId) actions.setPivotSheetDataset(sheet.id, activeId);
+    }, [activeId, sheet && sheet.id]);
     const { ds, rows, columns } = derive.getActiveData(activeId);
     const [name, setName] = React.useState("");
 
@@ -98,6 +153,7 @@
     const hasCols = pv.columns.length > 0;
     return (
       <React.Fragment>
+        <PivotTabs />
         <div className="phead">
           <span className="ttl" style={{ color: "var(--tx-hi)", textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0 }}>
             <Icon name="grid" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />Pivot Table
