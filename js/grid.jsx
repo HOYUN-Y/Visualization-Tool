@@ -325,7 +325,7 @@
                 <div className="sep" />
                 <div className="pi" onClick={() => startHead(menu.key, (columns.find((c) => c.key === menu.key) || {}).label || menu.key)}><Icon name="edit" /> Rename…</div>
                 <div className="ph">Change type</div>
-                {[["string", "Text"], ["integer", "Integer"], ["float", "Decimal"], ["category", "Category"], ["datetime", "Date"]].map(([t, lbl]) => (
+                {[["string", "Text"], ["integer", "Integer"], ["float", "Decimal"], ["category", "Category"], ["datetime", "Date"], ["boolean", "True/False"]].map(([t, lbl]) => (
                   <div className="pi" key={t} onClick={() => { edit.onChangeType(menu.key, t); setMenu(null); }} style={{ paddingLeft: 18 }}>
                     <span className={"th-type " + typeShort(t).cls} style={{ minWidth: 26, textAlign: "center" }}>{typeShort(t).label}</span> {lbl}
                   </div>
