@@ -622,13 +622,29 @@
       ? `${measures.map((m) => `${m.agg.toUpperCase()}(${m.label})`).join(", ")} by ${viz.cols.map((c) => c.label).join(", ")}`
       : "Untitled visualization";
 
+    const exportPNG = () => {
+      const ok = window.Charts.downloadPNG("insight-" + (viz.type || "chart"));
+      if (!ok) alert("차트를 먼저 그려주세요. / Draw a chart first.");
+      else window.LOG && window.LOG.info("export", "Chart PNG exported");
+    };
+    const saveToDash = () => {
+      if (!measures.length) { alert("측정값을 먼저 올려주세요. / Add a measure first."); return; }
+      const st = window.Store.getState();
+      const widgets = (st.dash.widgets || []).slice();
+      widgets.push({ id: "w" + Date.now(), type: "chart", x: 0, y: 99, w: 6, h: 6, title,
+        spec: { chartType: viz.type, cols: viz.cols.map((c) => c.key), measures: measures.map((m) => [m.key, m.agg || "sum"]), color: viz.color ? viz.color.key : undefined } });
+      actions.setDash({ widgets });
+      window.LOG && window.LOG.info("viz", "Saved chart to dashboard");
+      alert("대시보드에 추가되었습니다. / Added to dashboard.");
+    };
+
     return (
       <React.Fragment>
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>{title}</span>
           <div className="spacer" />
-          <button className="btn ghost sm"><Icon name="download" /> PNG</button>
-          <button className="btn sm"><Icon name="save" /> Save to dashboard</button>
+          <button className="btn ghost sm" onClick={exportPNG}><Icon name="download" /> PNG</button>
+          <button className="btn sm" onClick={saveToDash}><Icon name="save" /> Save to dashboard</button>
         </div>
         <div className="shelfbar">
           <Shelf label={T("vizColumns")} kind="cols" chips={colsChips} accept={T("vizColumnsHint")} />

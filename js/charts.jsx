@@ -97,9 +97,10 @@
     try {
       const url = inst.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: resolveVar("--bg-1") });
       const a = document.createElement("a");
-      a.href = url; a.download = (filename || "chart") + ".png"; a.click();
+      a.href = url; a.download = (filename || "chart") + ".png";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       return true;
-    } catch (e) { return false; }
+    } catch (e) { window.LOG && window.LOG.error && window.LOG.error("export", "PNG failed: " + e.message); return false; }
   }
 
   function downloadCSV(rows, columns, filename) {
@@ -113,7 +114,8 @@
     const blob = new Blob([header + "\n" + body], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = (filename || "data") + ".csv"; a.click();
+    a.href = url; a.download = (filename || "data") + ".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     return true;
   }
