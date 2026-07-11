@@ -14,14 +14,16 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Phase 1 i18n 완료** (7파일 한/영). 다음: Phase 2 P3 엔진 UI 배선 |
-| Status | 병합→i18n→P3→P9→DuckDB 로드맵. Phase 0(병합)·1(i18n 7파일) 완료. `feat/i18n` 브랜치. |
-| Branch | **`feat/i18n`** (main에서 분기). Phase 2는 `feat/analytics-wiring` 분기 예정 |
+| Current milestone | **Phase 2 P3 엔진 배선 완료**(시각검증 대기). 다음: Phase 3 P9 Excel 편집 |
+| Status | 병합→i18n→P3→P9→DuckDB. Phase 0·1·2 완료. `feat/analytics-wiring` 브랜치(main 미병합, 아침 검토용). |
+| Branch | **`feat/analytics-wiring`** (main+Phase1에서 분기). Phase 0·1은 local main에 병합됨(미push). |
 | Base commit | `65754ab` — merge: Core v2 (main) |
-| Last checkpoint commit | `ea9fd16` — i18n sql+ai (Phase 1f/1g) |
-| Working tree | 깨끗. Phase 1: i18n.js(대칭 dict 대폭 확장)·7개 모드 .jsx 배선 |
-| Last verified | 2026-07-12 — Node 225/225, tsc TS1xxx 0, asset v=261. **origin 미push** |
+| Last checkpoint commit | `80287a0` — P3 엔진 3종 배선 (Phase 2) |
+| Working tree | 깨끗. Phase 2: statsMode/cleanMode/mapMode에 TSDecomp/Outliers/GeoMatch 배선 |
+| Last verified | 2026-07-12 — Node 225/225, tsc TS1xxx 0, asset v=262. **origin 미push** |
 | Updated at | 2026-07-12 |
+
+> ☀️ **아침 브라우저 게이트**: Phase 2 P3 3종 렌더 확인 — (1) Stats›Time Series의 View=decomposition 토글→Original/Trend/Seasonal/Residual 4단 차트, (2) Clean 이슈바 "다변량 이상치" 카드→제거, (3) Map›내 데이터 "단계구분도" 모드→지역명 매칭 채색. 문제 없으면 `feat/analytics-wiring`→main 병합.
 
 > 활성 계획: `~/.claude/plans/temporal-juggling-fountain.md` (Phase 0~4 체크리스트). 실브라우저 검증은 Claude Desktop/Fable로 대체.
 
@@ -33,6 +35,16 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (Phase 2: P3 미배선 엔진 3종 UI 배선)
+
+밤샘/Batch C에서 만들어 Node 테스트까지 끝났지만 화면이 없던 엔진 3종을 UI에 연결(`80287a0`). 엔진은 이미 테스트되어 배선만 추가. Node 225/225. **실제 렌더는 브라우저 확인 필요(아침 게이트).** 각 파일 독립이라 서브에이전트 3기 병렬 → 메인이 diff+tsc 검수.
+
+- **2A TSDecomp → Stats › Time Series**(statsMode +65줄): `cfg.tsView` 토글(smoothing|decomposition). decomposition 시 config에 period `seg`[4/7/12/52]·additive/multiplicative 추가, 렌더는 기존 정렬 series로 `TSDecomp.decompose` → Original/Trend/Seasonal/Residual 4단 스택 EChart. period<2/n<2·period throw는 try/catch로 "Not enough data".
+- **2B Outliers → Clean 이슈바**(cleanMode +13줄): `issues` useMemo에 numeric measure 컬럼(≥2)으로 `Outliers.detect` 추가 → 4번째 `<Issue>` "다변량 이상치" 카드. 제거는 `results[].index`→`__rid`→기존 `actions.deleteRows`. `!ok`(특이공분산)/컬럼<2면 카드 없음(무크래시).
+- **2C GeoMatch → Map › 내 데이터**(mapMode +107줄): `useBaseMap`에 `_baseMapNames` 캐시+getter 추가해 geojson 지역명(remap 후) 노출. `mode:"points"|"choropleth"` 토글, choropleth 시 `GeoMatch.bestColumn` 자동감지+"지역 컬럼" 셀렉터, `match`로 data→geoName 매핑·**합계 집계**, `series:[{type:"map"}]`+visualMap(province 패턴 재사용). 매칭률/미매칭 note, 매칭 실패 시 안내.
+
+**NEXT: Phase 3 P9 — Excel식 편집(grid.jsx + store `set_cells` 배치 op). `feat/excel-edit` 분기.**
 
 ## 세션 기록 — 2026-07-12 (Phase 1: i18n 커버리지 — 7파일 한/영)
 
