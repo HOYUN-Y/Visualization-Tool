@@ -8,11 +8,23 @@ All notable changes to insight Analytics Workbench are documented here.
 
 ### Planned (아직 미구현)
 - SQL JOIN/window 및 DuckDB-WASM 전환
-- Auto Chart Recommendation
-- PCA + Biplot + Scree Plot
-- Logistic Regression, Decision Tree, Naive Bayes, ROC/AUC, Precision-Recall Curve, Cross Validation
-- SPC Control Charts (X-Bar/R/S/P/C/U), Process Capability (Cp/Cpk/Pp/Ppk)
-- Moving Average, Exponential Smoothing, Seasonal Decomposition, ACF/PACF
+- Decision Tree, Naive Bayes, Cross Validation, Seasonal Decomposition
+- 배포 시 차트 공유 링크
+- PPT 네이티브 차트 매핑 확장(스택/보조축/캔들 등)
+
+### Added — 차트 서식 & 내보내기 (Chart Format & Export, `feat/analytics`)
+> Chart 모드 우측 패널을 **차트 / 서식** 서브탭으로 분리하고, 서식은 PowerPoint식 **카테고리 드롭다운**으로 정리.
+- **복합 차트**: 막대/라인/영역에서 측정값별 마크(막대·라인·영역) 지정 → 자동 combo, 스케일 다른 지표는 **보조축(우측)** 분리
+- **제목**: 텍스트 + 9방향(세로×가로) 위치 + 자유 드래그
+- **범례**: 표시·9방향 위치 + **자유 드래그 배치**(주황 오버레이+핸들+이동완료)
+- **값 레이블**: 표시·형식(Full/Compact)·위치
+- **축**: X/Y min·max 스케일(극적 표현), X/Y 레이블 방향(자동/가로/45°/세로)
+- **격자·보조선**: 표시(투명)·굵기·색상·빈도
+- **배경색** · **텍스트**(색·크기·굵게·기울임)
+- **계열(다중선택 리스트)**: 계열 선택 후 공통(색·파이 조각분리) 일괄 / 개별(이름·라인 굵기는 단일·동일타입 선택 시). 파이 조각별 색·굵기(도넛)·분리, 막대 간격, 계열별 선 굵기
+- **크기 조절**: 프리셋(Auto/S/M/L/XL) + **네 모서리 드래그 리사이즈**(각 모서리는 자기 변만 이동, 반대편 고정) + **리사이즈 대상 전체/플롯만** 선택
+- **내보내기 메뉴**: 클립보드 복사(PPT에 Ctrl+V) · PNG(현재/흰색/투명 배경) · **SVG 벡터** · **PowerPoint .pptx(데이터 편집 가능, PptxGenJS 벤더링)**
+- **버그수정**: 차트 전체 빈화면(oklch→canvas 폴백), PNG/Save-to-dashboard 죽은 버튼 연결
 
 ### Documentation
 - 현재 코드 기준으로 기능 현황 동기화: 차트 20종, 기본 데이터셋 7종, Map 3개 탭, Import/Export 지원 범위

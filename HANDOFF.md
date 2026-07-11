@@ -107,6 +107,10 @@ js/
   spc.js                   # window.SPC — control charts (I-MR/X-bar/p/c/u), Cp/Cpk, Pareto
   clustering.js            # window.Clustering — DBSCAN + agglomerative hierarchical (Lance-Williams)
   i18n.js                  # window.I18N — ko/en dictionary + t(lang,key); lang in tweaks.lang
+  chartAdvisor.js          # window.ChartAdvisor — rule-based chart-type recommendation (Show Me)
+  pptxExport.js            # window.PptxExport — native .pptx chart export (needs vendor/pptxgenjs)
+  # vizMode.jsx: FormatPanel (title/legend/labels/axis/grid/bg/text/series/size), applyFormat post-processor,
+  #   chart resize handles, legend/title free-drag, Export menu (PNG/SVG/clipboard/PPTX). viz.format holds all overrides.
   # ML mode wires Logistic/PCA/DBSCAN/Hierarchical; Stats mode wires Q-Q/Time Series/SPC
   charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors
   grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap

@@ -14,14 +14,14 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 분석 엔진 UI 배선 + 사용자 피드백 반영 (진행) |
-| Status | Core v2 M3~M5 + 분석 엔진 6종 + Stats/ML UI 배선 완료. 차트 oklch 버그 수정·i18n·축라벨 반영. |
+| Current milestone | 차트 서식·내보내기 대폭 확장 (사용자 대화형, 진행) |
+| Status | Core v2 M3~M5 + 분석엔진 6종 UI + **차트 Format/Export 전면 확장** 완료. main 대비 52커밋. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | (Batch G) ChartAdvisor + Show Me 배너 |
-| Working tree | 6종 엔진 UI + Batch G(라벨정직·PACF·Cp/Cpk·PR곡선·Auto Chart Rec) 완료; `.DS_Store` 제외 |
-| Last verified | 2026-07-11 — Node 98/98, JSX 구문검사(tsc) OK, runner 11엔진 로드, asset v=208 |
-| Updated at | 2026-07-11 (밤샘 자율 세션) |
+| Last checkpoint commit | `e39d1b1` — Series 다중선택 리스트 |
+| Working tree | 차트 서식(제목/범례/축/격자/배경/텍스트/계열)·리사이즈·내보내기(PNG/SVG/클립보드/PPTX) 완료; `.DS_Store` 제외 |
+| Last verified | 2026-07-11 — Node 98/98, JSX 구문검사(tsc) OK, PptxGenJS 벤더링(SHA기록), asset v=229 |
+| Updated at | 2026-07-11 |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
 
@@ -32,11 +32,22 @@
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
 
-## NEXT EXACT ACTION
+## 세션 기록 — 2026-07-11 (대화형: 차트 서식·내보내기)
 
-1. (진행) 최종 전체 재검증 + 브라우저 스모크 테스트(사용자 지시): 로컬 서버 + Chrome로 index.html 로드, 콘솔 오류 0 확인, Pivot/Combine/Dashboard Inspector 클릭 확인. 문제 시 수정→재검증 반복.
-2. 분석 엔진 6종은 window.* 라이브러리로 로드됨. Stats/ML 모드 UI 배선(PCA/Logistic/시계열/QQ/SPC/클러스터링 시각화)은 아침 게이트에서 논의·구현.
-3. 아침: 브랜치 스택 순서 병합 게이트(§아침 인계).
+밤샘 자율(M3~M5+분석엔진) 이후, 사용자와 대화형으로 **Chart 모드 서식/내보내기**를 대폭 확장. 모두 `feat/analytics`에 커밋(main 대비 52). 매 변경 JSX 구문검사(tsc)+Node 98/98 통과, asset 버전 bump로 캐시버스트.
+
+주요 커밋 흐름:
+- `be4a7a8` 차트 oklch→canvas 폴백 버그 수정(전체 빈화면) · `e5c459f` i18n(한/영) · `6042be3` Tweaks→설정, Accent 제거
+- `8664022` 복합차트(측정값별 마크)+보조축 · `cdfc31f` PNG/Save 버튼 연결
+- `4deaaeb`~`f7c3f0e` Format 패널(범례/레이블/색/격자/스무딩) → 서브탭(차트/서식) → 범례 9방향+자유드래그 → 높이/4모서리 리사이즈
+- `bdeca6f` Format 드롭다운(배경/축스케일/격자/텍스트) · `1088d7a`~`c0bd0dd` 내보내기(SVG/클립보드/**PPTX 데이터편집**, PptxGenJS 벤더링)
+- `313fc2c` 리사이즈 대상(전체/플롯만) · `898eace`~`e39d1b1` 계열 세부(막대간격/선굵기/파이굵기·분리) → **계열 다중선택 리스트**
+
+## 남은 것 / NEXT
+
+1. **브라우저 실사용 검증**(사용자): 각 서식·리사이즈·내보내기(SVG/클립보드/PPTX) 실제 동작 확인. (자동화 Chrome이 localhost 미접근 → 사용자 환경 필요)
+2. main 병합 게이트: `feat/analytics`까지 52커밋 스택 검토→승인→`--no-ff` 병합→태그. 원격 push는 외부전송 승인 후.
+3. 추가 후보: PPT 네이티브 차트 매핑 확장(스택/보조축), 배포 시 공유 링크, statusLine(셸 PS1 없어 표시항목 미정 대기).
 
 ## ACTIVE CHECKPOINT (Core v2 M3~M5 완료)
 
