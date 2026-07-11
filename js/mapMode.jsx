@@ -682,6 +682,10 @@
       bounds: { latMin: 37.4, latMax: 37.72, lonMin: 126.7, lonMax: 127.22 }, proj: (lon, lat) => [lon, lat] },
   };
   const _baseMapState = { world: "idle", korea: "idle", seoul: "idle" };
+  // Region (feature) names of each loaded base map, captured AFTER the EN→KO remap.
+  // Used by the choropleth mode to match a data column against the map's regions.
+  const _baseMapNames = { world: null, korea: null, seoul: null };
+  function getBaseMapNames(base) { return _baseMapNames[base] || []; }
 
   function useBaseMap(base) {
     const [st, setSt] = React.useState(_baseMapState[base]);
@@ -695,6 +699,7 @@
         if (!alive) return;
         if (bm.remap) gj.features.forEach((f) => { const e = f.properties && f.properties.name; if (e && bm.remap[e]) f.properties.name = bm.remap[e]; });
         echarts.registerMap(bm.mapName, gj);
+        _baseMapNames[base] = gj.features.map((f) => f.properties && f.properties.name).filter((n) => n != null);
         _baseMapState[base] = "ok"; setSt("ok");
       }).catch(() => { if (!alive) return; _baseMapState[base] = "fail"; setSt("fail"); });
       return () => { alive = false; };
@@ -707,15 +712,18 @@
     const activeId = useStore((s) => s.activeId);
     const { ds, rows } = derive.getActiveData(activeId);
     const [base, setBase] = React.useState("world");
+    const [mode, setMode] = React.useState("points");   // "points" | "choropleth"
     const mapState = useBaseMap(base);
     const detect = React.useMemo(() => detectGeoColumns(ds.columns || []), [activeId]);
     const [latCol, setLatCol] = React.useState(null);
     const [lonCol, setLonCol] = React.useState(null);
     const [valCol, setValCol] = React.useState(null);
     const [labelCol, setLabelCol] = React.useState(null);
+    const [regionCol, setRegionCol] = React.useState(null);
     React.useEffect(() => {
       setLatCol(detect.latCol); setLonCol(detect.lonCol);
       setValCol(detect.valCols[0] ? detect.valCols[0].key : null); setLabelCol(null);
+      setRegionCol(null);
     }, [activeId]);
 
     const allCols = ds.columns || [];
@@ -723,6 +731,38 @@
     const strCols = allCols.filter((c) => c.type === "string" || c.type === "category");
     const c = Charts.themeColors(); const pal = Charts.palette();
     const bm = BASE_MAPS[base];
+
+    // Region names of the current base map (empty until it finishes loading).
+    const geoNames = mapState === "ok" ? getBaseMapNames(base) : [];
+    // Auto-pick the best region column for choropleth once the map is loaded / base changes.
+    const bestRegion = React.useMemo(() => {
+      if (mode !== "choropleth" || mapState !== "ok" || !geoNames.length) return null;
+      return window.GeoMatch.bestColumn(allCols, rows, geoNames);
+    }, [mode, mapState, base, activeId]);
+    React.useEffect(() => {
+      if (mode !== "choropleth") return;
+      const auto = bestRegion ? bestRegion.key : (strCols[0] ? strCols[0].key : null);
+      setRegionCol(auto);
+    }, [mode, bestRegion]);
+
+    // Build choropleth data: match distinct region-column values → canonical geo names,
+    // then aggregate the value column by geo name (SUM; row-count when no value column).
+    const choro = React.useMemo(() => {
+      if (mode !== "choropleth" || mapState !== "ok" || !geoNames.length || !regionCol) return null;
+      const distinct = [];
+      const seen = new Set();
+      rows.forEach((r) => { const v = r[regionCol]; if (v != null && v !== "") { const k = String(v); if (!seen.has(k)) { seen.add(k); distinct.push(k); } } });
+      const mr = window.GeoMatch.match(distinct, geoNames);
+      const agg = new Map();  // geoName → summed value
+      rows.forEach((r) => {
+        const rv = r[regionCol]; if (rv == null || rv === "") return;
+        const g = mr.map[String(rv)]; if (!g) return;
+        const add = valCol ? (typeof r[valCol] === "number" ? r[valCol] : 0) : 1;
+        agg.set(g, (agg.get(g) || 0) + add);
+      });
+      const data = Array.from(agg.entries()).map(([name, value]) => ({ name, value }));
+      return { data, matched: mr.matched, total: mr.total, rate: mr.rate, unmatched: mr.unmatched };
+    }, [mode, mapState, base, regionCol, valCol, activeId]);
 
     const valid = React.useMemo(() => {
       if (!latCol || !lonCol) return [];
@@ -738,7 +778,7 @@
     const vMin = vals.length ? Math.min(...vals) : 0, vMax = vals.length ? Math.max(...vals) : 1;
     const sz = vals.length ? (v) => 6 + ((v - vMin) / (vMax - vMin || 1)) * 30 : () => 10;
 
-    const option = (mapState === "ok" && valid.length) ? {
+    const pointsOption = (mapState === "ok" && valid.length) ? {
       animation: false,
       tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
         formatter: (p) => {
@@ -760,6 +800,27 @@
         encode: { value: 2 } }],
     } : null;
 
+    // Choropleth option — reuses the province choropleth pattern (type:"map" + visualMap).
+    const cVals = choro ? choro.data.map((d) => d.value) : [];
+    const cMin = cVals.length ? Math.min(...cVals) : 0, cMax = cVals.length ? Math.max(...cVals) : 1;
+    const valLabel = valCol ? valCol : "건수";
+    const choroOption = (choro && choro.data.length) ? {
+      animation: false,
+      tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
+        formatter: (p) => `<b>${p.name}</b><br/>${valLabel}: <b>${p.value != null && !isNaN(p.value) ? NODE.fmtNum(p.value, 1) : "—"}</b>` },
+      visualMap: { min: cMin, max: cMax, calculable: true, left: 12, bottom: 18, orient: "vertical",
+        itemHeight: 120, text: [NODE.fmtNum(cMax, 0), NODE.fmtNum(cMin, 0)],
+        textStyle: { color: c.text, fontSize: 10 }, inRange: { color: [Charts.resolveVar("--bg-3"), pal[0]] } },
+      series: [{ type: "map", map: bm.mapName, roam: true, scaleLimit: { min: 1, max: 10 },
+        data: choro.data,
+        label: { show: false, color: c.text, fontSize: 8.5, fontFamily: "IBM Plex Sans" },
+        itemStyle: { borderColor: c.bg, borderWidth: 0.5 },
+        emphasis: { label: { show: true, color: c.textHi, fontSize: 10 }, itemStyle: { areaColor: pal[0] } },
+        select: { itemStyle: { areaColor: Charts.resolveVar("--accent-hi") }, label: { color: "#fff" } } }],
+    } : null;
+
+    const option = mode === "choropleth" ? choroOption : pointsOption;
+
     const selStyle = { fontSize: 11, background: "var(--bg-2)", color: "var(--tx-mid)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", padding: "2px 6px", cursor: "pointer" };
     return (
       <React.Fragment>
@@ -770,26 +831,42 @@
           <div className="seg" style={{ marginLeft: 6 }}>
             {Object.keys(BASE_MAPS).map((k) => <button key={k} className={base === k ? "on" : ""} onClick={() => setBase(k)}>{BASE_MAPS[k].label}</button>)}
           </div>
-          <div className="spacer" />
-          <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>위도</span>
-            <select value={latCol || ""} onChange={(e) => setLatCol(e.target.value || null)} style={selStyle}><option value="">—</option>{allCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
-            <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>경도</span>
-            <select value={lonCol || ""} onChange={(e) => setLonCol(e.target.value || null)} style={selStyle}><option value="">—</option>{allCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
-            <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>값</span>
-            <select value={valCol || ""} onChange={(e) => setValCol(e.target.value || null)} style={selStyle}><option value="">없음</option>{numCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
-            <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>라벨</span>
-            <select value={labelCol || ""} onChange={(e) => setLabelCol(e.target.value || null)} style={selStyle}><option value="">없음</option>{strCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+          <div className="seg" style={{ marginLeft: 6 }}>
+            <button className={mode === "points" ? "on" : ""} onClick={() => setMode("points")}>점</button>
+            <button className={mode === "choropleth" ? "on" : ""} onClick={() => setMode("choropleth")}>단계구분도</button>
           </div>
+          <div className="spacer" />
+          {mode === "choropleth" ? (
+            <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>지역 컬럼</span>
+              <select value={regionCol || ""} onChange={(e) => setRegionCol(e.target.value || null)} style={selStyle}><option value="">—</option>{strCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+              <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>값(합계)</span>
+              <select value={valCol || ""} onChange={(e) => setValCol(e.target.value || null)} style={selStyle}><option value="">건수</option>{numCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>위도</span>
+              <select value={latCol || ""} onChange={(e) => setLatCol(e.target.value || null)} style={selStyle}><option value="">—</option>{allCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+              <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>경도</span>
+              <select value={lonCol || ""} onChange={(e) => setLonCol(e.target.value || null)} style={selStyle}><option value="">—</option>{allCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+              <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>값</span>
+              <select value={valCol || ""} onChange={(e) => setValCol(e.target.value || null)} style={selStyle}><option value="">없음</option>{numCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+              <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>라벨</span>
+              <select value={labelCol || ""} onChange={(e) => setLabelCol(e.target.value || null)} style={selStyle}><option value="">없음</option>{strCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+            </div>
+          )}
         </div>
         {mapState === "idle" && <div className="map-note"><Icon name="info" size={12} /> 지도 로딩 중…</div>}
         {mapState === "fail" && <div className="map-note"><Icon name="info" size={12} /> 지도를 불러올 수 없습니다 (jsDelivr CDN 필요)</div>}
-        {mapState === "ok" && (!latCol || !lonCol) && <div className="map-note"><Icon name="info" size={12} /> 위도·경도 컬럼을 선택하세요 (자동 감지되면 미리 채워집니다)</div>}
-        {mapState === "ok" && latCol && lonCol && !valid.length && <div className="map-note"><Icon name="info" size={12} /> {bm.label} 영역 내 좌표가 없습니다 · 다른 베이스 지도를 골라보세요</div>}
+        {mode === "points" && mapState === "ok" && (!latCol || !lonCol) && <div className="map-note"><Icon name="info" size={12} /> 위도·경도 컬럼을 선택하세요 (자동 감지되면 미리 채워집니다)</div>}
+        {mode === "points" && mapState === "ok" && latCol && lonCol && !valid.length && <div className="map-note"><Icon name="info" size={12} /> {bm.label} 영역 내 좌표가 없습니다 · 다른 베이스 지도를 골라보세요</div>}
+        {mode === "choropleth" && mapState === "ok" && !regionCol && <div className="map-note"><Icon name="info" size={12} /> 지역명 컬럼을 찾지 못했습니다 · 지역 컬럼을 직접 선택하세요</div>}
+        {mode === "choropleth" && choro && <div className="map-note" style={choro.rate < 0.5 ? {} : { background: "var(--accent-soft)", borderColor: "var(--accent)" }}><Icon name={choro.rate < 0.5 ? "info" : "bolt"} size={12} /> 지역 매칭 {choro.matched}/{choro.total} ({Math.round(choro.rate * 100)}%){choro.unmatched.length ? ` · 미매칭 ${choro.unmatched.length}건` : ""} · 값 합계(sum) 집계</div>}
+        {mode === "choropleth" && mapState === "ok" && regionCol && choro && !choro.data.length && <div className="map-note"><Icon name="info" size={12} /> {bm.label} 지도와 일치하는 지역이 없습니다 · 다른 베이스 지도나 지역 컬럼을 골라보세요</div>}
         <div className="vizcanvas" style={{ padding: 0 }}>
           {option
-            ? <EChart option={option} theme={theme + base + (latCol || "") + (lonCol || "") + (valCol || "") + (labelCol || "")} style={{ height: "100%" }} />
-            : <div className="empty"><Icon name="map" /><div className="t">내 데이터를 지도에</div><div className="s">활성 데이터셋에 위·경도 컬럼이 있으면 자동으로 점 지도를 그립니다. 상단에서 베이스 지도(세계·한국·서울)와 컬럼을 고르세요.</div></div>}
+            ? <EChart option={option} theme={theme + base + mode + (latCol || "") + (lonCol || "") + (valCol || "") + (labelCol || "") + (regionCol || "")} style={{ height: "100%" }} />
+            : <div className="empty"><Icon name="map" /><div className="t">내 데이터를 지도에</div><div className="s">{mode === "choropleth" ? "지역명 컬럼(국가·시도·구명)을 값과 함께 지도에 채색합니다. 상단에서 베이스 지도와 지역 컬럼을 고르세요." : "활성 데이터셋에 위·경도 컬럼이 있으면 자동으로 점 지도를 그립니다. 상단에서 베이스 지도(세계·한국·서울)와 컬럼을 고르세요."}</div></div>}
         </div>
       </React.Fragment>
     );

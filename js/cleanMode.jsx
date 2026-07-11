@@ -77,7 +77,16 @@
         const n = rows.filter((r) => r[c.key] != null && (r[c.key] < lo || r[c.key] > hi)).length;
         if (n > outliers) { outliers = n; outCol = c.key; }
       }
-      return { missing, totalMissing, dups, outliers, outCol };
+      let mv = null;
+      const mvKeys = columns.filter((c) => isNumType(c.type) && c.role === "measure").map((c) => c.key);
+      if (mvKeys.length >= 2 && window.Outliers) {
+        const result = window.Outliers.detect(rows, mvKeys);
+        if (result.ok && result.outliers.length > 0) {
+          const rids = result.outliers.map((i) => rows[i].__rid).filter((x) => x != null);
+          mv = { count: result.outliers.length, cols: mvKeys.length, rids };
+        }
+      }
+      return { missing, totalMissing, dups, outliers, outCol, mv };
     }, [rows, columns]);
 
     const missCols = Object.keys(issues.missing);
@@ -102,6 +111,8 @@
             action={issues.dups ? { txt: T("cleanDropDupes"), fn: () => actions.addStep({ op: "drop_duplicates", col: null }) } : null} />
           <Issue ok={!issues.outliers} icon="filter" label={T("cleanOutliers")} val={issues.outliers} sub={issues.outCol}
             action={issues.outliers ? { txt: T("cleanRemove"), fn: () => actions.addStep({ op: "remove_outliers", col: issues.outCol }) } : null} />
+          {issues.mv && <Issue ok={false} icon="filter" label="다변량 이상치" val={issues.mv.count} cols={issues.mv.cols}
+            action={{ txt: T("cleanRemove"), fn: () => actions.deleteRows(issues.mv.rids) }} />}
           <div className="spacer" />
           <div className="issue-meta">
             <span className="mono">{rows.length}</span> {T("cleanRowsAfter")} <span className="mono">{cursor}</span> {T("cleanSteps")}
