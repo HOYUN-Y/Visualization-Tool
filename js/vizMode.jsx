@@ -779,11 +779,13 @@
       const startX = e.clientX, startY = e.clientY;
       const startH = canvasRef.current ? canvasRef.current.clientHeight : 400;
       const startW = canvasRef.current ? canvasRef.current.clientWidth : 600;
+      const startOffTop = (viz.format && viz.format.offsetTop) || 0;
+      const bottomPos = startOffTop + startH;          // keep the bottom edge fixed for the top handle
       document.body.style.cursor = (edge === "left" || edge === "right") ? "ew-resize" : "ns-resize";
       const move = (ev) => {
         const patch = {};
         if (edge === "bottom") patch.height = clampV(startH + (ev.clientY - startY), 180, 1800);
-        else if (edge === "top") patch.height = clampV(startH - (ev.clientY - startY), 180, 1800);
+        else if (edge === "top") { const off = clampV(startOffTop + (ev.clientY - startY), 0, bottomPos - 180); patch.offsetTop = off; patch.height = bottomPos - off; }
         else if (edge === "right") patch.width = clampV(startW + (ev.clientX - startX), 260, 3200);
         else if (edge === "left") patch.width = clampV(startW - (ev.clientX - startX), 260, 3200);
         actions.setFormat(patch);
@@ -805,7 +807,7 @@
           <Shelf label={T("vizRows")} kind="rows" chips={rowChips} accept={T("vizRowsHint")} />
         </div>
         <div className="vizcanvas" style={{ display: "flex", flexDirection: "column", alignItems: chartW ? "center" : "stretch", overflow: (chartH || chartW) ? "auto" : "hidden" }}>
-          <div className="viz-chart-area" ref={canvasRef} style={{ position: "relative", flex: chartH ? "0 0 auto" : "1 1 auto", height: chartH || "auto", width: chartW || "100%", minHeight: 0 }}>
+          <div className="viz-chart-area" ref={canvasRef} style={{ position: "relative", flex: chartH ? "0 0 auto" : "1 1 auto", height: chartH || "auto", width: chartW || "100%", marginTop: chartH ? ((viz.format && viz.format.offsetTop) || 0) : 0, minHeight: 0 }}>
             {viz.type === "facet"
               ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
               : (measures.length || viz.cols.length
@@ -976,7 +978,7 @@
               <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Grid lines</span>
                 <div className="seg"><button className={fmt.gridlines !== false ? "on" : ""} onClick={() => setF({ gridlines: true })}>On</button><button className={fmt.gridlines === false ? "on" : ""} onClick={() => setF({ gridlines: false })}>Off</button></div></div>
               <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>크기 / Size</span>
-                <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(!fmt.width && (fmt.height || null) === h) ? "on" : ""} onClick={() => setF(h === null ? { height: null, width: null } : { height: h })}>{s}</button>)}</div></div>
+                <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(!fmt.width && (fmt.height || null) === h) ? "on" : ""} onClick={() => setF(h === null ? { height: null, width: null, offsetTop: 0 } : { height: h, offsetTop: 0 })}>{s}</button>)}</div></div>
               <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 8px" }}>차트 모서리(상·하·좌·우)를 드래그해 크기 조절 · Auto로 초기화</div>
               {isLine && (
                 <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Smooth</span>
