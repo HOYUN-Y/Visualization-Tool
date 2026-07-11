@@ -18,9 +18,9 @@
 | Status | Core v2 M3~M5 + 분석 엔진 6종 + Stats/ML UI 배선 완료. 차트 oklch 버그 수정·i18n·축라벨 반영. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `f4e5d23` — Stats QQ/TimeSeries/SPC UI |
-| Working tree | 6종 엔진 UI 배선 완료; `.DS_Store` 사용자 변경 제외 |
-| Last verified | 2026-07-11 — Node 90/90, JSX 구문검사(tsc) OK, UI-consumed 엔진 필드 검증 통과, 차트 브라우저 렌더 확인(oklch 수정 후), asset v=205 |
+| Last checkpoint commit | (Batch G) ChartAdvisor + Show Me 배너 |
+| Working tree | 6종 엔진 UI + Batch G(라벨정직·PACF·Cp/Cpk·PR곡선·Auto Chart Rec) 완료; `.DS_Store` 제외 |
+| Last verified | 2026-07-11 — Node 98/98, JSX 구문검사(tsc) OK, runner 11엔진 로드, asset v=208 |
 | Updated at | 2026-07-11 (밤샘 자율 세션) |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)

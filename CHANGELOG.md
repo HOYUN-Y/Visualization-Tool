@@ -71,6 +71,15 @@ All notable changes to insight Analytics Workbench are documented here.
 ### Added — 언어 전환
 - TopBar에 한국어/English 토글(테마 토글 옆). Rail 모드명·Import/Export·Ask Insight 등 UI 라벨 전환, `<html lang>` 반영.
 
+### Added — 분석 심화 & Show Me (Batch G)
+- **Auto Chart Recommendation** (`window.ChartAdvisor`) — Tableau "Show Me"식 규칙 기반 추천(날짜→line, 2측정→scatter, 3→bubble, 범주→bar, 저카디널리티→pie, 2차원→heatmap, OHLC→candlestick). Chart 모드에 원클릭 추천 배너. (Node 8)
+- **Time Series**: PACF 막대 추가(ACF와 나란히).
+- **SPC**: 선택적 LSL/USL 입력 → 공정능력 **Cp/Cpk/Pp/Ppk** 카드(1.33/1.0 임계 색상).
+- **Logistic**: ROC 외 **Precision-Recall 곡선 + AP** 추가.
+
+### Changed
+- StatusBar·SQL 배지의 가짜 "DuckDB" 표기를 실제 "in-browser JS/SQL"로 정정 (IMPLEMENTATION_PLAN §9).
+
 ### Fixed
 - **차트 전체가 빈 화면으로 렌더되던 문제 수정** — `charts.jsx`의 `resolveVar`가 `oklch()` 색을 canvas로만 변환하던 탓에, canvas가 oklch를 지원하지 않는 브라우저에서 모든 색이 검정(rgb(0,0,0))으로 폴백 → 다크 배경에서 차트가 보이지 않음. oklch→sRGB 변환을 JS(Ottosson 행렬)로 직접 수행하도록 개선하여 canvas 색공간 지원과 무관하게 정상 색 반환. Chart/Dashboard/Map/Stats 등 ECharts 전반에 적용.
 
