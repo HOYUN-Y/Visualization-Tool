@@ -769,9 +769,16 @@
       if (need === "2d+1m")  return nDim >= 2 && nMeas >= 1;
       return nDim >= 1 && nMeas >= 1;
     };
+    const [ptab, setPtab] = React.useState("chart");
 
     return (
       <div className="vizpanel">
+        <div className="viz-subtabs">
+          <button className={ptab === "chart" ? "on" : ""} onClick={() => setPtab("chart")}><Icon name="visualize" size={13} /> 차트 / Chart</button>
+          <button className={ptab === "format" ? "on" : ""} onClick={() => setPtab("format")}><Icon name="sliders" size={13} /> 서식 / Format</button>
+        </div>
+        {ptab === "chart" && (
+        <React.Fragment>
         {rec && rec.type && rec.type !== viz.type && (
           <button className="viz-rec" onClick={() => actions.setViz({ type: rec.type })} title={rec.reason}>
             <Icon name="bolt" size={13} /><span><b>Show Me:</b> {rec.type} — {rec.reason}</span>
@@ -824,7 +831,23 @@
           </div>
         </div>
 
-        {(() => {
+        <div className="cp-block">
+          <div className="cp-blocktitle">Quick fields</div>
+          <div className="quickfields">
+            {columns.map((c) => (
+              <div key={c.key} className={"field " + (c.role === "measure" ? "meas" : "dim")} draggable
+                onDragStart={(e) => e.dataTransfer.setData("application/node-field", JSON.stringify(c))}
+                onDoubleClick={() => window.VizAddField(c)}>
+                <span className="ic">{c.type === "datetime" ? "◷" : c.role === "measure" ? "#" : "Abc"}</span>
+                <span className="nm">{c.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        </React.Fragment>
+        )}
+
+        {ptab === "format" && (() => {
           const fmt = viz.format || {};
           const setF = actions.setFormat;
           const legendOn = fmt.legend ? fmt.legend.show !== false : true;
@@ -874,27 +897,13 @@
             </div>
           );
         })()}
-
-        <div className="cp-block">
-          <div className="cp-blocktitle">Quick fields</div>
-          <div className="quickfields">
-            {columns.map((c) => (
-              <div key={c.key} className={"field " + (c.role === "measure" ? "meas" : "dim")} draggable
-                onDragStart={(e) => e.dataTransfer.setData("application/node-field", JSON.stringify(c))}
-                onDoubleClick={() => window.VizAddField(c)}>
-                <span className="ic">{c.type === "datetime" ? "◷" : c.role === "measure" ? "#" : "Abc"}</span>
-                <span className="nm">{c.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     );
   }
 
   window.VizMode = function () {
     return <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
-      center={<VizCenter />} right={<VizPanel />} rightTitle="Show Me & Marks" />;
+      center={<VizCenter />} right={<VizPanel />} rightTitle="Chart & Format" />;
   };
   window.buildVizOption = buildOption; // reused by dashboard
 })();

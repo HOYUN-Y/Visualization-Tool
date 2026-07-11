@@ -73,3 +73,12 @@
   border-radius: 3px; background: var(--accent-soft); color: var(--accent-hi, var(--accent));
   font-size: 8px; font-weight: 700; cursor: pointer; }
 .chip.meas .mk svg { display: block; }
+
+/* Chart panel sub-tabs (Chart / Format) */
+.viz-subtabs { display: flex; gap: 4px; padding: 8px 8px 6px; position: sticky; top: 0; z-index: 3; background: var(--bg-1); border-bottom: 1px solid var(--line); }
+.viz-subtabs button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; height: 30px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--bg-0); color: var(--tx-mid);
+  font-size: var(--fs-11); font-weight: 600; cursor: pointer; transition: .12s; }
+.viz-subtabs button:hover { color: var(--tx-hi); }
+.viz-subtabs button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-hi, var(--accent)); }
+.viz-subtabs svg { flex-shrink: 0; }
