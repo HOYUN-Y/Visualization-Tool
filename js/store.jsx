@@ -57,6 +57,10 @@
         smooth: null,    // null = per chart default; true/false override
         colors: {},      // { seriesName: "#hex" }
         seriesNames: {}, // { originalName: "custom label" }
+        seriesOpts: {},  // { seriesName: { lineWidth } } per-series detail
+        bar: {},         // { categoryGap } bar spacing
+        pie: {},         // { inner } pie/doughnut inner radius
+        explode: {},     // { sliceName: true } pie slice pull-out
       },
     },
     pivot: {},
@@ -428,6 +432,10 @@
       if (patch.plotInset) next.plotInset = { ...f.plotInset, ...patch.plotInset };
       if (patch.colors) next.colors = { ...f.colors, ...patch.colors };
       if (patch.seriesNames) next.seriesNames = { ...f.seriesNames, ...patch.seriesNames };
+      if (patch.bar) next.bar = { ...f.bar, ...patch.bar };
+      if (patch.pie) next.pie = { ...f.pie, ...patch.pie };
+      if (patch.explode) next.explode = { ...f.explode, ...patch.explode };
+      if (patch.seriesOpts) { next.seriesOpts = { ...f.seriesOpts }; for (const k in patch.seriesOpts) next.seriesOpts[k] = { ...(f.seriesOpts && f.seriesOpts[k]), ...patch.seriesOpts[k] }; }
       return { ...s, viz: { ...s.viz, format: next } };
     }),
     setRowMark: (key, mark) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, mark } : r) } })),

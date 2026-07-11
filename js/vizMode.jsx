@@ -703,6 +703,31 @@
       o.series = o.series.map((s) => { const col = fmt.colors[s.name]; if (!col) return s;
         return { ...s, itemStyle: { ...(s.itemStyle || {}), color: col }, lineStyle: s.lineStyle ? { ...s.lineStyle, color: col } : s.lineStyle, areaStyle: s.areaStyle ? { ...s.areaStyle, color: col } : s.areaStyle }; });
     }
+    // Bar spacing (gap between bar groups)
+    if (fmt.bar && fmt.bar.categoryGap != null) {
+      o.series = o.series.map((s) => s.type === "bar" ? { ...s, barCategoryGap: fmt.bar.categoryGap } : s);
+    }
+    // Per-series detail — line width
+    if (fmt.seriesOpts && Object.keys(fmt.seriesOpts).length) {
+      o.series = o.series.map((s) => {
+        const so = fmt.seriesOpts[s.name]; if (!so) return s;
+        if (s.type === "line" && so.lineWidth) return { ...s, lineStyle: { ...(s.lineStyle || {}), width: so.lineWidth } };
+        return s;
+      });
+    }
+    // Pie — inner radius (doughnut thickness) + slice explode
+    if ((fmt.pie && fmt.pie.inner != null) || (fmt.explode && Object.keys(fmt.explode).length)) {
+      o.series = o.series.map((s) => {
+        if (s.type !== "pie") return s;
+        const n = { ...s };
+        if (fmt.pie && fmt.pie.inner != null) n.radius = [fmt.pie.inner, Array.isArray(s.radius) ? s.radius[1] : "70%"];
+        if (fmt.explode && Object.keys(fmt.explode).length) {
+          n.selectedMode = "multiple"; n.selectedOffset = 16;
+          n.data = (s.data || []).map((d) => { const o2 = (d && typeof d === "object") ? { ...d } : { value: d }; o2.selected = !!fmt.explode[o2.name]; return o2; });
+        }
+        return n;
+      });
+    }
     // Custom series (legend) names — applied last so colours still key off the original name
     if (fmt.seriesNames && Object.keys(fmt.seriesNames).length) {
       o.series = o.series.map((s) => { const nm = fmt.seriesNames[s.name]; return (nm && nm.trim()) ? { ...s, name: nm } : s; });
@@ -1091,22 +1116,56 @@
           </React.Fragment>
         )}
 
-        {sec === "series" && (
-          viz.rows.length > 0 && !viz.color
-            ? viz.rows.map((m, i) => {
-              const overridden = fmt.colors && fmt.colors[m.label];
-              const cur = overridden || rgbToHex(Charts.palette()[i % 8]);
-              const nm = (fmt.seriesNames && fmt.seriesNames[m.label]) || "";
-              return (
-                <div key={m.key} className="ctl-row" style={{ gap: 6, marginTop: 4 }}>
-                  <input type="color" title="색상" value={cur} onChange={(e) => setF({ colors: { [m.label]: e.target.value } })} style={CIN} />
-                  <input className="inp" title="범례 이름 (비우면 원래 필드명)" placeholder={m.label} value={nm} onChange={(e) => setF({ seriesNames: { [m.label]: e.target.value } })} style={{ flex: 1, minWidth: 0 }} />
-                  {(overridden || nm) && <button className="iconbtn" style={{ width: 20, height: 20, flexShrink: 0 }} title="초기화" onClick={() => setF({ colors: { [m.label]: null }, seriesNames: { [m.label]: "" } })}><Icon name="undo" size={11} /></button>}
-                </div>
-              );
-            })
-            : <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>측정값을 올리고 색상(Color) 차원이 없을 때 계열별 색·이름을 지정할 수 있습니다.</div>
-        )}
+        {sec === "series" && (() => {
+          const isPie = viz.type === "pie";
+          const markOf = (m) => m.mark || (viz.type === "line" || viz.type === "area" ? viz.type : "bar");
+          const hasBar = !isPie && viz.rows.some((m) => markOf(m) === "bar");
+          const pieData = (isPie && window.Charts.lastInst) ? (((window.Charts.lastInst.getOption().series || [])[0] || {}).data || []) : [];
+          return (
+            <React.Fragment>
+              {hasBar && (
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>막대 간격</span>
+                  <div className="seg">{[["10%", "좁게"], ["30%", "보통"], ["50%", "넓게"], ["70%", "아주넓게"]].map(([v, s]) => <button key={v} className={((fmt.bar && fmt.bar.categoryGap) || "30%") === v ? "on" : ""} onClick={() => setF({ bar: { categoryGap: v } })}>{s}</button>)}</div></div>
+              )}
+              {isPie && (
+                <React.Fragment>
+                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>파이 굵기</span>
+                    <div className="seg">{[["0%", "꽉참"], ["40%", "도넛"], ["58%", "얇게"]].map(([v, s]) => <button key={v} className={((fmt.pie && fmt.pie.inner) || "40%") === v ? "on" : ""} onClick={() => setF({ pie: { inner: v } })}>{s}</button>)}</div></div>
+                  <div className="fieldlabel" style={{ marginTop: 8 }}>조각 분리 (클릭해서 떼기)</div>
+                  {pieData.map((d) => { const name = (d && d.name != null) ? String(d.name) : String(d); const on = fmt.explode && fmt.explode[name]; return (
+                    <div key={name} className="ctl-row" style={{ marginTop: 3 }}>
+                      <span style={{ flex: 1, fontSize: "var(--fs-11)", color: "var(--tx-mid)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                      <button className={"btn sm " + (on ? "primary" : "ghost")} style={{ height: 22 }} onClick={() => setF({ explode: { [name]: !on } })}>{on ? "분리됨" : "분리"}</button>
+                    </div>
+                  ); })}
+                  {!pieData.length && <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>차트를 먼저 그리면 조각 목록이 나옵니다.</div>}
+                </React.Fragment>
+              )}
+              {!isPie && (viz.rows.length > 0 && !viz.color
+                ? viz.rows.map((m, i) => {
+                  const overridden = fmt.colors && fmt.colors[m.label];
+                  const cur = overridden || rgbToHex(Charts.palette()[i % 8]);
+                  const nm = (fmt.seriesNames && fmt.seriesNames[m.label]) || "";
+                  const isLineM = markOf(m) === "line" || markOf(m) === "area";
+                  const lw = (fmt.seriesOpts && fmt.seriesOpts[m.label] && fmt.seriesOpts[m.label].lineWidth) || null;
+                  return (
+                    <React.Fragment key={m.key}>
+                      <div className="ctl-row" style={{ gap: 6, marginTop: 8 }}>
+                        <input type="color" title="색상" value={cur} onChange={(e) => setF({ colors: { [m.label]: e.target.value } })} style={CIN} />
+                        <input className="inp" title="범례 이름 (비우면 원래 필드명)" placeholder={m.label} value={nm} onChange={(e) => setF({ seriesNames: { [m.label]: e.target.value } })} style={{ flex: 1, minWidth: 0 }} />
+                        {(overridden || nm) && <button className="iconbtn" style={{ width: 20, height: 20, flexShrink: 0 }} title="초기화" onClick={() => setF({ colors: { [m.label]: null }, seriesNames: { [m.label]: "" } })}><Icon name="undo" size={11} /></button>}
+                      </div>
+                      {isLineM && (
+                        <div className="ctl-row" style={{ marginTop: 2 }}><span className="fieldlabel" style={{ margin: 0, paddingLeft: 30 }}>└ 선 굵기</span>
+                          <div className="seg">{[1, 2, 3, 4].map((w) => <button key={w} className={(lw || 2) === w ? "on" : ""} onClick={() => setF({ seriesOpts: { [m.label]: { lineWidth: w } } })}>{w}</button>)}</div></div>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+                : (!isPie && <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>측정값을 올리고 색상(Color) 차원이 없을 때 계열별 색·이름·굵기를 지정할 수 있습니다.</div>))}
+            </React.Fragment>
+          );
+        })()}
 
         {sec === "size" && (
           <React.Fragment>
