@@ -381,13 +381,35 @@
     );
   }
 
+  // Categorical = category OR string; numeric = integer/float.
+  const mlNums = (columns) => columns.filter((c) => c.type === "integer" || c.type === "float");
+  const mlCats = (columns) => columns.filter((c) => c.type === "category" || c.type === "string");
+  function mlDefaultCfg(columns) {
+    const nums = mlNums(columns);
+    const num0 = nums[0] ? nums[0].key : "";
+    return { task: "reg", target: num0, feats: nums.filter((c) => c.key !== num0).slice(0, 3).map((c) => c.key), split: 0.3, k: 5, K: 3 };
+  }
+  // Heal a (possibly persisted / cross-dataset) ML config against the current columns.
+  function mlResolveCfg(cfgS, columns) {
+    const base = mlDefaultCfg(columns);
+    const cfg = { ...base, ...(cfgS || {}) };
+    const nums = mlNums(columns), cats = mlCats(columns);
+    const num0 = nums[0] ? nums[0].key : "";
+    const isCatTask = cfg.task === "clf" || cfg.task === "logit";
+    const okTarget = isCatTask ? cats.some((c) => c.key === cfg.target) : nums.some((c) => c.key === cfg.target);
+    if (!okTarget) cfg.target = isCatTask ? ((cats[0] || {}).key || "") : num0;
+    cfg.feats = (cfg.feats || []).filter((k) => k !== cfg.target && nums.some((c) => c.key === k));
+    if (!cfg.feats.length) cfg.feats = nums.filter((c) => c.key !== cfg.target).slice(0, 3).map((c) => c.key);
+    return cfg;
+  }
+
   function MLPanel() {
     const activeId = useStore((s) => s.activeId);
     const cfgS = useStore((s) => s.ui.ml);
     const { columns, rows } = derive.getActiveData(activeId);
-    const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
-    const catCols = columns.filter((c) => c.type === "category");
-    const cfg = cfgS || { task: "reg", target: "price_manwon", feats: ["area_m2", "floor", "built_year"], split: 0.3, k: 5, K: 3 };
+    const numCols = mlNums(columns);
+    const catCols = mlCats(columns);
+    const cfg = mlResolveCfg(cfgS, columns);
     const set = (patch) => actions.setUI({ ml: { ...cfg, ...patch, result: undefined } });
 
     const needsTarget = cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit";
@@ -435,7 +457,7 @@
             {[["reg", "Regression"], ["clf", "k-NN Classify"], ["logit", "Logistic + ROC"], ["pca", "PCA"], ["km", "KMeans"], ["dbscan", "DBSCAN"], ["hier", "Hierarchical"]].map(([k, l]) => {
               const catTask = k === "clf" || k === "logit";
               return <button key={k} className={"ml-taskbtn" + (cfg.task === k ? " on" : "")}
-                onClick={() => set({ task: k, target: catTask ? (catCols[1] || catCols[0] || {}).key : "price_manwon" })}>{l}</button>;
+                onClick={() => set({ task: k, target: catTask ? (catCols[1] || catCols[0] || {}).key : (numCols[0] || {}).key })}>{l}</button>;
             })}
           </div>
         </div>
