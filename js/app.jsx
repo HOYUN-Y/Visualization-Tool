@@ -17,6 +17,29 @@
     );
   }
 
+  // Global error boundary — a render crash in one mode must not white-screen the app.
+  class ErrorBoundary extends React.Component {
+    constructor(props) { super(props); this.state = { err: null }; }
+    static getDerivedStateFromError(err) { return { err }; }
+    componentDidCatch(err) { if (window.LOG && window.LOG.error) window.LOG.error("app", "render crash: " + (err && err.message), { mode: this.props.mode }); }
+    render() {
+      if (this.state.err) {
+        return (
+          <div className="empty" style={{ gap: 12, padding: 32 }}>
+            <Icon name="info" size={26} />
+            <div className="t" style={{ color: "var(--tx-hi)", fontWeight: 600 }}>이 화면을 표시하는 중 오류가 발생했습니다</div>
+            <div className="s" style={{ maxWidth: 460 }}>{String((this.state.err && this.state.err.message) || this.state.err)}</div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button className="btn sm" onClick={() => this.setState({ err: null })}>다시 시도</button>
+              <button className="btn ghost sm" onClick={() => actions.setMode("data")}>데이터 화면으로</button>
+            </div>
+          </div>
+        );
+      }
+      return this.props.children;
+    }
+  }
+
   function App() {
     const theme = useStore((s) => s.theme);
     const mode = useStore((s) => s.mode);
@@ -64,7 +87,7 @@
         <window.TopBar />
         <div className="body">
           <window.Rail />
-          {content}
+          <ErrorBoundary key={mode} mode={mode}>{content}</ErrorBoundary>
         </div>
         <window.StatusBar />
         {window.TweaksPanel && <window.TweaksPanel />}

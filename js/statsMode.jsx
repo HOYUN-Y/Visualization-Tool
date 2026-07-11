@@ -546,6 +546,7 @@
     if (test === "spc") return <SPCCenter rows={rows} columns={columns} cfg={cfg} theme={theme} />;
 
     let body, title;
+    try {
     if (test === "descriptive") {
       title = "Descriptive statistics";
       body = <DescTable rows={rows} cols={numCols} />;
@@ -615,6 +616,18 @@
           <Verdict p={r.pF} msg={`The model explains ${(r.r2 * 100).toFixed(1)}% of variance in ${cfg.target} (adj. R²=${r.adj.toFixed(2)}). Significant predictors (p<0.05): ${r.terms.filter((t) => t.name !== "(Intercept)" && t.p < 0.05).map((t) => t.name).join(", ") || "none"}.`} />
           <NextStepPanel context={{ lastTest: "reg", lastResult: r }} />
         </React.Fragment>
+      );
+    }
+    } catch (e) {
+      // A bad column/group combo (e.g. ANOVA with no valid groups) must not crash the whole app.
+      if (window.LOG && window.LOG.error) window.LOG.error("stats", "test render failed: " + (e && e.message), { test });
+      title = "계산할 수 없음 · " + test;
+      body = (
+        <div className="empty" style={{ padding: 24 }}>
+          <Icon name="info" />
+          <div className="t">이 조합으로는 통계를 계산할 수 없습니다</div>
+          <div className="s">그룹이 2개 이상인 범주 컬럼과 숫자 측정값을 선택했는지 확인하세요. 우측 패널에서 컬럼을 바꾸면 다시 계산됩니다.</div>
+        </div>
       );
     }
 
