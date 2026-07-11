@@ -63,7 +63,7 @@
   // editable: enables JMP/Excel-style editing. `edit` provides callbacks:
   //   { onCell(rid,key,val), onDeleteRows(rids), onAddRow(), onAddCol(),
   //     onRename(key,to), onChangeType(key,type), onInsertCol(atIndex), onDeleteCol(key), onReorder(orderKeys) }
-  function DataGrid({ columns, rows, selCol, onSelectCol, pageSize = 100, compact, idStart = 1, editable = false, edit = null }) {
+  function DataGrid({ columns, rows, selCol, onSelectCol, pageSize = 100, compact, idStart = 1, editable = false, edit = null, cellEditable = true }) {
     const [sort, setSort] = React.useState(null);     // {key,dir}
     const [hidden, setHidden] = React.useState(() => new Set());
     const [frozen, setFrozen] = React.useState(() => new Set());
@@ -82,12 +82,24 @@
     const [dragOver, setDragOver] = React.useState(null); // column hovered during drag
 
     const visCols = columns.filter((c) => !hidden.has(c.key));
+    const lang = window.Store.useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
 
     // commit / cancel cell edit
     const startCell = (rid, key, cur) => { setCellEdit({ rid, key }); setCellVal(cur == null ? "" : String(cur)); };
     const commitCell = () => { if (cellEdit) { edit.onCell(cellEdit.rid, cellEdit.key, cellVal); setCellEdit(null); } };
     const startHead = (key, cur) => { setHeadEdit(key); setHeadVal(cur); setMenu(null); };
-    const commitHead = () => { if (headEdit) { const t = headVal.trim(); if (t && t !== headEdit) edit.onRename(headEdit, t); setHeadEdit(null); } };
+    const commitHead = () => {
+      if (!headEdit) return;
+      const t = headVal.trim();
+      // Reject renaming onto another existing column key — that would silently overwrite its data.
+      if (t && columns.some((c) => c.key === t && c.key !== headEdit)) {
+        alert(`"${t}" 컬럼이 이미 있습니다. 다른 이름을 쓰세요.`);
+        return; // keep the editor open so the user can fix it
+      }
+      if (t && t !== headEdit) edit.onRename(headEdit, t);
+      setHeadEdit(null);
+    };
     // reorder: move fromKey before toKey within full column order
     const doReorder = (fromKey, toKey) => {
       if (!fromKey || fromKey === toKey) return;
@@ -176,7 +188,7 @@
         <div className="gridtoolbar">
           <div className="search" style={{ width: 220 }}>
             <Icon name="search" />
-            <input placeholder="Search all columns…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input placeholder={T("gSearchAll")} value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           {Object.keys(filters).length > 0 && (
             <div className="filterchips">
@@ -226,7 +238,7 @@
                         <div className="th-inner" style={{ cursor: "text" }}>
                           <input className="th-rename" autoFocus value={headVal}
                             onChange={(e) => setHeadVal(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") commitHead(); else if (e.key === "Escape") setHeadEdit(null); }}
+                            onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) commitHead(); else if (e.key === "Escape") setHeadEdit(null); }}
                             onBlur={commitHead} />
                         </div>
                       ) : (
@@ -268,25 +280,31 @@
                     const style = fr ? { left: 46 } : undefined;
                     const editingCell = editable && cellEdit && cellEdit.rid === rid && cellEdit.key === c.key;
                     if (editingCell) {
+                      // Flag input that won't survive as typed in a numeric column (stored as null).
+                      const numCol = c.type === "integer" || c.type === "float";
+                      const cellInvalid = numCol && cellVal.trim() !== "" && isNaN(Number(cellVal));
                       return <td key={c.key} className={"editing" + (fr ? " frozen" : "")} style={style}>
-                        <input className="cell-input" autoFocus value={cellVal}
+                        <input className={"cell-input" + (cellInvalid ? " invalid" : "")} autoFocus value={cellVal}
+                          title={cellInvalid ? "숫자 열입니다 — 숫자가 아니면 빈 값으로 저장됩니다." : undefined}
                           onChange={(e) => setCellVal(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter") commitCell(); else if (e.key === "Escape") setCellEdit(null); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) commitCell(); else if (e.key === "Escape") setCellEdit(null); }}
                           onBlur={commitCell} />
                       </td>;
                     }
                     const f = fmtCell(r[c.key], c);
-                    const cls = [f.cls === "num" ? "num" : "", selCol === c.key ? "sel" : "", fr ? "frozen" : "", editable ? "editable" : ""].filter(Boolean).join(" ");
-                    const dbl = editable && rid != null ? () => startCell(rid, c.key, r[c.key]) : undefined;
-                    if (f.isNull) return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}><span className="cell-null">null</span></td>;
+                    const canEditCell = editable && cellEditable && rid != null;
+                    const cls = [f.cls === "num" ? "num" : "", selCol === c.key ? "sel" : "", fr ? "frozen" : "", canEditCell ? "editable" : ""].filter(Boolean).join(" ");
+                    const dbl = canEditCell ? () => startCell(rid, c.key, r[c.key]) : undefined;
+                    const cellTitle = canEditCell ? T("gClickEdit") : undefined;
+                    if (f.isNull) return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}><span className="cell-null">null</span></td>;
                     if (c.type === "category" && cmaps[c.key]) {
-                      return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}><span className="cell-cat" style={{ "--swatch": cmaps[c.key][r[c.key]] || "var(--tx-faint)" }}>{f.text}</span></td>;
+                      return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}><span className="cell-cat" style={{ "--swatch": cmaps[c.key][r[c.key]] || "var(--tx-faint)" }}>{f.text}</span></td>;
                     }
                     if (f.cls === "num" && extents[c.key] && c.role === "measure") {
                       const [lo, hi] = extents[c.key]; const pct = hi > lo ? Math.max(2, ((f.num - lo) / (hi - lo)) * 100) : 0;
-                      return <td key={c.key} className={cls + " databar"} style={style} onDoubleClick={dbl}><span className="fill" style={{ width: pct + "%" }} /><span className="val">{f.text}</span></td>;
+                      return <td key={c.key} className={cls + " databar"} style={style} onClick={dbl} title={cellTitle}><span className="fill" style={{ width: pct + "%" }} /><span className="val">{f.text}</span></td>;
                     }
-                    return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}>{f.text}</td>;
+                    return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}>{f.text}</td>;
                   })}
                 </tr>
                 );
@@ -297,8 +315,9 @@
 
         {editable && (
           <div className="grid-editbar">
-            <button className="btn ghost sm" onClick={() => edit.onAddRow()}><Icon name="plus" size={12} /> Add row</button>
-            <button className="btn ghost sm" onClick={() => edit.onAddCol()}><Icon name="plus" size={12} /> Add column</button>
+            <button className="btn ghost sm" onClick={() => edit.onAddRow()}><Icon name="plus" size={12} /> {T("gAddRow")}</button>
+            <button className="btn ghost sm" onClick={() => edit.onAddCol()}><Icon name="plus" size={12} /> {T("gAddCol")}</button>
+            {cellEditable && <span className="meta" style={{ marginLeft: 4, color: "var(--tx-faint)", fontSize: "var(--fs-11)" }}><Icon name="edit" size={11} style={{ verticalAlign: "-1px" }} /> {T("gEditHint")}</span>}
             <div className="spacer" style={{ flex: 1 }} />
             {selRows.size > 0 && (
               <React.Fragment>
@@ -312,28 +331,28 @@
 
         {menu && (
           <Popover anchor={menu.rect} onClose={() => setMenu(null)}>
-            <div className="pi" onClick={() => { setSort({ key: menu.key, dir: "asc" }); setMenu(null); }}><Icon name="sort" /> Sort ascending</div>
-            <div className="pi" onClick={() => { setSort({ key: menu.key, dir: "desc" }); setMenu(null); }}><Icon name="sort" style={{ transform: "scaleY(-1)" }} /> Sort descending</div>
-            <div className="pi" onClick={() => openFilter(menu.key, menu.rect)}><Icon name="filter" /> Filter…</div>
+            <div className="pi" onClick={() => { setSort({ key: menu.key, dir: "asc" }); setMenu(null); }}><Icon name="sort" /> {T("gSortAsc")}</div>
+            <div className="pi" onClick={() => { setSort({ key: menu.key, dir: "desc" }); setMenu(null); }}><Icon name="sort" style={{ transform: "scaleY(-1)" }} /> {T("gSortDesc")}</div>
+            <div className="pi" onClick={() => openFilter(menu.key, menu.rect)}><Icon name="filter" /> {T("gFilterDots")}</div>
             <div className="sep" />
             <div className="pi" onClick={() => { setFrozen((p) => { const n = new Set(p); n.has(menu.key) ? n.delete(menu.key) : n.add(menu.key); return n; }); setMenu(null); }}>
-              <Icon name="pin" /> {frozen.has(menu.key) ? "Unfreeze" : "Freeze column"}
+              <Icon name="pin" /> {frozen.has(menu.key) ? T("gUnfreeze") : T("gFreeze")}
             </div>
-            <div className="pi" onClick={() => { setHidden((p) => new Set(p).add(menu.key)); setMenu(null); }}><Icon name="eyeoff" /> Hide column</div>
+            <div className="pi" onClick={() => { setHidden((p) => new Set(p).add(menu.key)); setMenu(null); }}><Icon name="eyeoff" /> {T("gHide")}</div>
             {editable && (
               <React.Fragment>
                 <div className="sep" />
-                <div className="pi" onClick={() => startHead(menu.key, (columns.find((c) => c.key === menu.key) || {}).label || menu.key)}><Icon name="edit" /> Rename…</div>
-                <div className="ph">Change type</div>
-                {[["string", "Text"], ["integer", "Integer"], ["float", "Decimal"], ["category", "Category"], ["datetime", "Date"]].map(([t, lbl]) => (
+                <div className="pi" onClick={() => startHead(menu.key, (columns.find((c) => c.key === menu.key) || {}).label || menu.key)}><Icon name="edit" /> {T("gRename")}</div>
+                <div className="ph">{T("gChangeType")}</div>
+                {[["string", T("tText")], ["integer", T("tInteger")], ["float", T("tDecimal")], ["category", T("tCategory")], ["datetime", T("tDate")], ["boolean", T("tBool")]].map(([t, lbl]) => (
                   <div className="pi" key={t} onClick={() => { edit.onChangeType(menu.key, t); setMenu(null); }} style={{ paddingLeft: 18 }}>
                     <span className={"th-type " + typeShort(t).cls} style={{ minWidth: 26, textAlign: "center" }}>{typeShort(t).label}</span> {lbl}
                   </div>
                 ))}
                 <div className="sep" />
-                <div className="pi" onClick={() => { edit.onInsertCol(columns.findIndex((c) => c.key === menu.key)); setMenu(null); }}><Icon name="plus" /> Insert left</div>
-                <div className="pi" onClick={() => { edit.onInsertCol(columns.findIndex((c) => c.key === menu.key) + 1); setMenu(null); }}><Icon name="plus" /> Insert right</div>
-                <div className="pi danger" onClick={() => { edit.onDeleteCol(menu.key); setMenu(null); }}><Icon name="trash" /> Delete column</div>
+                <div className="pi" onClick={() => { edit.onInsertCol(columns.findIndex((c) => c.key === menu.key)); setMenu(null); }}><Icon name="plus" /> {T("gInsertLeft")}</div>
+                <div className="pi" onClick={() => { edit.onInsertCol(columns.findIndex((c) => c.key === menu.key) + 1); setMenu(null); }}><Icon name="plus" /> {T("gInsertRight")}</div>
+                <div className="pi danger" onClick={() => { edit.onDeleteCol(menu.key); setMenu(null); }}><Icon name="trash" /> {T("gDeleteCol")}</div>
               </React.Fragment>
             )}
           </Popover>
@@ -350,12 +369,14 @@
 
   function ColumnsMenu({ columns, hidden, setHidden }) {
     const [open, setOpen] = React.useState(null);
+    const lang = window.Store.useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     return (
       <React.Fragment>
-        <button className="iconbtn" title="Columns" onClick={(e) => setOpen(e.currentTarget.getBoundingClientRect())}><Icon name="columns" /></button>
+        <button className="iconbtn" title={T("gColumns")} onClick={(e) => setOpen(e.currentTarget.getBoundingClientRect())}><Icon name="columns" /></button>
         {open && (
           <Popover anchor={open} align="right" onClose={() => setOpen(null)}>
-            <div className="ph">Toggle columns</div>
+            <div className="ph">{T("gToggleCols")}</div>
             {columns.map((c) => (
               <div className="pi" key={c.key} onClick={() => setHidden((p) => { const n = new Set(p); n.has(c.key) ? n.delete(c.key) : n.add(c.key); return n; })}>
                 <span className={"checkbox" + (!hidden.has(c.key) ? " on" : "")}>{!hidden.has(c.key) && <Icon name="check" />}</span>
@@ -370,6 +391,8 @@
 
   function FilterPopover({ anchor, col, rows, value, onApply, onClear, onClose }) {
     const numeric = isNumType(col.type);
+    const lang = window.Store.useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const distinct = React.useMemo(() => {
       const m = new Map();
       for (const r of rows) { const v = String(r[col.key] ?? "null"); m.set(v, (m.get(v) || 0) + 1); }
@@ -382,15 +405,15 @@
     if (numeric) {
       return (
         <Popover anchor={anchor} onClose={onClose} width={210}>
-          <div className="ph" style={{ padding: "2px 4px 6px" }}>Filter {col.label}</div>
+          <div className="ph" style={{ padding: "2px 4px 6px" }}>{T("gFilterWord")} {col.label}</div>
           <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-            <input className="inp" placeholder="min" value={range.min} onChange={(e) => setRange({ ...range, min: e.target.value })} />
-            <input className="inp" placeholder="max" value={range.max} onChange={(e) => setRange({ ...range, max: e.target.value })} />
+            <input className="inp" placeholder={T("gMin")} value={range.min} onChange={(e) => setRange({ ...range, min: e.target.value })} />
+            <input className="inp" placeholder={T("gMax")} value={range.max} onChange={(e) => setRange({ ...range, max: e.target.value })} />
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <button className="btn ghost sm" onClick={onClear}>Clear</button>
+            <button className="btn ghost sm" onClick={onClear}>{T("gClear")}</button>
             <div style={{ flex: 1 }} />
-            <button className="btn primary sm" onClick={() => onApply({ kind: "range", min: range.min === "" ? null : +range.min, max: range.max === "" ? null : +range.max })}>Apply</button>
+            <button className="btn primary sm" onClick={() => onApply({ kind: "range", min: range.min === "" ? null : +range.min, max: range.max === "" ? null : +range.max })}>{T("gApply")}</button>
           </div>
         </Popover>
       );
@@ -398,10 +421,10 @@
     const shown = distinct.filter((d) => d[0].toLowerCase().includes(q.toLowerCase()));
     return (
       <Popover anchor={anchor} onClose={onClose} width={230}>
-        <div className="search" style={{ marginBottom: 4 }}><Icon name="search" /><input placeholder={`Filter ${col.label}…`} value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="search" style={{ marginBottom: 4 }}><Icon name="search" /><input placeholder={`${T("gFilterWord")} ${col.label}…`} value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <div style={{ display: "flex", gap: 8, padding: "2px 6px" }}>
-          <button className="btn ghost sm" style={{ height: 20 }} onClick={() => setSet(new Set(distinct.map((d) => d[0])))}>All</button>
-          <button className="btn ghost sm" style={{ height: 20 }} onClick={() => setSet(new Set())}>None</button>
+          <button className="btn ghost sm" style={{ height: 20 }} onClick={() => setSet(new Set(distinct.map((d) => d[0])))}>{T("gAll")}</button>
+          <button className="btn ghost sm" style={{ height: 20 }} onClick={() => setSet(new Set())}>{T("gNone")}</button>
         </div>
         <div className="fp-list">
           {shown.map(([v, c]) => (
@@ -412,9 +435,9 @@
           ))}
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-          <button className="btn ghost sm" onClick={onClear}>Clear</button>
+          <button className="btn ghost sm" onClick={onClear}>{T("gClear")}</button>
           <div style={{ flex: 1 }} />
-          <button className="btn primary sm" onClick={() => onApply({ kind: "in", set })}>Apply ({set.size})</button>
+          <button className="btn primary sm" onClick={() => onApply({ kind: "in", set })}>{T("gApply")} ({set.size})</button>
         </div>
       </Popover>
     );

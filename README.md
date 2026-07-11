@@ -91,11 +91,14 @@ open http://localhost:8742
 | **SQL** | 로컬 SQL 엔진 (SELECT/WHERE/GROUP BY/집계/ORDER/LIMIT) |
 | **Chart** | Tableau 스타일 Dimension/Measure 셸프 → ECharts (Basic 8 + Advanced 8 + Financial 3 + Special 1, 총 20종) |
 | **Map** | 3개 탭 — **Seoul · 구** (서울 25구 Choropleth + 버블맵) · **Korea · 행정구역** (17 시도 choropleth + 84 시군구 버블맵 + 내 데이터 모드) · **World · GDP** (30개국 choropleth) |
-| **Board** | 드래그/리사이즈 위젯 대시보드 + Cross Filtering |
+| **Board** | 드래그/리사이즈 위젯 대시보드 + Cross Filtering + **위젯 Inspector**(타입·필드·크기 편집) + **안전 KPI 수식**(SUM/AVG/COUNT/… 사칙연산, eval 없음) |
 | **Stats** | 상관분석, T-Test, ANOVA, Chi-Square, 회귀분석 + **Distribution 탭** (히스토그램+박스플롯+왜도/첨도) + **Analysis Builder** (자동 분석 유형 선택) + 자동 해석 패널 |
 | **ML** | 브라우저 내 AutoML: OLS 회귀, k-NN 분류, KMeans 군집 + **클래스별 Precision/Recall/F1** + **군집 특성표** + **모델 비교 이력** |
 | **Ask Insight** | 데이터셋 자동 프로파일 (IE.profileDataset) + 마지막 분석 결과 요약 + NL→차트/모드 전환 |
 | **Projects** | IndexedDB 다중 프로젝트 · 1초 자동저장 · 즉시 저장 상태 · JSON 백업/복원 |
+| **Import** | CSV/TSV/JSON/XLSX 공통 Preview · 결정적 타입 추론 · XLSX 복수 시트 선택 · 타입 override |
+| **Combine** | 데이터셋 Union(행 결합·타입 승격·`__source`) / Join(Inner·Left·Right·Full·복수키·폭증 경고) · lineage 포함 새 데이터셋 생성 |
+| **Pivot** | Rows × Columns 크로스탭 · 복수 Values 개별 집계 · 범주/범위 필터 · Grand Total(원본 재계산) · 결과를 데이터셋으로 저장 후 Chart 열기 |
 
 ---
 
@@ -108,6 +111,7 @@ open http://localhost:8742
 - **IBM Plex Sans / Mono** (타이포그래피)
 - **CSS Custom Properties** (디자인 토큰 기반 다크/라이트 테마)
 - **IndexedDB** (브라우저 로컬 다중 프로젝트 저장)
+- **SheetJS CE 0.20.3** (로컬 vendoring, XLSX 파싱)
 
 ### 목표 (Phase 3 — 프로덕션 스택)
 - **Frontend**: Next.js + TypeScript + TailwindCSS + shadcn/ui + Zustand + TanStack Table + dnd-kit
@@ -197,11 +201,41 @@ open http://localhost:8742
 - 숨김 행 ID(`__rid`)로 정렬·필터·페이징과 무관하게 안정적 행 지목
 - 모든 편집을 비파괴 스텝으로 기록 → Undo/Redo + Clean 모드 PIPELINE 통합 표시
 
-### 🧪 Core v2 Milestone 1 — 프로젝트 저장·복원 (기능 브랜치 검증 중)
+### ✅ Core v2 Milestone 1 — 프로젝트 저장·복원 (로컬 체크포인트 완료)
 - IndexedDB 다중 프로젝트 생성·전환·이름 변경·복제·삭제
 - Store/데이터셋/분석 이력 1초 debounce 자동저장 + 즉시 저장 상태
 - schema version 1 JSON 백업·복원과 미래 버전 거부
 - 데이터셋 등록 API 중앙화와 `__rid` 복원 연속성
+
+### 🧪 Core v2 Milestone 2 — XLSX Import와 타입 추론 (기능 브랜치)
+- SheetJS CE 0.20.3 로컬 고정 + 라이선스/SHA-256 기록
+- CSV/TSV/JSON/XLSX 공통 ImportEngine과 원문 기반 결정적 타입 추론
+- XLSX 시트 범위·행/열·첫 20행 Preview, 복수 시트 선택, 컬럼별 타입 override
+- 중복 데이터셋명 `_2`, `_3` 처리와 Import 완료 후 프로젝트 즉시 저장
+
+### 🧪 Core v2 Milestone 3 — Union/Join 데이터 결합 (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.DataOps` 엔진: Union(타입 승격·null 채움·`__source`), Join(4종·복수키·정규화 비교·리네임·폭증 감지)
+- Combine 모달: 실시간 Preview·many-to-many 경고·lineage 포함 새 데이터셋 materialize
+- Node 9/9 회귀 테스트 + 브라우저 러너 케이스
+
+### 🧪 Core v2 Milestone 4 — Pivot Table (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.PivotEngine`: Rows × Columns 크로스탭, 복수 Values 개별 집계, 범주/범위 필터
+- Grand Total은 원본 행에서 재계산(평균·중앙값 정확), 빈 셀 안전 처리
+- Pivot rail 모드: 드래그 shelf + 크로스탭 테이블 + 데이터셋 저장·Chart 열기
+- Node 8/8 회귀 테스트 + 브라우저 러너 케이스
+
+### 🧪 Core v2 Milestone 5 — Dashboard 설정 + KPI Builder (기능 브랜치, 밤샘 자율)
+- 안전한 `window.KPIFormula` 파서/평가기(eval 없음): SUM/AVG/COUNT(*)/COUNTD/MIN/MAX/MEDIAN + 사칙연산
+- 위젯 Inspector: 선택 위젯의 타입·필드·집계·색상·크기 편집(Chart/KPI/Table/Text)
+- KPI 수식은 Cross Filtering 이후 행 기준 계산, 오류는 `—` 표시
+- Text 위젯 `dangerouslySetInnerHTML` 제거(보안) + 기존 HTML→평문 마이그레이션
+- Node 7/7 회귀 테스트 + 브라우저 러너 케이스
+
+### ✅ Phase 2 분석 엔진 — 순수 JS + UI 배선 완료 (`feat/analytics`)
+> 결정적 window.* 엔진 + Node 테스트 + Stats/ML 모드 UI 모두 완료.
+- **ML 모드:** **PCA**(Scree+로딩), **Logistic Regression + ROC/AUC**(계수 막대), **DBSCAN**(eps/minPts), **계층군집**(Ward, K 컷) — 7종 task 그리드
+- **Stats 모드:** **Normal Q-Q**(왜도/첨도/Jarque-Bera), **Time Series**(MA/EMA + ACF), **SPC 관리도**(I-MR + CL/UCL/LCL)
+- 엔진: `window.PCA·Logistic·TimeSeries·DistFit·SPC·Clustering` (Cp/Cpk·Pareto·Holt·PACF 등 추가 함수 포함, 일부는 UI 후속)
 
 ### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
 

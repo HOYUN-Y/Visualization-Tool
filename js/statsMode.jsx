@@ -4,6 +4,8 @@
   const Icon = window.Icon, NODE = window.NODE, Charts = window.Charts, SM = window.SM;
   const EChart = Charts.EChart;
   const IE = window.IE;
+  // Config helpers (schema-agnostic starter/heal) extracted to js/statsCfg.js for Node regression tests.
+  const { catsOf, numsOf, defaultCfg, resolveCfg } = window.StatsCfg;
   const num = (a) => a.filter((v) => v != null && v !== "" && !isNaN(v)).map(Number);
 
   const TESTS = [
@@ -14,6 +16,9 @@
     { k: "anova", label: "ANOVA", icon: "bar" },
     { k: "chisq", label: "Chi-Square", icon: "treemap" },
     { k: "reg", label: "Regression", icon: "scatter" },
+    { k: "qq", label: "Normal Q-Q", icon: "scatter" },
+    { k: "timeseries", label: "Time Series", icon: "trend" },
+    { k: "spc", label: "SPC Chart", icon: "boxplot" },
     { k: "builder", label: "Analysis Builder", icon: "bolt" },
   ];
   const sigStars = (p) => p < 0.001 ? "***" : p < 0.01 ? "**" : p < 0.05 ? "*" : "n.s.";
@@ -307,10 +312,12 @@
     let visual = null, statTable = null;
 
     if (type === "regression" && data) {
-      const lo = Math.min(...data.terms.map((t) => t.coef)), hi = Math.max(...data.terms.map((t) => t.coef));
-      const scatterData = rows.filter((r) => numInputs && numInputs.every((c2) => r[c2.key] != null) && r[targetCol.key] != null)
+      const _coefs = data.terms.map((t) => t.coef);
+      const lo = _coefs.length ? Math.min(..._coefs) : 0, hi = _coefs.length ? Math.max(..._coefs) : 1;
+      const scatterData = rows.filter((r) => numInputs && numInputs.every((c2) => r[c2.key] != null) && r[targetCol.key] != null && data.terms.length)
         .map((r) => { const ym = data.terms[0].coef + (numInputs || []).reduce((s, c2, i) => s + (data.terms[i + 1] ? data.terms[i + 1].coef * r[c2.key] : 0), 0); return [r[targetCol.key], ym]; });
-      const scMin = Math.min(...scatterData.flat()), scMax = Math.max(...scatterData.flat());
+      const _scFlat = scatterData.flat();
+      const scMin = _scFlat.length ? Math.min(..._scFlat) : 0, scMax = _scFlat.length ? Math.max(..._scFlat) : 1;
       const scOpt = {
         ...Charts.baseGrid(c),
         grid: { left: 8, right: 16, top: 8, bottom: 28, containLabel: true },
@@ -374,24 +381,190 @@
   }
 
   // ---------- StatsCenter ----------
+  // ---------- Normal Q-Q (window.DistFit) ----------
+  function StatsHead({ title }) {
+    return (
+      <div className="phead">
+        <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
+          <Icon name="stats" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{title}
+        </span>
+      </div>
+    );
+  }
+
+  function QQCenter({ rows, columns, cfg, theme }) {
+    const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
+    const colKey = cfg.distCol || (numCols[0] && numCols[0].key);
+    const col = columns.find((c) => c.key === colKey) || {};
+    const vals = num(rows.map((r) => r[colKey]));
+    const c = Charts.themeColors(), pal = Charts.palette();
+    if (vals.length < 4) return <React.Fragment><StatsHead title={"Normal Q-Q · " + (col.label || colKey)} /><div className="empty"><Icon name="scatter" /><div className="t">Not enough data</div><div className="s">Select a numeric column with at least 4 values.</div></div></React.Fragment>;
+    const qq = window.DistFit.qqNormal(vals);
+    const jb = window.DistFit.jarqueBera(vals);
+    const pts = qq.points.map((p) => [p.theoretical, p.sample]);
+    const xs = pts.map((p) => p[0]); const lo = Math.min(...xs), hi = Math.max(...xs);
+    const line = [[lo, qq.line.intercept + qq.line.slope * lo], [hi, qq.line.intercept + qq.line.slope * hi]];
+    const excessK = jb.excessKurtosis != null ? jb.excessKurtosis : (jb.kurtosis - 3);
+    const option = { ...Charts.baseGrid(c), grid: { left: 8, right: 16, top: 16, bottom: 34, containLabel: true },
+      tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item", formatter: (p) => `theoretical ${(+p.value[0]).toFixed(2)}<br/>sample ${NODE.fmtCompact(p.value[1])}` },
+      xAxis: { type: "value", name: "Theoretical quantiles", nameLocation: "middle", nameGap: 22, axisLabel: { color: c.text, fontSize: 10 }, splitLine: { lineStyle: { color: c.split } } },
+      yAxis: { type: "value", name: "Sample", axisLabel: { color: c.text, fontSize: 10, formatter: NODE.fmtCompact }, splitLine: { lineStyle: { color: c.split } } },
+      series: [
+        { type: "scatter", data: pts, symbolSize: 5, itemStyle: { color: pal[0], opacity: 0.6 } },
+        { type: "line", data: line, showSymbol: false, silent: true, lineStyle: { color: c.faint, type: "dashed", width: 1.5 } },
+      ] };
+    const normal = Math.abs(jb.skewness) < 0.5 && Math.abs(excessK) < 1;
+    return (
+      <React.Fragment>
+        <StatsHead title={"Normal Q-Q · " + (col.label || colKey)} />
+        <div className="pbody statsbody">
+          <Cards items={[["n", vals.length], ["Skewness", jb.skewness.toFixed(2)], ["Excess kurtosis", excessK.toFixed(2)], ["Jarque-Bera", jb.statistic.toFixed(1)]]} />
+          <div style={{ height: 340, margin: "6px 0 10px" }}><EChart option={option} theme={theme} style={{ height: "100%" }} /></div>
+          <Verdict p={normal ? 0.5 : 0.01} msg={`Points ${normal ? "closely follow" : "deviate from"} the reference line — the distribution of ${col.label || colKey} is ${normal ? "approximately normal" : "not normal"} (skewness ${jb.skewness.toFixed(2)}, excess kurtosis ${excessK.toFixed(2)}).`} />
+        </div>
+      </React.Fragment>
+    );
+  }
+
+  // ---------- Time Series (window.TimeSeries) ----------
+  function TimeSeriesCenter({ rows, columns, cfg, theme }) {
+    const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
+    const colKey = cfg.distCol || (numCols[0] && numCols[0].key);
+    const col = columns.find((c) => c.key === colKey) || {};
+    const win = cfg.tsWindow || 5, alpha = cfg.tsAlpha || 0.3;
+    const c = Charts.themeColors(), pal = Charts.palette();
+    const dateCol = columns.find((cc) => cc.type === "datetime");
+    const ordered = dateCol ? [...rows].sort((a, b) => String(a[dateCol.key]).localeCompare(String(b[dateCol.key]))) : rows;
+    const series = ordered.map((r) => { const v = r[colKey]; return v == null || v === "" || isNaN(v) ? null : +v; });
+    const labels = dateCol ? ordered.map((r) => r[dateCol.key]) : ordered.map((_, i) => i + 1);
+    if (series.filter((v) => v != null).length < 3) return <React.Fragment><StatsHead title={"Time Series · " + (col.label || colKey)} /><div className="empty"><Icon name="trend" /><div className="t">Not enough data</div></div></React.Fragment>;
+    const ma = window.TimeSeries.movingAverage(series, win);
+    const ema = window.TimeSeries.exponentialSmoothing(series.map((v) => v == null ? 0 : v), alpha);
+    const maxLag = Math.min(20, Math.floor(series.length / 3));
+    const acf = window.TimeSeries.acf(series, maxLag);
+    const pacf = window.TimeSeries.pacf(series, maxLag);
+    const base = Charts.baseGrid(c);
+    const lineOpt = { ...base, grid: { left: 8, right: 14, top: 24, bottom: 40, containLabel: true },
+      legend: { top: 0, textStyle: { color: c.text, fontSize: 10 } },
+      tooltip: { ...base.tooltip, trigger: "axis" },
+      xAxis: { type: "category", data: labels, axisLabel: { color: c.text, fontSize: 9, rotate: labels.length > 12 ? 35 : 0, interval: Math.max(0, Math.floor(labels.length / 12)) }, axisLine: { lineStyle: { color: c.axis } } },
+      yAxis: { type: "value", axisLabel: { color: c.text, fontSize: 10, formatter: NODE.fmtCompact }, splitLine: { lineStyle: { color: c.split } } },
+      series: [
+        { name: col.label || colKey, type: "line", data: series, showSymbol: false, lineStyle: { color: c.faint, width: 1 }, itemStyle: { color: c.faint } },
+        { name: `MA(${win})`, type: "line", data: ma, showSymbol: false, smooth: true, lineStyle: { color: pal[0], width: 2 }, itemStyle: { color: pal[0] } },
+        { name: `EMA(α=${alpha})`, type: "line", data: ema, showSymbol: false, smooth: true, lineStyle: { color: pal[2], width: 1.5 }, itemStyle: { color: pal[2] } },
+      ] };
+    const corrOpt = (data, color) => ({ ...base, grid: { left: 8, right: 14, top: 10, bottom: 24, containLabel: true },
+      tooltip: { ...base.tooltip, trigger: "axis" },
+      xAxis: { type: "category", data: data.map((_, i) => i), name: "lag", axisLabel: { color: c.text, fontSize: 9 }, axisLine: { lineStyle: { color: c.axis } } },
+      yAxis: { type: "value", min: -1, max: 1, axisLabel: { color: c.text, fontSize: 10 }, splitLine: { lineStyle: { color: c.split } } },
+      series: [{ type: "bar", data: data.map((v) => NODE.round(v, 3)), itemStyle: { color }, barWidth: "50%" }] });
+    const acfOpt = corrOpt(acf, pal[3]);
+    const pacfOpt = corrOpt(pacf, pal[4]);
+    return (
+      <React.Fragment>
+        <StatsHead title={"Time Series · " + (col.label || colKey)} />
+        <div className="pbody statsbody">
+          <Cards items={[["Points", series.filter((v) => v != null).length], ["MA window", win], ["EMA α", alpha], ["Ordered by", dateCol ? dateCol.label : "row"]]} />
+          <div className="ml-charttitle">Series · moving average · exponential smoothing</div>
+          <div style={{ height: 300, margin: "2px 0 12px" }}><EChart option={lineOpt} theme={theme} style={{ height: "100%" }} /></div>
+          <div className="ml-charttitle">Autocorrelation (ACF)</div>
+          <div style={{ height: 150, margin: "2px 0 8px" }}><EChart option={acfOpt} theme={theme} style={{ height: "100%" }} /></div>
+          <div className="ml-charttitle">Partial autocorrelation (PACF)</div>
+          <div style={{ height: 150, margin: "2px 0 8px" }}><EChart option={pacfOpt} theme={theme} style={{ height: "100%" }} /></div>
+        </div>
+      </React.Fragment>
+    );
+  }
+
+  // ---------- SPC control chart (window.SPC) ----------
+  function SPCCenter({ rows, columns, cfg, theme }) {
+    const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
+    const colKey = cfg.distCol || (numCols[0] && numCols[0].key);
+    const col = columns.find((c) => c.key === colKey) || {};
+    const dateCol = columns.find((cc) => cc.type === "datetime");
+    const ordered = dateCol ? [...rows].sort((a, b) => String(a[dateCol.key]).localeCompare(String(b[dateCol.key]))) : rows;
+    const vals = num(ordered.map((r) => r[colKey]));
+    const c = Charts.themeColors(), pal = Charts.palette();
+    if (vals.length < 2) return <React.Fragment><StatsHead title={"SPC · " + (col.label || colKey)} /><div className="empty"><Icon name="boxplot" /><div className="t">Not enough data</div></div></React.Fragment>;
+    const r = window.SPC.iMR(vals);
+    const ind = r.individuals;
+    const viol = window.SPC.violations(ind.points, ind.center, ind.ucl, ind.lcl);
+    const hasSpec = cfg.lsl != null || cfg.usl != null;
+    const cap = hasSpec ? window.SPC.capability(vals, cfg.lsl, cfg.usl) : null;
+    const capBadge = (v) => v == null ? "—" : v.toFixed(2);
+    const capColor = (v) => v == null ? "var(--tx-faint)" : v >= 1.33 ? "var(--pos)" : v >= 1.0 ? "var(--warn)" : "var(--neg)";
+    const violSet = new Set(viol);
+    const base = Charts.baseGrid(c);
+    const mkLine = (y, color, name, type) => ({ name, type: "line", data: ind.points.map(() => y), showSymbol: false, silent: true, lineStyle: { color, type: type || "solid", width: 1 } });
+    const option = { ...base, grid: { left: 8, right: 52, top: 16, bottom: 30, containLabel: true },
+      tooltip: { ...base.tooltip, trigger: "axis" },
+      xAxis: { type: "category", data: ind.points.map((_, i) => i + 1), axisLabel: { color: c.text, fontSize: 9, interval: Math.max(0, Math.floor(ind.points.length / 14)) }, axisLine: { lineStyle: { color: c.axis } } },
+      yAxis: { type: "value", axisLabel: { color: c.text, fontSize: 10, formatter: NODE.fmtCompact }, splitLine: { lineStyle: { color: c.split } } },
+      series: [
+        { name: "Value", type: "line", data: ind.points.map((v, i) => ({ value: v, itemStyle: violSet.has(i) ? { color: "#e05c5c" } : { color: pal[0] } })), smooth: false,
+          lineStyle: { color: pal[0], width: 1.5 }, symbolSize: (val, p) => violSet.has(p.dataIndex) ? 9 : 4,
+          markLine: { silent: true, symbol: "none", label: { color: c.text, fontSize: 9, formatter: (p) => p.name },
+            data: [
+              { yAxis: ind.center, name: "CL", lineStyle: { color: c.faint } },
+              { yAxis: ind.ucl, name: "UCL", lineStyle: { color: "#e05c5c", type: "dashed" } },
+              { yAxis: ind.lcl, name: "LCL", lineStyle: { color: "#e05c5c", type: "dashed" } },
+            ] } },
+      ] };
+    return (
+      <React.Fragment>
+        <StatsHead title={"SPC · Individuals (I-MR) · " + (col.label || colKey)} />
+        <div className="pbody statsbody">
+          <Cards items={[["Center", NODE.fmtCompact(ind.center)], ["UCL", NODE.fmtCompact(ind.ucl)], ["LCL", NODE.fmtCompact(ind.lcl)], ["Out of control", viol.length]]} />
+          <div style={{ height: 360, margin: "6px 0 10px" }}><EChart option={option} theme={theme} style={{ height: "100%" }} /></div>
+          {cap && (
+            <React.Fragment>
+              <div className="ml-charttitle">Process capability {cfg.lsl != null ? `· LSL ${cfg.lsl}` : ""}{cfg.usl != null ? ` · USL ${cfg.usl}` : ""}</div>
+              <div className="stat-cards">
+                {[["Cp", cap.cp], ["Cpk", cap.cpk], ["Pp", cap.pp], ["Ppk", cap.ppk]].map(([k, v]) => (
+                  <div className="stat-card" key={k}><div className="sc-val mono" style={{ color: capColor(v) }}>{capBadge(v)}</div><div className="sc-lbl">{k}</div></div>
+                ))}
+              </div>
+              <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "4px 0 8px" }}>Cpk ≥ 1.33 양호 · 1.0~1.33 주의 · &lt;1.0 부적합. Cp/Cpk는 단기(군내) σ, Pp/Ppk는 전체 σ 기준.</div>
+            </React.Fragment>
+          )}
+          <Verdict p={viol.length ? 0.01 : 0.5} msg={viol.length ? `${viol.length} point${viol.length > 1 ? "s" : ""} fall outside the 3σ control limits — the process shows special-cause variation.` : `All points lie within the 3σ control limits — the process appears in statistical control.`} />
+        </div>
+      </React.Fragment>
+    );
+  }
+
   function StatsCenter() {
     const activeId = useStore((s) => s.activeId);
     const theme = useStore((s) => s.theme);
     const cfgS = useStore((s) => s.ui.stats);
     const { rows, columns } = derive.getActiveData(activeId);
-    const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
-    const cfg = cfgS || defaultCfg(columns);
+    const numCols = numsOf(columns);
+    const catCols = catsOf(columns);
+    const cfg = resolveCfg(cfgS, columns, rows);
     const test = cfg.test;
+    const levelsOf = (key) => key ? [...new Set(rows.map((r) => String(r[key])))].filter((v) => v !== "null" && v !== "") : [];
 
     if (test === "distribution") return <DistributionCenter rows={rows} columns={columns} cfg={cfg} theme={theme} />;
     if (test === "builder") return <AnalysisBuilderCenter rows={rows} columns={columns} cfg={cfg} theme={theme} />;
+    if (test === "qq") return <QQCenter rows={rows} columns={columns} cfg={cfg} theme={theme} />;
+    if (test === "timeseries") return <TimeSeriesCenter rows={rows} columns={columns} cfg={cfg} theme={theme} />;
+    if (test === "spc") return <SPCCenter rows={rows} columns={columns} cfg={cfg} theme={theme} />;
 
     let body, title;
+    try {
+    const needNote = (msg) => (
+      <div className="empty" style={{ padding: 24 }}><Icon name="info" />
+        <div className="t">이 분석을 실행할 수 없습니다</div><div className="s">{msg}</div></div>
+    );
+    const groupLevels = levelsOf(cfg.group);
     if (test === "descriptive") {
       title = "Descriptive statistics";
-      body = <DescTable rows={rows} cols={numCols} />;
+      body = numCols.length ? <DescTable rows={rows} cols={numCols} /> : needNote("숫자 컬럼이 없습니다. Data/Clean에서 컬럼 타입을 확인하세요.");
     } else if (test === "corr") {
       title = `Correlation matrix · ${cfg.method === "spearman" ? "Spearman" : "Pearson"}`;
+      if (numCols.length < 2) { body = needNote("상관분석에는 숫자 컬럼이 2개 이상 필요합니다. Data/Clean에서 컬럼 타입을 숫자로 바꿔보세요."); }
+      else {
       const m = corrMatrix(rows, numCols, cfg.method);
       const summary = IE ? IE.summarizeCorrelation({ cols: numCols, matrix: m }) : "";
       body = (
@@ -401,9 +574,14 @@
           <NextStepPanel context={{ lastTest: "corr" }} />
         </React.Fragment>
       );
+      }
     } else if (test === "ttest") {
+      title = `Independent t-test · ${cfg.measure || ""}`;
+      if (!cfg.measure || !cfg.group) { body = needNote("측정값(숫자)과 그룹(범주) 컬럼을 선택하세요."); }
+      else if (groupLevels.length < 2) { body = needNote(`그룹 컬럼 "${cfg.group}"에 비교할 수준이 2개 이상 필요합니다.`); }
+      else if (!cfg.l1 || !cfg.l2 || cfg.l1 === cfg.l2) { body = needNote("우측에서 비교할 두 그룹을 서로 다르게 선택하세요."); }
+      else {
       const r = ttest(rows, cfg.measure, cfg.group, cfg.l1, cfg.l2);
-      title = `Independent t-test · ${cfg.measure}`;
       body = (
         <React.Fragment>
           <Cards items={[["t", r.t.toFixed(3), sigStars(r.p)], ["df", r.df.toFixed(1)], ["p-value", fmtP(r.p)], ["Cohen's d", r.d.toFixed(2)]]} />
@@ -414,10 +592,17 @@
           <NextStepPanel context={{ lastTest: "ttest" }} />
         </React.Fragment>
       );
+      }
     } else if (test === "anova") {
+      title = `One-way ANOVA · ${cfg.measure || ""} by ${cfg.group || ""}`;
+      if (!cfg.measure || !cfg.group) { body = needNote("측정값(숫자)과 그룹(범주) 컬럼을 선택하세요."); }
+      else if (groupLevels.length < 2) { body = needNote(`그룹 컬럼 "${cfg.group}"에 2개 이상 수준이 필요합니다.`); }
+      else if (groupLevels.length > 50) { body = needNote(`그룹 "${cfg.group}"의 범주가 ${groupLevels.length}개로 너무 많습니다. ANOVA는 범주 수가 적은 그룹 컬럼이 적합합니다.`); }
+      else {
       const r = anova(rows, cfg.measure, cfg.group);
-      title = `One-way ANOVA · ${cfg.measure} by ${cfg.group}`;
       const top = Object.entries(r.means).sort((a, b) => b[1].mean - a[1].mean);
+      if (!top.length) { body = needNote("선택한 측정값에 유효한 숫자 값이 없습니다."); }
+      else {
       body = (
         <React.Fragment>
           <Cards items={[["F", r.F.toFixed(2), sigStars(r.p)], ["df", `${r.df1}, ${r.df2}`], ["p-value", fmtP(r.p)], ["η²", r.eta2.toFixed(3)]]} />
@@ -426,9 +611,16 @@
           <NextStepPanel context={{ lastTest: "anova" }} />
         </React.Fragment>
       );
+      }
+      }
     } else if (test === "chisq") {
+      title = `Chi-square test · ${cfg.a || ""} × ${cfg.b || ""}`;
+      const la = levelsOf(cfg.a), lb = levelsOf(cfg.b);
+      if (!cfg.a || !cfg.b) { body = needNote("연관성을 볼 두 범주 컬럼(A·B)을 선택하세요."); }
+      else if (cfg.a === cfg.b) { body = needNote("A와 B는 서로 다른 컬럼이어야 합니다."); }
+      else if (la.length > 50 || lb.length > 50) { body = needNote(`범주가 너무 많습니다 (${cfg.a}: ${la.length}, ${cfg.b}: ${lb.length}). 카이제곱은 범주 수가 적은 두 컬럼이 적합합니다.`); }
+      else {
       const r = chisq(rows, cfg.a, cfg.b);
-      title = `Chi-square test · ${cfg.a} × ${cfg.b}`;
       body = (
         <React.Fragment>
           <Cards items={[["χ²", r.chi.toFixed(2), sigStars(r.p)], ["df", r.df], ["p-value", fmtP(r.p)], ["Cramér's V", r.V.toFixed(3)]]} />
@@ -437,9 +629,13 @@
           <NextStepPanel context={{ lastTest: "chisq" }} />
         </React.Fragment>
       );
+      }
     } else {
+      title = `Linear regression · ${cfg.target || ""} ~ ${(cfg.preds || []).join(" + ")}`;
+      if (!cfg.target) { body = needNote("종속변수(Y)로 쓸 숫자 컬럼을 선택하세요."); }
+      else if (!cfg.preds.length) { body = needNote("예측변수(X)를 1개 이상 선택하세요."); }
+      else {
       const r = regression(rows, cfg.target, cfg.preds);
-      title = `Linear regression · ${cfg.target} ~ ${cfg.preds.join(" + ")}`;
       const summary = IE ? IE.summarizeRegression(r) : "";
       body = (
         <React.Fragment>
@@ -456,6 +652,19 @@
           <Verdict p={r.pF} msg={`The model explains ${(r.r2 * 100).toFixed(1)}% of variance in ${cfg.target} (adj. R²=${r.adj.toFixed(2)}). Significant predictors (p<0.05): ${r.terms.filter((t) => t.name !== "(Intercept)" && t.p < 0.05).map((t) => t.name).join(", ") || "none"}.`} />
           <NextStepPanel context={{ lastTest: "reg", lastResult: r }} />
         </React.Fragment>
+      );
+      }
+    }
+    } catch (e) {
+      // A bad column/group combo (e.g. ANOVA with no valid groups) must not crash the whole app.
+      if (window.LOG && window.LOG.error) window.LOG.error("stats", "test render failed: " + (e && e.message), { test });
+      title = "계산할 수 없음 · " + test;
+      body = (
+        <div className="empty" style={{ padding: 24 }}>
+          <Icon name="info" />
+          <div className="t">이 조합으로는 통계를 계산할 수 없습니다</div>
+          <div className="s">그룹이 2개 이상인 범주 컬럼과 숫자 측정값을 선택했는지 확인하세요. 우측 패널에서 컬럼을 바꾸면 다시 계산됩니다.</div>
+        </div>
       );
     }
 
@@ -533,28 +742,16 @@
   }
 
   // ---------- right config panel ----------
-  function defaultCfg(columns) {
-    const cats = columns.filter((c) => c.type === "category");
-    const nums = columns.filter((c) => c.type === "integer" || c.type === "float");
-    return {
-      test: "corr", method: "pearson",
-      measure: "price_per_m2", group: cats[1] ? cats[1].key : (cats[0] ? cats[0].key : ""),
-      l1: "아파트", l2: "오피스텔",
-      a: cats[0] ? cats[0].key : "", b: cats[1] ? cats[1].key : (cats[0] ? cats[0].key : ""),
-      target: "price_manwon", preds: ["area_m2", "floor", "built_year"],
-      distCol: nums[0] ? nums[0].key : "",
-      builder: { target: "price_manwon", inputs: ["area_m2", "floor", "built_year"], result: null },
-    };
-  }
+  // catsOf/numsOf/defaultCfg/resolveCfg now live in js/statsCfg.js (window.StatsCfg), destructured above.
 
   function StatsPanel() {
     const activeId = useStore((s) => s.activeId);
     const cfgS = useStore((s) => s.ui.stats);
     const { columns, rows } = derive.getActiveData(activeId);
-    const cfg = cfgS || defaultCfg(columns);
+    const cfg = resolveCfg(cfgS, columns, rows);
     const set = (patch) => actions.setUI({ stats: { ...cfg, ...patch } });
-    const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
-    const catCols = columns.filter((c) => c.type === "category");
+    const numCols = numsOf(columns);
+    const catCols = catsOf(columns);
     const levels = (key) => [...new Set(rows.map((r) => String(r[key])))];
 
     const bld = cfg.builder || { target: numCols[0] ? numCols[0].key : "", inputs: [], result: null };
@@ -580,6 +777,29 @@
 
         {cfg.test === "distribution" && (
           <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+        )}
+        {cfg.test === "qq" && (
+          <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+        )}
+        {cfg.test === "spc" && (
+          <React.Fragment>
+            <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+            <div className="cp-block"><div className="cp-blocktitle">Spec limits (optional · for Cp/Cpk)</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input className="inp" type="number" placeholder="LSL" value={cfg.lsl == null ? "" : cfg.lsl} onChange={(e) => set({ lsl: e.target.value === "" ? null : +e.target.value })} />
+                <input className="inp" type="number" placeholder="USL" value={cfg.usl == null ? "" : cfg.usl} onChange={(e) => set({ usl: e.target.value === "" ? null : +e.target.value })} />
+              </div>
+            </div>
+          </React.Fragment>
+        )}
+        {cfg.test === "timeseries" && (
+          <React.Fragment>
+            <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+            <div className="cp-block"><div className="cp-blocktitle">MA window</div>
+              <div className="seg" style={{ width: "100%" }}>{[3, 5, 7, 12].map((w) => <button key={w} className={(cfg.tsWindow || 5) === w ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsWindow: w })}>{w}</button>)}</div></div>
+            <div className="cp-block"><div className="cp-blocktitle">EMA α</div>
+              <div className="seg" style={{ width: "100%" }}>{[0.1, 0.3, 0.5, 0.7].map((a) => <button key={a} className={(cfg.tsAlpha || 0.3) === a ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsAlpha: a })}>{a}</button>)}</div></div>
+          </React.Fragment>
         )}
         {cfg.test === "corr" && (
           <div className="cp-block"><div className="cp-blocktitle">Method</div>

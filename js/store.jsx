@@ -28,13 +28,13 @@
     datasets.forEach((ds) => { ds.__rid_tagged = false; ensureRids(ds); });
   }
 
-  const initial = {
-    theme: "dark",
-    mode: "data",
-    activeId: "seoul_txns",
-    ui: { leftW: 230, rightW: 268, dataTab: "preview", selCol: null, aiOpen: false },
-    clean: {},          // { datasetId: { steps:[], cursor:0 } }
-    viz: {
+  // ---------- viz sheets (multiple visualization tabs) ----------
+  // Each tab ("sheet") is a full, independent viz spec + its own bound dataset
+  // (datasetId; null = follow the global active dataset). Tableau-worksheet style.
+  let _sheetSeq = 1;
+  function mkSheetId() { return "sheet-" + (Date.now().toString(36)) + "-" + (_sheetSeq++); }
+  function vizSheetSpec() {
+    return {
       type: "bar",
       cols: [],         // dimension chips on Columns shelf {key,label,role}
       rows: [],         // measure chips on Rows shelf {key,label,agg}
@@ -43,9 +43,92 @@
       filters: [],      // [{key,label,values:[...]}]  (category filters)
       sortDesc: true,
       topN: 0,
-    },
-    pivot: {},
-    dash: { widgets: null, cross: null, edit: false },
+      format: {          // chart formatting overrides (applied post-build)
+        title: { text: "", v: "top", h: "center" },      // chart title (empty = none); v/h/free like legend
+        legend: { show: true, v: "top", h: "center" },   // v: top|middle|bottom · h: left|center|right
+        labels: { show: false, pos: "top", fmt: "full" },
+        gridlines: true,
+        grid: {},        // { width, color, splitNumber } grid/split-line styling
+        axis: {},        // { xMin, xMax, yMin, yMax, yLabelRotate, xLabelRotate }
+        text: {},        // { color, size, bold, italic } chart text styling
+        background: null,// chart background colour (for PNG blending); null = theme
+        resizeMode: "all", // "all" = resize whole element (legend too) · "plot" = plot area only
+        plotInset: {},   // { top, bottom, left, right } extra grid padding (plot-only resize)
+        smooth: null,    // null = per chart default; true/false override
+        colors: {},      // { seriesName: "#hex" }
+        seriesNames: {}, // { originalName: "custom label" }
+        seriesOpts: {},  // { seriesName: { lineWidth } } per-series detail
+        bar: {},         // { categoryGap } bar spacing
+        pie: {},         // { inner } pie/doughnut inner radius
+        explode: {},     // { sliceName: true } pie slice pull-out
+      },
+    };
+  }
+  function mkVizSheet(name, datasetId, id) {
+    return Object.assign({ id: id || mkSheetId(), name: name || "시트 1", datasetId: datasetId || null }, vizSheetSpec());
+  }
+  // Return the active sheet (or the first as a safe fallback).
+  function curSheet(s) {
+    const sheets = s.vizSheets || [];
+    return sheets.find((x) => x.id === s.vizActive) || sheets[0];
+  }
+  // Immutably replace the active sheet with fn(sheet).
+  function updateSheet(s, fn) {
+    const sheets = (s.vizSheets || []).slice();
+    let i = sheets.findIndex((x) => x.id === s.vizActive);
+    if (i < 0) i = 0;
+    if (!sheets[i]) return s;
+    sheets[i] = fn(sheets[i]);
+    return { ...s, vizSheets: sheets };
+  }
+
+  // ---------- pivot sheets (multiple pivot-table tabs) ----------
+  function pivotSheetSpec() { return { rows: [], columns: [], values: [], filters: [] }; }
+  function mkPivotSheet(name, datasetId, id) {
+    return Object.assign({ id: id || mkSheetId(), name: name || "피벗 1", datasetId: datasetId || null }, pivotSheetSpec());
+  }
+  function curPivot(s) {
+    const sheets = s.pivotSheets || [];
+    return sheets.find((x) => x.id === s.pivotActive) || sheets[0];
+  }
+  function updatePivot(s, fn) {
+    const sheets = (s.pivotSheets || []).slice();
+    let i = sheets.findIndex((x) => x.id === s.pivotActive);
+    if (i < 0) i = 0;
+    if (!sheets[i]) return s;
+    sheets[i] = fn(sheets[i]);
+    return { ...s, pivotSheets: sheets };
+  }
+
+  // ---------- dashboard sheets (multiple dashboard tabs) ----------
+  // Only `widgets` is per-sheet; cross/edit/selectedWidgetId stay dash-global.
+  function mkDashSheet(name, id, widgets) {
+    return { id: id || mkSheetId(), name: name || "대시보드 1", widgets: widgets === undefined ? null : widgets };
+  }
+  function curDashSheet(s) {
+    const sh = (s.dash && s.dash.sheets) || [];
+    return sh.find((x) => x.id === s.dash.active) || sh[0];
+  }
+  function updateDashSheet(s, fn) {
+    const sheets = ((s.dash && s.dash.sheets) || []).slice();
+    let i = sheets.findIndex((x) => x.id === s.dash.active);
+    if (i < 0) i = 0;
+    if (!sheets[i]) return s;
+    sheets[i] = fn(sheets[i]);
+    return { ...s, dash: { ...s.dash, sheets } };
+  }
+
+  const initial = {
+    theme: "dark",
+    mode: "data",
+    activeId: "seoul_txns",
+    ui: { leftW: 230, rightW: 268, dataTab: "preview", selCol: null, aiOpen: false },
+    clean: {},          // { datasetId: { steps:[], cursor:0 } }
+    vizSheets: [mkVizSheet("시트 1", null, "sheet-1")],   // visualization tabs
+    vizActive: "sheet-1",
+    pivotSheets: [mkPivotSheet("피벗 1", null, "pivot-1")], // pivot-table tabs
+    pivotActive: "pivot-1",
+    dash: { sheets: [mkDashSheet("대시보드 1", "dash-1")], active: "dash-1", cross: null, edit: false, selectedWidgetId: null },
     tweaks: { layout: "classic", sidebar: "rail", tone: "cool", density: "compact" },
   };
 
@@ -130,7 +213,12 @@
         case "fill_mode": { const m = stat.mode(rows.map((r) => r[s.col])); rows.forEach((r) => { if (r[s.col] == null || r[s.col] === "") r[s.col] = m; }); break; }
         case "drop_duplicates": { const seen = new Set(); rows = rows.filter((r) => { const { __rid, ...rest } = r; const k = JSON.stringify(rest); if (seen.has(k)) return false; seen.add(k); return true; }); break; }
         case "remove_outliers": { const cs = colStats(rows, s.col); const iqr = cs.q3 - cs.q1; const lo = cs.q1 - 1.5 * iqr, hi = cs.q3 + 1.5 * iqr; rows = rows.filter((r) => { const v = r[s.col]; return v == null || (v >= lo && v <= hi); }); break; }
-        case "rename": { rows.forEach((r) => { r[s.params.to] = r[s.col]; if (s.params.to !== s.col) delete r[s.col]; }); columns = columns.map((c) => c.key === s.col ? { ...c, key: s.params.to, label: s.params.to } : c); break; }
+        case "rename": {
+          // Guard: never rename onto an existing different column key (would overwrite its data).
+          if (s.params.to !== s.col && columns.some((c) => c.key === s.params.to)) break;
+          rows.forEach((r) => { r[s.params.to] = r[s.col]; if (s.params.to !== s.col) delete r[s.col]; });
+          columns = columns.map((c) => c.key === s.col ? { ...c, key: s.params.to, label: s.params.to } : c); break;
+        }
         case "replace": { rows.forEach((r) => { if (r[s.col] != null && String(r[s.col]) === s.params.from) r[s.col] = s.params.to; }); break; }
         case "change_type": { columns = columns.map((c) => c.key === s.col ? { ...c, type: s.params.to, role: (s.params.to === "integer" || s.params.to === "float") ? "measure" : "dimension" } : c); break; }
         // ---- Phase 2: Encoding ----
@@ -221,7 +309,7 @@
           let v = s.params.value;
           if (col && (col.type === "integer" || col.type === "float")) {
             if (v === "" || v == null) v = null;
-            else { const n = Number(v); if (!Number.isNaN(n)) v = col.type === "integer" ? Math.round(n) : n; }
+            else { const n = Number(v); v = Number.isNaN(n) ? null : (col.type === "integer" ? Math.round(n) : n); } // invalid → null, never pollute a numeric column
           }
           const r = rows.find((row) => row.__rid === s.rid);
           if (r) r[s.col] = v;
@@ -272,12 +360,26 @@
   // active (cleaned) dataset
   function getDataset(id) { return ensureRids(D.find((d) => d.id === (id || state.activeId))); }
   function getClean(id) { id = id || state.activeId; return state.clean[id] || { steps: [], cursor: 0 }; }
+  // Memoize the derived (post-cleaning) view. applySteps clones every row each call, so an
+  // un-memoized getActiveData is O(steps × rows) on EVERY render — costly once XLSX brings tens
+  // of thousands of rows. Cache key = (dataset ref, steps array ref, cursor). All mutations flip
+  // one of these: addStep/clearSteps → new steps ref; undo/redo/gotoStep → cursor; registerDataset
+  // → new id; hydrateProject → D.splice replaces ds objects. Consumers treat the result read-only
+  // (audited: no in-place sort/push/field-assignment on the derived rows/columns), so sharing is safe.
+  const EMPTY_STEPS = [];
+  const _activeCache = new Map(); // id -> { ds, stepsRef, cursor, result }
   function getActiveData(id) {
     id = id || state.activeId;
     const ds = getDataset(id);
-    const cl = getClean(id);
-    const active = cl.steps.slice(0, cl.cursor);
-    return { ds, ...applySteps(ds, active), steps: cl.steps, cursor: cl.cursor };
+    const cl = state.clean[id];
+    const steps = cl ? cl.steps : EMPTY_STEPS; // stable ref when a dataset has no cleaning steps
+    const cursor = cl ? cl.cursor : 0;
+    const cached = _activeCache.get(id);
+    if (cached && cached.ds === ds && cached.stepsRef === steps && cached.cursor === cursor) return cached.result;
+    const active = steps.slice(0, cursor);
+    const result = { ds, ...applySteps(ds, active), steps, cursor };
+    _activeCache.set(id, { ds, stepsRef: steps, cursor, result });
+    return result;
   }
 
   // ---------- aggregation for viz ----------
@@ -324,6 +426,38 @@
       const next = deepMerge(JSON.parse(JSON.stringify(initial)), saved);
       next.ui = { ...initial.ui, ...(saved.ui || {}), aiOpen: false };
       if (!D.some((ds) => ds.id === next.activeId)) next.activeId = D[0].id;
+      // Migrate legacy single-viz projects → one sheet; ensure sheets are valid.
+      if (saved.viz && !(saved.vizSheets && saved.vizSheets.length)) {
+        const merged = Object.assign(vizSheetSpec(), saved.viz);
+        next.vizSheets = [Object.assign({ id: "sheet-1", name: "시트 1", datasetId: null }, merged)];
+        next.vizActive = "sheet-1";
+      }
+      delete next.viz;
+      if (!Array.isArray(next.vizSheets) || !next.vizSheets.length) {
+        next.vizSheets = [mkVizSheet("시트 1", null, "sheet-1")];
+      }
+      if (!next.vizSheets.some((x) => x.id === next.vizActive)) next.vizActive = next.vizSheets[0].id;
+      // Migrate legacy single-pivot projects → one pivot sheet.
+      if (saved.pivot && !(saved.pivotSheets && saved.pivotSheets.length)) {
+        const merged = Object.assign(pivotSheetSpec(), saved.pivot);
+        next.pivotSheets = [Object.assign({ id: "pivot-1", name: "피벗 1", datasetId: null }, merged)];
+        next.pivotActive = "pivot-1";
+      }
+      delete next.pivot;
+      if (!Array.isArray(next.pivotSheets) || !next.pivotSheets.length) {
+        next.pivotSheets = [mkPivotSheet("피벗 1", null, "pivot-1")];
+      }
+      if (!next.pivotSheets.some((x) => x.id === next.pivotActive)) next.pivotActive = next.pivotSheets[0].id;
+      // Migrate legacy single-dashboard projects → one dashboard sheet.
+      if (saved.dash && saved.dash.widgets !== undefined && !(saved.dash.sheets && saved.dash.sheets.length)) {
+        next.dash = { sheets: [{ id: "dash-1", name: "대시보드 1", widgets: saved.dash.widgets }], active: "dash-1",
+          cross: null, edit: !!saved.dash.edit, selectedWidgetId: null };
+      }
+      if (!next.dash || !Array.isArray(next.dash.sheets) || !next.dash.sheets.length) {
+        next.dash = { sheets: [mkDashSheet("대시보드 1", "dash-1")], active: "dash-1", cross: null, edit: false, selectedWidgetId: null };
+      }
+      delete next.dash.widgets;
+      if (!next.dash.sheets.some((x) => x.id === next.dash.active)) next.dash.active = next.dash.sheets[0].id;
       state = next;
 
       const analysis = bundle.analysis || {};
@@ -353,6 +487,7 @@
       if (index < 0) return false;
       if (D.length === 1) throw new Error("A project must keep at least one dataset");
       D.splice(index, 1);
+      _activeCache.delete(id); // drop the memoized view for the removed dataset
       setState((s) => {
         const clean = { ...s.clean };
         delete clean[id];
@@ -384,27 +519,154 @@
     addColumn: (def) => actions.addStep({ op: "add_col", params: def || {} }),
     reorderCols: (order) => actions.addStep({ op: "reorder_cols", params: { order } }),
 
-    // viz
-    setViz: (patch) => setState((s) => ({ ...s, viz: { ...s.viz, ...patch } })),
-    addToShelf: (shelf, field) => setState((s) => {
-      const viz = { ...s.viz };
+    // viz (all operate on the active sheet)
+    setViz: (patch) => setState((s) => updateSheet(s, (viz) => ({ ...viz, ...patch }))),
+    addToShelf: (shelf, field) => setState((s) => updateSheet(s, (v) => {
+      const viz = { ...v };
       if (shelf === "cols") { if (!viz.cols.find((c) => c.key === field.key)) viz.cols = [...viz.cols, field]; }
       else if (shelf === "rows") { if (!viz.rows.find((c) => c.key === field.key)) viz.rows = [...viz.rows, { ...field, agg: field.agg || "sum", id: field.key + "_" + (field.agg || "sum") }]; }
       else if (shelf === "color") viz.color = field;
-      return { ...s, viz };
-    }),
-    removeFromShelf: (shelf, key) => setState((s) => {
-      const viz = { ...s.viz };
+      return viz;
+    })),
+    removeFromShelf: (shelf, key) => setState((s) => updateSheet(s, (v) => {
+      const viz = { ...v };
       if (shelf === "cols") viz.cols = viz.cols.filter((c) => c.key !== key);
       else if (shelf === "rows") viz.rows = viz.rows.filter((c) => c.key !== key);
       else if (shelf === "color") viz.color = null;
-      return { ...s, viz };
+      return viz;
+    })),
+    setRowAgg: (key, agg) => setState((s) => updateSheet(s, (v) => ({ ...v, rows: v.rows.map((r) => r.key === key ? { ...r, agg, id: r.key + "_" + agg } : r) }))),
+    setFormat: (patch) => setState((s) => updateSheet(s, (v) => {
+      const f = v.format || {};
+      const next = { ...f, ...patch };
+      if (patch.title) next.title = { ...f.title, ...patch.title };
+      if (patch.legend) next.legend = { ...f.legend, ...patch.legend };
+      if (patch.labels) next.labels = { ...f.labels, ...patch.labels };
+      if (patch.grid) next.grid = { ...f.grid, ...patch.grid };
+      if (patch.axis) next.axis = { ...f.axis, ...patch.axis };
+      if (patch.text) next.text = { ...f.text, ...patch.text };
+      if (patch.plotInset) next.plotInset = { ...f.plotInset, ...patch.plotInset };
+      if (patch.colors) next.colors = { ...f.colors, ...patch.colors };
+      if (patch.seriesNames) next.seriesNames = { ...f.seriesNames, ...patch.seriesNames };
+      if (patch.bar) next.bar = { ...f.bar, ...patch.bar };
+      if (patch.pie) next.pie = { ...f.pie, ...patch.pie };
+      if (patch.explode) next.explode = { ...f.explode, ...patch.explode };
+      if (patch.seriesOpts) { next.seriesOpts = { ...f.seriesOpts }; for (const k in patch.seriesOpts) next.seriesOpts[k] = { ...(f.seriesOpts && f.seriesOpts[k]), ...patch.seriesOpts[k] }; }
+      return { ...v, format: next };
+    })),
+    setRowMark: (key, mark) => setState((s) => updateSheet(s, (v) => ({ ...v, rows: v.rows.map((r) => r.key === key ? { ...r, mark } : r) }))),
+    setRowAxis: (key, axis) => setState((s) => updateSheet(s, (v) => ({ ...v, rows: v.rows.map((r) => r.key === key ? { ...r, axis } : r) }))),
+
+    // viz sheets (tabs)
+    addVizSheet: () => setState((s) => {
+      const n = (s.vizSheets || []).length + 1;
+      const sh = mkVizSheet("시트 " + n, s.activeId, undefined);
+      return { ...s, vizSheets: [...(s.vizSheets || []), sh], vizActive: sh.id };
     }),
-    setRowAgg: (key, agg) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, agg, id: r.key + "_" + agg } : r) } })),
+    setVizActive: (id) => setState((s) => {
+      const sh = (s.vizSheets || []).find((x) => x.id === id);
+      if (!sh) return s;
+      return { ...s, vizActive: id, activeId: sh.datasetId || s.activeId, ui: { ...s.ui, selCol: null } };
+    }),
+    renameVizSheet: (id, name) => setState((s) => ({ ...s, vizSheets: (s.vizSheets || []).map((x) => x.id === id ? { ...x, name: name || x.name } : x) })),
+    removeVizSheet: (id) => setState((s) => {
+      const sheets = (s.vizSheets || []);
+      if (sheets.length <= 1) return s;                       // keep at least one tab
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.filter((x) => x.id !== id);
+      let active = s.vizActive;
+      if (s.vizActive === id) { const fall = next[Math.max(0, idx - 1)] || next[0]; active = fall.id; }
+      const target = next.find((x) => x.id === active);
+      return { ...s, vizSheets: next, vizActive: active, activeId: (target && target.datasetId) || s.activeId };
+    }),
+    duplicateVizSheet: (id) => setState((s) => {
+      const sheets = (s.vizSheets || []);
+      const src = sheets.find((x) => x.id === id) || curSheet(s);
+      if (!src) return s;
+      const copy = Object.assign(JSON.parse(JSON.stringify(src)), { id: mkSheetId(), name: src.name + " 복사" });
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.slice(); next.splice(idx < 0 ? sheets.length : idx + 1, 0, copy);
+      return { ...s, vizSheets: next, vizActive: copy.id };
+    }),
+    setSheetDataset: (id, datasetId) => setState((s) => ({
+      ...s,
+      vizSheets: (s.vizSheets || []).map((x) => x.id === id ? { ...x, datasetId } : x),
+      activeId: id === s.vizActive ? (datasetId || s.activeId) : s.activeId,
+      ui: id === s.vizActive ? { ...s.ui, selCol: null } : s.ui,
+    })),
 
     // dashboard
     setDash: (patch) => setState((s) => ({ ...s, dash: { ...s.dash, ...patch } })),
     setCross: (c) => setState((s) => ({ ...s, dash: { ...s.dash, cross: c } })),
+    // widgets live on the active dashboard sheet
+    setDashWidgets: (widgets) => setState((s) => updateDashSheet(s, (sh) => ({ ...sh, widgets }))),
+    addDashSheet: () => setState((s) => {
+      const n = ((s.dash.sheets) || []).length + 1;
+      const sh = mkDashSheet("대시보드 " + n, undefined, []);   // new tab starts as a blank canvas
+      return { ...s, dash: { ...s.dash, sheets: [...s.dash.sheets, sh], active: sh.id, cross: null, selectedWidgetId: null } };
+    }),
+    setDashActive: (id) => setState((s) => {
+      if (!(s.dash.sheets || []).some((x) => x.id === id)) return s;
+      return { ...s, dash: { ...s.dash, active: id, cross: null, selectedWidgetId: null } };
+    }),
+    renameDashSheet: (id, name) => setState((s) => ({ ...s, dash: { ...s.dash, sheets: (s.dash.sheets || []).map((x) => x.id === id ? { ...x, name: name || x.name } : x) } })),
+    removeDashSheet: (id) => setState((s) => {
+      const sheets = s.dash.sheets || [];
+      if (sheets.length <= 1) return s;
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.filter((x) => x.id !== id);
+      let active = s.dash.active;
+      if (active === id) { const fall = next[Math.max(0, idx - 1)] || next[0]; active = fall.id; }
+      return { ...s, dash: { ...s.dash, sheets: next, active, cross: null, selectedWidgetId: null } };
+    }),
+    duplicateDashSheet: (id) => setState((s) => {
+      const sheets = s.dash.sheets || [];
+      const src = sheets.find((x) => x.id === id) || curDashSheet(s);
+      if (!src) return s;
+      const copy = { id: mkSheetId(), name: src.name + " 복사", widgets: src.widgets ? JSON.parse(JSON.stringify(src.widgets)) : null };
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.slice(); next.splice(idx < 0 ? sheets.length : idx + 1, 0, copy);
+      return { ...s, dash: { ...s.dash, sheets: next, active: copy.id, cross: null, selectedWidgetId: null } };
+    }),
+
+    // pivot (operates on the active pivot sheet)
+    setPivot: (patch) => setState((s) => updatePivot(s, (p) => ({ ...p, ...patch }))),
+    addPivotSheet: () => setState((s) => {
+      const n = (s.pivotSheets || []).length + 1;
+      const sh = mkPivotSheet("피벗 " + n, s.activeId, undefined);
+      return { ...s, pivotSheets: [...(s.pivotSheets || []), sh], pivotActive: sh.id };
+    }),
+    setPivotActive: (id) => setState((s) => {
+      const sh = (s.pivotSheets || []).find((x) => x.id === id);
+      if (!sh) return s;
+      return { ...s, pivotActive: id, activeId: sh.datasetId || s.activeId, ui: { ...s.ui, selCol: null } };
+    }),
+    renamePivotSheet: (id, name) => setState((s) => ({ ...s, pivotSheets: (s.pivotSheets || []).map((x) => x.id === id ? { ...x, name: name || x.name } : x) })),
+    removePivotSheet: (id) => setState((s) => {
+      const sheets = (s.pivotSheets || []);
+      if (sheets.length <= 1) return s;
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.filter((x) => x.id !== id);
+      let active = s.pivotActive;
+      if (s.pivotActive === id) { const fall = next[Math.max(0, idx - 1)] || next[0]; active = fall.id; }
+      const target = next.find((x) => x.id === active);
+      return { ...s, pivotSheets: next, pivotActive: active, activeId: (target && target.datasetId) || s.activeId };
+    }),
+    duplicatePivotSheet: (id) => setState((s) => {
+      const sheets = (s.pivotSheets || []);
+      const src = sheets.find((x) => x.id === id) || curPivot(s);
+      if (!src) return s;
+      const copy = Object.assign(JSON.parse(JSON.stringify(src)), { id: mkSheetId(), name: src.name + " 복사" });
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.slice(); next.splice(idx < 0 ? sheets.length : idx + 1, 0, copy);
+      return { ...s, pivotSheets: next, pivotActive: copy.id };
+    }),
+    setPivotSheetDataset: (id, datasetId) => setState((s) => ({
+      ...s,
+      pivotSheets: (s.pivotSheets || []).map((x) => x.id === id ? { ...x, datasetId } : x),
+      activeId: id === s.pivotActive ? (datasetId || s.activeId) : s.activeId,
+      ui: id === s.pivotActive ? { ...s.ui, selCol: null } : s.ui,
+    })),
   };
 
   function getDefaultProjectSnapshot() {

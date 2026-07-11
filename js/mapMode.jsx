@@ -39,7 +39,7 @@
     const [view, setView] = React.useState("choropleth");
     const [geo, setGeo] = React.useState(_geoState);
     const ds = NODE.datasets.find((d) => d.id === "district_stats");
-    const rows = ds.rows;
+    const rows = ds ? ds.rows : [];   // seed dataset may be absent (deleted / custom-only project)
     const m = METRICS.find((x) => x.k === metric);
 
     React.useEffect(() => {
@@ -54,7 +54,7 @@
 
     const c = Charts.themeColors(); const pal = Charts.palette();
     const data = rows.map((r) => ({ name: r.district, value: r[metric], lat: r.lat, lon: r.lon }));
-    const vals = data.map((d) => d.value); const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const vals = data.map((d) => d.value); const minV = vals.length ? Math.min(...vals) : 0, maxV = vals.length ? Math.max(...vals) : 1;
 
     const visualMap = {
       min: minV, max: maxV, calculable: true, left: 12, bottom: 18, orient: "vertical",
@@ -119,9 +119,10 @@
     const sel = useStore((s) => s.dash.cross);
     const [metric] = [useStore((s) => s.ui.mapMetric) || "avg_price_per_m2"];
     const ds = NODE.datasets.find((d) => d.id === "district_stats");
-    const rank = [...ds.rows].map((r) => ({ d: r.district, v: r.avg_price_per_m2, p: r.avg_price_manwon, n: r.txn_count }))
+    const dsRows = ds ? ds.rows : [];
+    const rank = [...dsRows].map((r) => ({ d: r.district, v: r.avg_price_per_m2, p: r.avg_price_manwon, n: r.txn_count }))
       .sort((a, b) => b.v - a.v);
-    const max = Math.max(...rank.map((r) => r.v));
+    const max = rank.length ? Math.max(...rank.map((r) => r.v), 1) : 1;
     const selD = sel && sel.key === "district" ? sel.value : null;
     return (
       <div className="mappanel">
@@ -139,7 +140,8 @@
           </div>
         </div>
         {selD && (() => {
-          const r = ds.rows.find((x) => x.district === selD);
+          const r = dsRows.find((x) => x.district === selD);
+          if (!r) return null;   // selection came from a different dataset's district column
           return (
             <div className="cp-block">
               <div className="cp-blocktitle">{selD}</div>
@@ -579,7 +581,7 @@
 
     const c = Charts.themeColors(); const pal = Charts.palette();
     const vals = rows.map((r) => r[metric]);
-    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const minV = vals.length ? Math.min(...vals) : 0, maxV = vals.length ? Math.max(...vals) : 1;
 
     const visualMap = {
       min: minV, max: maxV, calculable: true, left: 12, bottom: 18, orient: "vertical",
@@ -636,7 +638,7 @@
   function WorldPanel() {
     const ds = NODE.datasets.find((d) => d.id === "world_gdp");
     const rows = ds ? [...ds.rows].sort((a, b) => b.gdp_bn - a.gdp_bn) : [];
-    const maxGDP = Math.max(...rows.map((r) => r.gdp_bn));
+    const maxGDP = rows.length ? Math.max(...rows.map((r) => r.gdp_bn), 1) : 1;
     const regions = [...new Set(rows.map((r) => r.region))];
     return (
       <div className="mappanel">
@@ -665,32 +667,178 @@
     );
   }
 
+  // ── 내 데이터 지도 (범용) ─────────────────────────────────────────
+  // 활성 데이터셋의 위·경도를 아무 베이스 지도(세계/한국/서울)에 점·버블로.
+  const BASE_MAPS = {
+    world: { url: WORLD_GEO_URL,  mapName: "world",      label: "세계", remap: null,          bounds: null,
+      proj: (lon, lat) => [lon, lat] },
+    korea: { url: KOREA_PROV_URL, mapName: "korea_prov", label: "한국", remap: KOREA_HC_NAME,
+      bounds: { latMin: 33, latMax: 39, lonMin: 124, lonMax: 132 }, proj: (lon, lat) => wgs84ToHCKorea(lon, lat) },
+    seoul: { url: GEO_URL,        mapName: "seoul",      label: "서울", remap: null,
+      bounds: { latMin: 37.4, latMax: 37.72, lonMin: 126.7, lonMax: 127.22 }, proj: (lon, lat) => [lon, lat] },
+  };
+  const _baseMapState = { world: "idle", korea: "idle", seoul: "idle" };
+
+  function useBaseMap(base) {
+    const [st, setSt] = React.useState(_baseMapState[base]);
+    React.useEffect(() => {
+      const bm = BASE_MAPS[base];
+      if (_baseMapState[base] === "ok")  { setSt("ok");  return; }
+      if (_baseMapState[base] === "fail"){ setSt("fail"); return; }
+      setSt("idle");
+      let alive = true;
+      fetch(bm.url).then((r) => r.json()).then((gj) => {
+        if (!alive) return;
+        if (bm.remap) gj.features.forEach((f) => { const e = f.properties && f.properties.name; if (e && bm.remap[e]) f.properties.name = bm.remap[e]; });
+        echarts.registerMap(bm.mapName, gj);
+        _baseMapState[base] = "ok"; setSt("ok");
+      }).catch(() => { if (!alive) return; _baseMapState[base] = "fail"; setSt("fail"); });
+      return () => { alive = false; };
+    }, [base]);
+    return st;
+  }
+
+  function MyDataMapCenter() {
+    const theme = useStore((s) => s.theme);
+    const activeId = useStore((s) => s.activeId);
+    const { ds, rows } = derive.getActiveData(activeId);
+    const [base, setBase] = React.useState("world");
+    const mapState = useBaseMap(base);
+    const detect = React.useMemo(() => detectGeoColumns(ds.columns || []), [activeId]);
+    const [latCol, setLatCol] = React.useState(null);
+    const [lonCol, setLonCol] = React.useState(null);
+    const [valCol, setValCol] = React.useState(null);
+    const [labelCol, setLabelCol] = React.useState(null);
+    React.useEffect(() => {
+      setLatCol(detect.latCol); setLonCol(detect.lonCol);
+      setValCol(detect.valCols[0] ? detect.valCols[0].key : null); setLabelCol(null);
+    }, [activeId]);
+
+    const allCols = ds.columns || [];
+    const numCols = allCols.filter((c) => c.type === "float" || c.type === "integer");
+    const strCols = allCols.filter((c) => c.type === "string" || c.type === "category");
+    const c = Charts.themeColors(); const pal = Charts.palette();
+    const bm = BASE_MAPS[base];
+
+    const valid = React.useMemo(() => {
+      if (!latCol || !lonCol) return [];
+      return rows.filter((r) => {
+        const la = r[latCol], lo = r[lonCol];
+        if (typeof la !== "number" || typeof lo !== "number") return false;
+        const b = bm.bounds;
+        return !b || (la >= b.latMin && la <= b.latMax && lo >= b.lonMin && lo <= b.lonMax);
+      });
+    }, [rows, latCol, lonCol, base]);
+
+    const vals = valCol ? valid.map((r) => r[valCol]).filter((v) => v != null) : [];
+    const vMin = vals.length ? Math.min(...vals) : 0, vMax = vals.length ? Math.max(...vals) : 1;
+    const sz = vals.length ? (v) => 6 + ((v - vMin) / (vMax - vMin || 1)) * 30 : () => 10;
+
+    const option = (mapState === "ok" && valid.length) ? {
+      animation: false,
+      tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
+        formatter: (p) => {
+          const r = valid[p.dataIndex]; if (!r) return "";
+          const lab = labelCol ? r[labelCol] : `행 ${p.dataIndex + 1}`;
+          const vl = valCol ? `<br/>${valCol}: <b>${NODE.fmtNum(r[valCol], 1)}</b>` : "";
+          return `<b>${lab}</b><br/>위도 ${r[latCol].toFixed(4)} / 경도 ${r[lonCol].toFixed(4)}${vl}`;
+        } },
+      ...(vals.length ? { visualMap: { min: vMin, max: vMax, calculable: true, left: 12, bottom: 18,
+        orient: "vertical", itemHeight: 120, text: [NODE.fmtNum(vMax, 0), NODE.fmtNum(vMin, 0)],
+        textStyle: { color: c.text, fontSize: 10 }, inRange: { color: [Charts.resolveVar("--bg-3"), pal[0]] }, dimension: 2 } } : {}),
+      geo: { map: bm.mapName, roam: true, scaleLimit: { min: 1, max: 20 },
+        itemStyle: { areaColor: Charts.resolveVar("--bg-2"), borderColor: c.split, borderWidth: 0.5 },
+        emphasis: { disabled: true } },
+      series: [{ type: "scatter", coordinateSystem: "geo", symbolSize: (val) => sz(val[2]),
+        data: valid.map((r) => { const xy = bm.proj(r[lonCol], r[latCol]); return { value: [xy[0], xy[1], valCol ? r[valCol] : 0] }; }),
+        label: { show: valid.length <= 60 && !!labelCol, formatter: (p) => { const r = valid[p.dataIndex]; return labelCol && r ? String(r[labelCol]) : ""; }, position: "right", color: c.text, fontSize: 9 },
+        itemStyle: { color: pal[0], opacity: 0.82, borderColor: c.bg, borderWidth: 1 },
+        encode: { value: 2 } }],
+    } : null;
+
+    const selStyle = { fontSize: 11, background: "var(--bg-2)", color: "var(--tx-mid)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-sm)", padding: "2px 6px", cursor: "pointer" };
+    return (
+      <React.Fragment>
+        <div className="phead">
+          <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
+            <Icon name="map" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />내 데이터 · {ds.short}
+          </span>
+          <div className="seg" style={{ marginLeft: 6 }}>
+            {Object.keys(BASE_MAPS).map((k) => <button key={k} className={base === k ? "on" : ""} onClick={() => setBase(k)}>{BASE_MAPS[k].label}</button>)}
+          </div>
+          <div className="spacer" />
+          <div style={{ display: "flex", gap: 4, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>위도</span>
+            <select value={latCol || ""} onChange={(e) => setLatCol(e.target.value || null)} style={selStyle}><option value="">—</option>{allCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+            <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>경도</span>
+            <select value={lonCol || ""} onChange={(e) => setLonCol(e.target.value || null)} style={selStyle}><option value="">—</option>{allCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+            <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>값</span>
+            <select value={valCol || ""} onChange={(e) => setValCol(e.target.value || null)} style={selStyle}><option value="">없음</option>{numCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+            <span style={{ fontSize: 10, color: "var(--tx-faint)" }}>라벨</span>
+            <select value={labelCol || ""} onChange={(e) => setLabelCol(e.target.value || null)} style={selStyle}><option value="">없음</option>{strCols.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select>
+          </div>
+        </div>
+        {mapState === "idle" && <div className="map-note"><Icon name="info" size={12} /> 지도 로딩 중…</div>}
+        {mapState === "fail" && <div className="map-note"><Icon name="info" size={12} /> 지도를 불러올 수 없습니다 (jsDelivr CDN 필요)</div>}
+        {mapState === "ok" && (!latCol || !lonCol) && <div className="map-note"><Icon name="info" size={12} /> 위도·경도 컬럼을 선택하세요 (자동 감지되면 미리 채워집니다)</div>}
+        {mapState === "ok" && latCol && lonCol && !valid.length && <div className="map-note"><Icon name="info" size={12} /> {bm.label} 영역 내 좌표가 없습니다 · 다른 베이스 지도를 골라보세요</div>}
+        <div className="vizcanvas" style={{ padding: 0 }}>
+          {option
+            ? <EChart option={option} theme={theme + base + (latCol || "") + (lonCol || "") + (valCol || "") + (labelCol || "")} style={{ height: "100%" }} />
+            : <div className="empty"><Icon name="map" /><div className="t">내 데이터를 지도에</div><div className="s">활성 데이터셋에 위·경도 컬럼이 있으면 자동으로 점 지도를 그립니다. 상단에서 베이스 지도(세계·한국·서울)와 컬럼을 고르세요.</div></div>}
+        </div>
+      </React.Fragment>
+    );
+  }
+
+  function MyDataMapPanel() {
+    const activeId = useStore((s) => s.activeId);
+    const { ds } = derive.getActiveData(activeId);
+    const detect = React.useMemo(() => detectGeoColumns(ds.columns || []), [activeId]);
+    return (
+      <div className="mappanel">
+        <div className="cp-block">
+          <div className="cp-blocktitle">내 데이터 지도</div>
+          <div className="cf-info"><Icon name="bolt" size={14} /><div>
+            활성 데이터셋(<b>{ds.short}</b>)의 위·경도로 점 지도를 그립니다. 상단에서 베이스 지도를 고르고, 값 컬럼으로 크기·색을, 라벨 컬럼으로 이름을 표시하세요.
+            {detect.latCol && detect.lonCol
+              ? <div style={{ marginTop: 6, color: "var(--accent)" }}>✦ 위경도 감지됨: {detect.latCol} / {detect.lonCol}</div>
+              : <div style={{ marginTop: 6, color: "var(--tx-faint)" }}>위경도 컬럼이 자동 감지되지 않았습니다. 상단에서 직접 선택하세요.</div>}
+          </div></div>
+        </div>
+        <div className="cp-block">
+          <div className="cf-info"><Icon name="info" size={13} /><div>지역명 매칭 단계구분도(국가명·시도·구명 채색)는 다음 단계로 추가 예정입니다.</div></div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Root component — tab switcher ───────────────────────────────
   // Rendered as <MapModeRoot /> by window.MapMode so hooks work correctly
   const MAP_TABS = [
+    { id: "mydata", label: "내 데이터" },
     { id: "seoul", label: "Seoul · 구" },
     { id: "korea", label: "Korea · 행정구역" },
     { id: "world", label: "World · GDP" },
   ];
 
   function MapModeRoot() {
-    const [tab, setTab] = React.useState("seoul");
+    const [tab, setTab] = React.useState("mydata");
     let center, right, rtitle;
-    if (tab === "seoul")  { center = <MapCenter />;      right = <MapPanel />;   rtitle = "Districts"; }
+    if (tab === "mydata") { center = <MyDataMapCenter />; right = <MyDataMapPanel />; rtitle = "내 데이터"; }
+    else if (tab === "seoul")  { center = <MapCenter />;      right = <MapPanel />;   rtitle = "Districts"; }
     else if (tab === "korea") { center = <KoreaMapCenter />; right = <KoreaPanel />; rtitle = "Korea"; }
     else                  { center = <WorldMapCenter />; right = <WorldPanel />; rtitle = "Countries"; }
 
     const tabBar = (
-      <div style={{ background: "var(--bg-1)", borderBottom: "1px solid var(--line)",
-        display: "flex", gap: 0, padding: "0 10px", flexShrink: 0 }}>
-        {MAP_TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ padding: "7px 14px", fontSize: 12, fontWeight: 600, background: "none", border: "none",
-              borderBottom: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent",
-              color: tab === t.id ? "var(--accent)" : "var(--tx-lo)", cursor: "pointer", transition: "all .12s" }}>
-            {t.label}
-          </button>
-        ))}
+      <div className="phead" style={{ height: "var(--tab-h)", paddingLeft: 10, flexShrink: 0 }}>
+        <div className="tabs">
+          {MAP_TABS.map((t) => (
+            <button key={t.id} className={"tab" + (tab === t.id ? " on" : "")} onClick={() => setTab(t.id)}>
+              <Icon name="map" size={13} /> {t.label}
+            </button>
+          ))}
+        </div>
       </div>
     );
 

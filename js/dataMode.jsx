@@ -10,14 +10,16 @@
     const selCol = useStore((s) => s.ui.selCol);
     const [open, setOpen] = React.useState(() => ({ [activeId]: true }));
     const [q, setQ] = React.useState("");
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
 
     return (
       <div>
         <div style={{ padding: 8 }}>
-          <div className="search"><Icon name="search" /><input placeholder="Search datasets & fields…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <div className="search"><Icon name="search" /><input placeholder={T("dSearchDs")} value={q} onChange={(e) => setQ(e.target.value)} /></div>
         </div>
         <div className="sect-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>Datasets</span><span className="mono" style={{ color: "var(--tx-faint)" }}>{NODE.datasets.length}</span>
+          <span>{T("dDatasets")}</span><span className="mono" style={{ color: "var(--tx-faint)" }}>{NODE.datasets.length}</span>
         </div>
         {NODE.datasets.map((ds) => {
           const isOpen = open[ds.id];
@@ -44,14 +46,19 @@
             </div>
           );
         })}
-        <div className="sect-label">Connect</div>
-        <div className="drop" style={{ margin: "0 8px 10px", padding: "14px 10px", textAlign: "center", color: "var(--tx-faint)" }}>
+        <div className="sect-label">{T("dCombine")}</div>
+        <button className="btn ghost sm" style={{ margin: "0 8px 8px", width: "calc(100% - 16px)", justifyContent: "center" }}
+          onClick={() => window.dispatchEvent(new CustomEvent("insight-combine-open"))}>
+          <Icon name="layers" size={13} /> {T("dUnionJoin")}
+        </button>
+        <div className="sect-label">{T("dConnect")}</div>
+        <div className="drop" style={{ margin: "0 8px 10px", padding: "14px 10px", textAlign: "center", color: "var(--tx-faint)", cursor: "pointer" }}
+          onClick={() => window.dispatchEvent(new CustomEvent("insight-import-open"))}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => { event.preventDefault(); window.dispatchEvent(new CustomEvent("insight-import-open", { detail: { files: event.dataTransfer.files } })); }}>
           <Icon name="upload" size={18} />
-          <div style={{ fontSize: 11, marginTop: 6 }}>Drop CSV · XLSX · JSON · Parquet</div>
-          <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 8 }}>
-            <span className="badge"><Icon name="db" size={11} /> PostgreSQL</span>
-            <span className="badge">MySQL</span>
-          </div>
+          <div style={{ fontSize: 11, marginTop: 6 }}>{T("dDropFiles")}</div>
+          <div style={{ fontSize: 10, marginTop: 4 }}>{T("dPreviewHint")}</div>
         </div>
       </div>
     );
@@ -86,6 +93,8 @@
     const selCol = useStore((s) => s.ui.selCol);
     const cl = useStore((s) => s.clean[s.activeId]);
     const [editMode, setEditMode] = React.useState(false);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const { rows, columns } = derive.getActiveData(activeId);
 
     const uniqKey = (base) => {
@@ -110,7 +119,7 @@
       <React.Fragment>
         <div className="phead" style={{ height: "var(--tab-h)", paddingLeft: 0 }}>
           <div className="tabs">
-            {[["preview", "Data Preview"], ["profiling", "Profiling"]].map(([k, l]) => (
+            {[["preview", T("dPreview")], ["profiling", T("dProfiling")]].map(([k, l]) => (
               <button key={k} className={"tab" + (tab === k ? " on" : "")} onClick={() => actions.setUI({ dataTab: k })}>
                 {l}{k === "preview" && <span className="cnt">{rows.length}</span>}
               </button>
@@ -120,20 +129,20 @@
           {tab === "preview" && (
             <React.Fragment>
               {editMode && nSteps > 0 && (
-                <span className="meta" style={{ marginRight: 6, fontFamily: "var(--font-mono)", color: "var(--tx-lo)", fontSize: "var(--fs-11)" }}>{nSteps} edit{nSteps > 1 ? "s" : ""}</span>
+                <span className="meta" style={{ marginRight: 6, fontFamily: "var(--font-mono)", color: "var(--tx-lo)", fontSize: "var(--fs-11)" }}>{nSteps} {T("dEdits")}</span>
               )}
               {editMode && (
                 <React.Fragment>
-                  <button className="iconbtn" title="Undo" disabled={!cl || cl.cursor === 0} onClick={() => actions.undo()}><Icon name="undo" size={14} /></button>
-                  <button className="iconbtn" title="Redo" disabled={!cl || cl.cursor >= cl.steps.length} onClick={() => actions.redo()}><Icon name="redo" size={14} /></button>
+                  <button className="iconbtn" title={T("dUndo")} disabled={!cl || cl.cursor === 0} onClick={() => actions.undo()}><Icon name="undo" size={14} /></button>
+                  <button className="iconbtn" title={T("dRedo")} disabled={!cl || cl.cursor >= cl.steps.length} onClick={() => actions.redo()}><Icon name="redo" size={14} /></button>
                 </React.Fragment>
               )}
               <button className={"btn sm " + (editMode ? "primary" : "ghost")} style={{ marginRight: 8 }} onClick={() => setEditMode((v) => !v)}>
-                <Icon name="edit" size={12} /> {editMode ? "Editing" : "Edit"}
+                <Icon name="edit" size={12} /> {editMode ? T("dEditing") : T("dEdit")}
               </button>
             </React.Fragment>
           )}
-          <span className="badge" style={{ marginRight: 8 }}><Icon name="bolt" size={11} /> auto-profiled</span>
+          <span className="badge" style={{ marginRight: 8 }}><Icon name="bolt" size={11} /> {T("dAutoProfiled")}</span>
         </div>
         {tab === "preview"
           ? <DataGrid columns={columns} rows={rows} selCol={selCol} onSelectCol={(k) => actions.setUI({ selCol: k })}

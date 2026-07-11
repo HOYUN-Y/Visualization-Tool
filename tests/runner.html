@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>insight Analytics — Browser Tests</title>
+<style>
+body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,sans-serif}main{max-width:820px;margin:auto}h1{font-size:20px}#summary{margin:18px 0;padding:12px;border:1px solid #3b4148;border-radius:8px}.test{padding:9px 12px;margin:6px 0;border-radius:6px;background:#22262b}.pass{border-left:3px solid #42b883}.fail{border-left:3px solid #e05c5c}pre{white-space:pre-wrap;color:#ffabab}
+</style>
+</head>
+<body>
+<main><h1>Browser regression tests</h1><div id="summary">Running…</div><div id="results"></div></main>
+<script>window.NODE={datasets:[]};</script>
+<script src="../vendor/sheetjs-0.20.3/xlsx.full.min.js"></script>
+<script src="../js/importEngine.js"></script>
+<script src="../js/dataOps.js"></script>
+<script src="../js/pivotEngine.js"></script>
+<script src="../js/kpiFormula.js"></script>
+<script src="../js/pca.js"></script>
+<script src="../js/logistic.js"></script>
+<script src="../js/timeSeries.js"></script>
+<script src="../js/distributionFit.js"></script>
+<script src="../js/spc.js"></script>
+<script src="../js/clustering.js"></script>
+<script src="../js/chartAdvisor.js"></script>
+<script>
+(async function(){
+  const results=[];
+  async function check(name,fn){try{await fn();results.push({name,ok:true});}catch(error){results.push({name,ok:false,error:error.stack||String(error)});}}
+  function equal(actual,expected,message){if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error((message||"Values differ")+`\nactual: ${JSON.stringify(actual)}\nexpected: ${JSON.stringify(expected)}`);}
+
+  await check("CSV preserves leading-zero codes and infers types",async()=>{
+    const lines=["code,qty,amount,flag,date,group"];
+    for(let i=0;i<10;i++)lines.push(`00${i},${i+1},${i+.5},${i%2?"yes":"no"},2026-07-${String(i+1).padStart(2,"0")},${i<5?"A":"B"}`);
+    const parsed=await ImportEngine.parseFile(new File([lines.join("\n")],"sample.csv",{type:"text/csv"}));
+    const sheet=parsed.sheets[0];
+    equal(sheet.columns.map(c=>c.type),["string","integer","float","boolean","datetime","category"]);
+    const dataset=ImportEngine.materialize(sheet);
+    equal([dataset.rows[0].code,dataset.rows[0].qty,dataset.rows[0].flag],["000",1,false]);
+  });
+
+  await check("XLSX exposes multiple sheets and 20-row preview",async()=>{
+    const workbook=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook,XLSX.utils.aoa_to_sheet([["date","amount"],...Array.from({length:25},(_,i)=>[new Date(Date.UTC(2026,0,i+1)),i+1])]),"Sales");
+    XLSX.utils.book_append_sheet(workbook,XLSX.utils.aoa_to_sheet([["name"],["Seoul"]]),"Regions");
+    const bytes=XLSX.write(workbook,{type:"array",bookType:"xlsx",cellDates:true});
+    const parsed=await ImportEngine.inspectWorkbook(new File([bytes],"book.xlsx"));
+    equal([parsed.sheets.length,parsed.sheets[0].rowCount,parsed.sheets[0].preview.length],[2,25,20]);
+    equal(parsed.sheets[0].columns[0].type,"datetime");
+  });
+
+  await check("Duplicate imports receive deterministic suffixes",async()=>{
+    const parsed=await ImportEngine.parseFile(new File(["value\n1\n2"],"sales.csv"));
+    const first=ImportEngine.materialize(parsed.sheets[0]);window.NODE.datasets.push(first);
+    const second=ImportEngine.materialize(parsed.sheets[0]);
+    equal([second.short,second.id],["sales_2","upload_sales_2"]);
+  });
+
+  await check("DataOps.union promotes types and fills missing keys",async()=>{
+    const a={id:"a",short:"a",columns:[{key:"id",type:"integer"},{key:"v",type:"integer"}],rows:[{id:1,v:10}]};
+    const b={id:"b",short:"b",columns:[{key:"id",type:"integer"},{key:"v",type:"float"},{key:"note",type:"string"}],rows:[{id:2,v:2.5,note:"x"}]};
+    const r=DataOps.union([a,b],{addSource:true});
+    equal(r.columns.find(c=>c.key==="v").type,"float");
+    equal([r.rows.length,r.rows[0].note,r.rows[1].note,r.rows[0].__source],[2,null,"x","a"]);
+  });
+
+  await check("DataOps.join inner/left/full match keys and rename collisions",async()=>{
+    const left={id:"l",short:"l",columns:[{key:"k",type:"integer"},{key:"amount",type:"integer"}],rows:[{k:1,amount:100},{k:2,amount:50}]};
+    const right={id:"r",short:"r",columns:[{key:"k",type:"integer"},{key:"amount",type:"integer"},{key:"name",type:"string"}],rows:[{k:1,amount:999,name:"Kim"}]};
+    const kp=[{left:"k",right:"k"}];
+    const inner=DataOps.join(left,right,{type:"inner",keyPairs:kp});
+    equal([inner.rows.length,inner.rows[0].amount,inner.rows[0].r__amount,inner.rows[0].name],[1,100,999,"Kim"]);
+    equal(DataOps.join(left,right,{type:"left",keyPairs:kp}).rows.length,2);
+    equal(DataOps.join(left,right,{type:"full",keyPairs:kp}).rows.length,2);
+  });
+
+  await check("PivotEngine cross-tabs with recomputed grand totals",async()=>{
+    const data=[{r:"A",c:"Q1",v:10},{r:"A",c:"Q1",v:20},{r:"A",c:"Q2",v:30},{r:"B",c:"Q1",v:100}];
+    const cols=[{key:"r"},{key:"c"},{key:"v",type:"integer"}];
+    const res=PivotEngine.build(data,cols,{rows:["r"],columns:["c"],values:[{key:"v",agg:"sum"}]});
+    const leafQ2=res.leaves.find(l=>l.colTuple[0]==="Q2").id;
+    const rowB=res.rows.find(x=>x.key[0]==="B");
+    equal([res.grandTotal["v__sum"],rowB.cells[leafQ2]],[160,0]);
+    const avg=PivotEngine.build(data,cols,{rows:["r"],columns:["c"],values:[{key:"v",agg:"avg"}]});
+    equal(avg.rows.find(x=>x.key[0]==="A").total["v__avg"],20); // recomputed, not (15+30)/2
+  });
+
+  await check("KPIFormula computes safe aggregate ratios and rejects code",async()=>{
+    const rows=[{revenue:100,profit:30},{revenue:200,profit:40},{revenue:300,profit:null}];
+    const cols=[{key:"revenue"},{key:"profit"}];
+    equal(Math.round(KPIFormula.compute("SUM(profit)/SUM(revenue)*100",rows,cols).value*100)/100,11.67);
+    equal(KPIFormula.compute("COUNT(*)",rows,cols).value,3);
+    if(!KPIFormula.compute("process.exit(1)",rows,cols).error) throw new Error("should reject bare identifiers");
+    if(!/Division by zero/.test(KPIFormula.compute("1/(SUM(profit)-70)",rows,cols).error||"")) throw new Error("should catch div by zero");
+  });
+
+  await check("PCA explains ~all variance on correlated data",async()=>{
+    const rows=[];for(let i=0;i<20;i++)rows.push({a:i,b:2*i+1});
+    const r=PCA.fit(rows,["a","b"],{standardize:true});
+    if(r.explainedRatio[0]<0.999)throw new Error("PC1 ratio "+r.explainedRatio[0]);
+  });
+  await check("Logistic ROC AUC classic example = 0.75",async()=>{
+    const {auc}=Logistic.roc([0,0,1,1],[0.1,0.4,0.35,0.8]);
+    if(Math.abs(auc-0.75)>1e-9)throw new Error("auc "+auc);
+  });
+  await check("TimeSeries moving average and exponential smoothing",async()=>{
+    equal(TimeSeries.movingAverage([1,2,3,4,5],3),[null,null,2,3,4]);
+    equal(TimeSeries.exponentialSmoothing([10,10,10],0.5),[10,10,10]);
+  });
+  await check("DistFit normInv/normCdf round-trip",async()=>{
+    if(Math.abs(DistFit.normInv(0.975)-1.959964)>1e-4)throw new Error("normInv");
+    if(Math.abs(DistFit.normCdf(0)-0.5)>1e-4)throw new Error("normCdf");
+  });
+
+  await check("SPC X-bar/R uses control constants",async()=>{
+    const r=SPC.xbarR([[2,4],[4,6]]);
+    if(Math.abs(r.xbar.ucl-7.76)>1e-3)throw new Error("ucl "+r.xbar.ucl);
+    if(Math.abs(r.range.ucl-6.534)>1e-3)throw new Error("range ucl");
+  });
+  await check("Clustering DBSCAN separates two blobs",async()=>{
+    const rows=[{x:0,y:0},{x:.5,y:0},{x:0,y:.5},{x:10,y:10},{x:10.5,y:10},{x:10,y:10.5}];
+    const r=Clustering.dbscan(rows,["x","y"],{eps:1.5,minPts:2,standardize:false});
+    if(r.clusters!==2)throw new Error("clusters "+r.clusters);
+  });
+
+  await check("ChartAdvisor recommends sensible chart types",async()=>{
+    equal(ChartAdvisor.recommend([{key:"m",type:"datetime"}],[{key:"v"}]).type,"line");
+    equal(ChartAdvisor.recommend([],[{key:"a"},{key:"b"}]).type,"scatter");
+    equal(ChartAdvisor.recommend([{key:"a",type:"category"},{key:"b",type:"category"}],[{key:"v"}]).type,"heatmap");
+  });
+
+  const passed=results.filter(r=>r.ok).length;
+  document.getElementById("summary").textContent=`${passed}/${results.length} passed`;
+  document.getElementById("results").innerHTML=results.map(r=>`<div class="test ${r.ok?"pass":"fail"}"><strong>${r.ok?"PASS":"FAIL"}</strong> · ${r.name}${r.error?`<pre>${r.error.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}</pre>`:""}</div>`).join("");
+})();
+</script>
+</body>
+</html>

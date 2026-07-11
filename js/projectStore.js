@@ -6,7 +6,9 @@
   var DB_VERSION = 1;
   var SCHEMA_VERSION = 1;
   var AUTOSAVE_DELAY = 1000;
-  var STATE_KEYS = ["theme", "mode", "activeId", "ui", "clean", "viz", "pivot", "dash", "tweaks"];
+  // "viz" is retained (read-only) so legacy single-viz projects still load & migrate;
+  // new saves write "vizSheets" + "vizActive" instead.
+  var STATE_KEYS = ["theme", "mode", "activeId", "ui", "clean", "viz", "vizSheets", "vizActive", "pivot", "pivotSheets", "pivotActive", "dash", "tweaks"];
 
   var dbPromise = null;
   var currentProject = null;
@@ -45,7 +47,6 @@
     });
     out.ui = out.ui || {};
     delete out.ui.aiOpen;
-    if (!out.pivot) out.pivot = {};
     return out;
   }
 

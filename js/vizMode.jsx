@@ -86,20 +86,43 @@
     );
   }
 
-  function MeasureChip({ chip }) {
+  const MARKS = [["bar", "Bar"], ["line", "Line"], ["area", "Area"]];
+  function MeasureChip({ chip, showMark, baseMark }) {
     const [menu, setMenu] = React.useState(null);
+    const curMark = chip.mark || baseMark || "bar";
+    const markIcon = showMark ? { bar: "bar", line: "line", area: "area" }[curMark] : null;
     return (
       <span className="chip meas">
         <span className="agg" onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}>{chip.agg.toUpperCase()}</span>
+        {showMark && <span className="mk" title={"mark: " + curMark + (chip.axis ? " · right axis" : "")} onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}><Icon name={markIcon} size={11} />{chip.axis ? "R" : ""}</span>}
         {chip.label}
         <span className="x" onClick={() => actions.removeFromShelf("rows", chip.key)}><Icon name="x" size={12} /></span>
         {menu && (
           <Popover anchor={menu} onClose={() => setMenu(null)}>
+            <div className="ph">Aggregation</div>
             {AGGS.map((a) => (
               <div key={a} className="pi" onClick={() => { actions.setRowAgg(chip.key, a); setMenu(null); }}>
                 {chip.agg === a && <Icon name="check" size={13} />}<span style={{ marginLeft: chip.agg === a ? 0 : 21 }}>{a.toUpperCase()}</span>
               </div>
             ))}
+            {showMark && (
+              <React.Fragment>
+                <div className="sep" />
+                <div className="ph">Mark</div>
+                {MARKS.map(([mk, lbl]) => (
+                  <div key={mk} className="pi" onClick={() => { actions.setRowMark(chip.key, mk); }}>
+                    {curMark === mk && <Icon name="check" size={13} />}<span style={{ marginLeft: curMark === mk ? 0 : 21 }}>{lbl}</span>
+                  </div>
+                ))}
+                <div className="sep" />
+                <div className="ph">Axis</div>
+                {[[0, "Left (primary)"], [1, "Right (secondary)"]].map(([ax, lbl]) => (
+                  <div key={ax} className="pi" onClick={() => { actions.setRowAxis(chip.key, ax); }}>
+                    {(chip.axis || 0) === ax && <Icon name="check" size={13} />}<span style={{ marginLeft: (chip.axis || 0) === ax ? 0 : 21 }}>{lbl}</span>
+                  </div>
+                ))}
+              </React.Fragment>
+            )}
           </Popover>
         )}
       </span>
@@ -211,12 +234,15 @@
       if (measures.length < 2) return noData("Scatter needs 2 measures on Rows");
       const mx = measures[0], my = measures[1];
       let series;
+      // Big datasets: enable ECharts' high-performance point renderer so a scatter
+      // over tens of thousands of raw rows stays responsive (no browser freeze).
+      const bigScatter = { large: true, largeThreshold: 2000, progressive: 4000, progressiveThreshold: 4000 };
       if (colorKey) {
         const groups = new Map();
         for (const r of rows) { const g = r[colorKey]; if (!groups.has(g)) groups.set(g, []); groups.get(g).push([r[mx.key], r[my.key]]); }
-        series = [...groups.entries()].slice(0, 12).map(([g, data], i) => ({ name: String(g), type: "scatter", symbolSize: 7, itemStyle: { color: pal[i % 8], opacity: 0.75 }, data }));
+        series = [...groups.entries()].slice(0, 12).map(([g, data], i) => ({ name: String(g), type: "scatter", symbolSize: 7, itemStyle: { color: pal[i % 8], opacity: 0.75 }, data, ...bigScatter }));
       } else {
-        series = [{ type: "scatter", symbolSize: 7, itemStyle: { color: pal[0], opacity: 0.7 }, data: rows.map((r) => [r[mx.key], r[my.key]]) }];
+        series = [{ type: "scatter", symbolSize: 7, itemStyle: { color: pal[0], opacity: 0.7 }, data: rows.map((r) => [r[mx.key], r[my.key]]), ...bigScatter }];
       }
       return {
         ...base, legend: color ? { top: 0, textStyle: { color: c.text }, type: "scroll" } : undefined,
@@ -233,7 +259,12 @@
       const mx = measures[0], my = measures[1], ms = measures[2];
       const allSizes = rows.map((r) => r[ms.key] || 0);
       const maxSz = Math.max(...allSizes, 1);
-      const mkData = (arr) => arr.map((r) => [r[mx.key], r[my.key], r[ms.key]]);
+      // Bubble's per-point symbolSize callback is incompatible with ECharts' `large` renderer,
+      // so instead deterministically downsample when there are too many points to draw sanely
+      // (thousands of overlapping bubbles are both unreadable and a browser-freeze risk).
+      const BUBBLE_CAP = 5000;
+      const capPoints = (arr) => { if (arr.length <= BUBBLE_CAP) return arr; const step = Math.ceil(arr.length / BUBBLE_CAP); return arr.filter((_, i) => i % step === 0); };
+      const mkData = (arr) => capPoints(arr).map((r) => [r[mx.key], r[my.key], r[ms.key]]);
       const symbolSize = (val) => Math.max(6, Math.sqrt(Math.abs(val[2]) / maxSz) * 52);
       let series;
       if (colorKey) {
@@ -529,7 +560,7 @@
       };
     }
 
-    // ── Bar / Line / Area ────────────────────────────────────────────────────
+    // ── Bar / Line / Area (per-measure mark → combo, dual/secondary axis) ────
     const horiz = type === "hbar";
     const cats = [...new Set(agg.map((r) => r[xKey]))];
     let series;
@@ -547,25 +578,36 @@
       pairs.sort((a, b) => sortDesc ? b.vals[0] - a.vals[0] : a.vals[0] - b.vals[0]);
       if (topN) pairs = pairs.slice(0, topN);
       const sortedCats = pairs.map((p) => p.cat);
-      series = measures.map((m, mi) => ({
-        name: m.label, type: type === "line" || type === "area" ? "line" : "bar",
-        areaStyle: type === "area" ? { opacity: 0.22 } : undefined,
-        smooth: type === "line" || type === "area" ? 0.2 : false, symbol: "none",
-        itemStyle: { color: pal[mi % 8], borderRadius: type.includes("bar") ? (horiz ? [0, 3, 3, 0] : [3, 3, 0, 0]) : 0 },
-        data: pairs.map((p) => p.vals[mi]),
-      }));
+      // Per-measure mark (bar/line/area) → mixed "combo" charts; default mark = base chart type.
+      const baseMark = (type === "line" || type === "area") ? type : "bar";
+      series = measures.map((m, mi) => {
+        const mk = !horiz ? (m.mark || baseMark) : baseMark;
+        const ax = !horiz ? (m.axis || 0) : 0;
+        return {
+          name: m.label, type: mk === "area" ? "line" : mk, yAxisIndex: ax,
+          areaStyle: mk === "area" ? { opacity: 0.22 } : undefined,
+          smooth: (mk === "line" || mk === "area") ? 0.2 : false, symbol: "none",
+          z: mk === "bar" ? 1 : 2,
+          itemStyle: { color: pal[mi % 8], borderRadius: mk === "bar" ? (horiz ? [0, 3, 3, 0] : [3, 3, 0, 0]) : 0 },
+          lineStyle: mk !== "bar" ? { color: pal[mi % 8], width: 2 } : undefined,
+          data: pairs.map((p) => p.vals[mi]),
+        };
+      });
       cats.length = 0; cats.push(...sortedCats);
     }
+    const grouped = colorKey && colorKey !== xKey;
+    const hasRight = !horiz && !grouped && measures.some((m) => (m.axis || 0) === 1);
     const catAxis = { type: "category", data: cats, ...axisCommon, axisLabel: { ...axisCommon.axisLabel, rotate: !horiz && cats.length > 7 ? 32 : 0, interval: 0 } };
     const valAxis = { type: "value", ...axisCommon, axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal } };
-    const hasLegend = (colorKey && colorKey !== xKey) || measures.length > 1;
+    const valAxisRight = { type: "value", ...axisCommon, position: "right", axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal }, splitLine: { show: false } };
+    const hasLegend = grouped || measures.length > 1;
     return {
       ...base,
-      grid: { ...base.grid, top: hasLegend ? 30 : 16, bottom: horiz ? 8 : (cats.length > 7 ? 40 : 8) },
+      grid: { ...base.grid, top: hasLegend ? 30 : 16, right: hasRight ? 46 : 14, bottom: horiz ? 8 : (cats.length > 7 ? 40 : 8) },
       legend: hasLegend ? { top: 0, type: "scroll", textStyle: { color: c.text, fontSize: 11 }, icon: "roundRect" } : undefined,
-      tooltip: { ...base.tooltip, trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmtVal },
+      tooltip: { ...base.tooltip, trigger: "axis", axisPointer: { type: hasRight ? "cross" : "shadow" }, valueFormatter: fmtVal },
       xAxis: horiz ? valAxis : catAxis,
-      yAxis: horiz ? { ...catAxis, inverse: true } : valAxis,
+      yAxis: horiz ? { ...catAxis, inverse: true } : (hasRight ? [valAxis, valAxisRight] : valAxis),
       series,
     };
   }
@@ -595,11 +637,247 @@
     );
   }
 
+  function rgbToHex(rgb) {
+    const m = String(rgb).match(/(\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return "#888888";
+    return "#" + [m[1], m[2], m[3]].map((x) => Math.max(0, Math.min(255, +x)).toString(16).padStart(2, "0")).join("");
+  }
+
+  // ─── Format post-processor: apply legend/labels/colors/gridlines to any option ─
+  function applyFormat(opt, fmt) {
+    if (!opt || !fmt || !opt.series) return opt;
+    const c = Charts.themeColors();
+    const o = { ...opt };
+    // Legend — 2-axis placement (vertical × horizontal = 9 anchors) or free (dragged) position
+    if (fmt.legend) {
+      if (fmt.legend.show === false) o.legend = undefined;
+      else if (fmt.legend.free) {
+        const fx = fmt.legend.fx != null ? fmt.legend.fx : 0.5;
+        const fy = fmt.legend.fy != null ? fmt.legend.fy : 0.04;
+        o.legend = { ...(o.legend || {}), type: "scroll", orient: "horizontal", textStyle: { color: c.text, fontSize: 11 },
+          left: (fx * 100).toFixed(1) + "%", top: (fy * 100).toFixed(1) + "%", right: "auto", bottom: "auto" };
+      } else {
+        // migrate legacy { pos } → { v, h }
+        const v = fmt.legend.v || (fmt.legend.pos === "bottom" ? "bottom" : "top");
+        const h = fmt.legend.h || (fmt.legend.pos === "left" ? "left" : fmt.legend.pos === "right" ? "right" : "center");
+        const sideVertical = (h === "left" || h === "right") && v === "middle";
+        const leg = { ...(o.legend || {}), type: "scroll", textStyle: { color: c.text, fontSize: 11 }, orient: sideVertical ? "vertical" : "horizontal" };
+        // vertical anchor
+        if (v === "top") { leg.top = 0; leg.bottom = "auto"; }
+        else if (v === "bottom") { leg.bottom = 0; leg.top = "auto"; }
+        else { leg.top = "middle"; leg.bottom = "auto"; }
+        // horizontal anchor
+        if (h === "left") { leg.left = 0; leg.right = "auto"; }
+        else if (h === "right") { leg.right = 0; leg.left = "auto"; }
+        else { leg.left = "center"; leg.right = "auto"; }
+        o.legend = leg;
+        // make room in the grid so the legend doesn't overlap the plot
+        if (o.grid && !Array.isArray(o.grid)) {
+          const g = { ...o.grid };
+          if (v === "top") g.top = Math.max(typeof g.top === "number" ? g.top : 16, 30);
+          if (v === "bottom") g.bottom = Math.max(typeof g.bottom === "number" ? g.bottom : 8, 38);
+          if (sideVertical && h === "left") g.left = Math.max(typeof g.left === "number" ? g.left : 8, 90);
+          if (sideVertical && h === "right") g.right = Math.max(typeof g.right === "number" ? g.right : 14, 90);
+          o.grid = g;
+        }
+      }
+    }
+    // Title
+    if (fmt.title && fmt.title.text) {
+      const t = fmt.title;
+      const tt = { text: t.text, textStyle: { color: c.textHi, fontSize: 15, fontWeight: 600, fontFamily: "IBM Plex Sans" } };
+      if (t.free) { tt.left = ((t.fx != null ? t.fx : 0.5) * 100).toFixed(1) + "%"; tt.top = ((t.fy != null ? t.fy : 0.01) * 100).toFixed(1) + "%"; }
+      else {
+        const tv = t.v || "top", th = t.h || "center";
+        tt.left = th === "left" ? "left" : th === "right" ? "right" : "center";
+        tt.top = tv === "bottom" ? "bottom" : tv === "middle" ? "middle" : "top";
+        if (tv === "top" && o.grid && !Array.isArray(o.grid)) {
+          const g = { ...o.grid }; g.top = Math.max(typeof g.top === "number" ? g.top : 16, 34);
+          if (o.legend && o.legend.top === 0) { o.legend = { ...o.legend, top: 28 }; g.top = Math.max(g.top, 52); }
+          o.grid = g;
+        }
+      }
+      o.title = tt;
+    }
+    // Value (data) labels
+    if (fmt.labels && fmt.labels.show) {
+      const fv = (v) => v == null ? "" : (fmt.labels.fmt === "compact" ? NODE.fmtCompact(v) : (typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 1 }) : String(v)));
+      o.series = o.series.map((s) => (s.type === "bar" || s.type === "line") ? { ...s,
+        label: { show: true, position: fmt.labels.pos || "top", color: c.text, fontSize: 10, fontFamily: "IBM Plex Sans",
+          formatter: (p) => { const v = Array.isArray(p.value) ? p.value[p.value.length - 1] : p.value; return fv(v); } } } : s);
+    }
+    // Per-series colour overrides (keyed by original series name)
+    if (fmt.colors && Object.keys(fmt.colors).length) {
+      o.series = o.series.map((s) => { const col = fmt.colors[s.name]; if (!col) return s;
+        return { ...s, itemStyle: { ...(s.itemStyle || {}), color: col }, lineStyle: s.lineStyle ? { ...s.lineStyle, color: col } : s.lineStyle, areaStyle: s.areaStyle ? { ...s.areaStyle, color: col } : s.areaStyle }; });
+    }
+    // Bar spacing (gap between bar groups)
+    if (fmt.bar && fmt.bar.categoryGap != null) {
+      o.series = o.series.map((s) => s.type === "bar" ? { ...s, barCategoryGap: fmt.bar.categoryGap } : s);
+    }
+    // Per-series detail — line width
+    if (fmt.seriesOpts && Object.keys(fmt.seriesOpts).length) {
+      o.series = o.series.map((s) => {
+        const so = fmt.seriesOpts[s.name]; if (!so) return s;
+        if (s.type === "line" && so.lineWidth) return { ...s, lineStyle: { ...(s.lineStyle || {}), width: so.lineWidth } };
+        return s;
+      });
+    }
+    // Pie — inner radius (doughnut) + slice explode + per-slice colour
+    {
+      const explodeOn = fmt.explode && Object.keys(fmt.explode).length;
+      const colorsOn = fmt.colors && Object.keys(fmt.colors).length;
+      const innerOn = fmt.pie && fmt.pie.inner != null;
+      if (explodeOn || colorsOn || innerOn) {
+        o.series = o.series.map((s) => {
+          if (s.type !== "pie") return s;
+          const n = { ...s };
+          if (innerOn) n.radius = [fmt.pie.inner, Array.isArray(s.radius) ? s.radius[1] : "70%"];
+          if (explodeOn) { n.selectedMode = "multiple"; n.selectedOffset = 16; }
+          if (explodeOn || colorsOn) {
+            n.data = (s.data || []).map((d) => {
+              const o2 = (d && typeof d === "object") ? { ...d } : { value: d };
+              if (explodeOn) o2.selected = !!fmt.explode[o2.name];
+              if (colorsOn && fmt.colors[o2.name]) o2.itemStyle = { ...(o2.itemStyle || {}), color: fmt.colors[o2.name] };
+              return o2;
+            });
+          }
+          return n;
+        });
+      }
+    }
+    // Custom series (legend) names — applied last so colours still key off the original name
+    if (fmt.seriesNames && Object.keys(fmt.seriesNames).length) {
+      o.series = o.series.map((s) => { const nm = fmt.seriesNames[s.name]; return (nm && nm.trim()) ? { ...s, name: nm } : s; });
+    }
+    const mapAx = (ax, fn) => ax == null ? ax : (Array.isArray(ax) ? ax.map(fn) : fn(ax));
+    // Grid / split lines (on-off · width · colour · frequency)
+    {
+      const g = fmt.grid || {};
+      const off = fmt.gridlines === false;
+      if (off || g.width != null || g.color || g.splitNumber != null) {
+        o.xAxis = mapAx(o.xAxis, styleGridAxis); o.yAxis = mapAx(o.yAxis, styleGridAxis);
+      }
+      function styleGridAxis(ax) {
+        if (!ax) return ax; const a = { ...ax };
+        if (off) a.splitLine = { ...(a.splitLine || {}), show: false };
+        else if (g.width != null || g.color) a.splitLine = { ...(a.splitLine || {}), show: true, lineStyle: { ...((a.splitLine && a.splitLine.lineStyle) || {}), ...(g.width != null ? { width: g.width } : {}), ...(g.color ? { color: g.color } : {}) } };
+        if (!off && g.splitNumber != null) a.splitNumber = g.splitNumber;
+        return a;
+      }
+    }
+    // Axis scale (min/max on value axes) + label rotation
+    {
+      const ax = fmt.axis || {}; const has = (v) => v != null && v !== "";
+      if (has(ax.xMin) || has(ax.xMax) || ax.xLabelRotate != null) o.xAxis = mapAx(o.xAxis, (a) => {
+        if (!a) return a; const n = { ...a };
+        if (a.type === "value") { if (has(ax.xMin)) n.min = +ax.xMin; if (has(ax.xMax)) n.max = +ax.xMax; }
+        if (ax.xLabelRotate != null) n.axisLabel = { ...(a.axisLabel || {}), rotate: ax.xLabelRotate };
+        return n;
+      });
+      if (has(ax.yMin) || has(ax.yMax) || ax.yLabelRotate != null) o.yAxis = mapAx(o.yAxis, (a) => {
+        if (!a) return a; const n = { ...a };
+        if (a.type === "value") { if (has(ax.yMin)) n.min = +ax.yMin; if (has(ax.yMax)) n.max = +ax.yMax; }
+        if (ax.yLabelRotate != null) n.axisLabel = { ...(a.axisLabel || {}), rotate: ax.yLabelRotate };
+        return n;
+      });
+    }
+    // Text styling — colour / size / bold / italic across labels, legend, title, axis names
+    {
+      const t = fmt.text || {};
+      if (t.color || t.size || t.bold || t.italic) {
+        const tl = {};
+        if (t.color) tl.color = t.color;
+        if (t.size) tl.fontSize = t.size;
+        if (t.bold) tl.fontWeight = "bold";
+        if (t.italic) tl.fontStyle = "italic";
+        const styleAxisText = (a) => a ? { ...a, axisLabel: { ...(a.axisLabel || {}), ...tl }, nameTextStyle: { ...(a.nameTextStyle || {}), ...(t.color ? { color: t.color } : {}) } } : a;
+        o.xAxis = mapAx(o.xAxis, styleAxisText); o.yAxis = mapAx(o.yAxis, styleAxisText);
+        if (o.legend) o.legend = { ...o.legend, textStyle: { ...(o.legend.textStyle || {}), ...tl } };
+        if (o.title) o.title = { ...o.title, textStyle: { ...(o.title.textStyle || {}), ...(t.color ? { color: t.color } : {}), ...(t.bold ? { fontWeight: "bold" } : {}), ...(t.italic ? { fontStyle: "italic" } : {}) } };
+        o.series = o.series.map((s) => (s.label && s.label.show) ? { ...s, label: { ...s.label, ...tl } } : s);
+      }
+    }
+    // Plot-only resize — extra grid padding, keeps the container & legend fixed
+    {
+      const pi = fmt.plotInset || {};
+      if ((pi.top || pi.bottom || pi.left || pi.right) && o.grid && !Array.isArray(o.grid)) {
+        const b = o.grid, nz = (v) => typeof v === "number" ? v : 0;
+        o.grid = { ...b, top: nz(b.top) + (pi.top || 0), bottom: nz(b.bottom) + (pi.bottom || 0), left: nz(b.left) + (pi.left || 0), right: nz(b.right) + (pi.right || 0) };
+      }
+    }
+    // Background colour (also used by PNG export)
+    if (fmt.background) o.backgroundColor = fmt.background;
+    // Smooth override for line series
+    if (fmt.smooth != null) {
+      o.series = o.series.map((s) => s.type === "line" ? { ...s, smooth: fmt.smooth ? 0.3 : false } : s);
+    }
+    return o;
+  }
+
+  // ─── Sheet tab bar (multiple visualizations) ─────────────────────────────
+  function VizTabs() {
+    const sheets = useStore((s) => s.vizSheets);
+    const active = useStore((s) => s.vizActive);
+    const globalActive = useStore((s) => s.activeId);
+    const [editId, setEditId] = React.useState(null);
+    const [draft, setDraft] = React.useState("");
+    const commit = () => { if (editId) actions.renameVizSheet(editId, draft.trim()); setEditId(null); };
+    const activeSheet = sheets.find((x) => x.id === active) || sheets[0];
+    const datasets = window.NODE.datasets;
+    return (
+      <div className="viz-tabs">
+        <div className="viz-tabs-scroll">
+          {sheets.map((sh) => (
+            <div key={sh.id} className={"viz-tab" + (sh.id === active ? " on" : "")}
+              onClick={() => sh.id !== active && actions.setVizActive(sh.id)}
+              onDoubleClick={() => { setEditId(sh.id); setDraft(sh.name); }}
+              title="더블클릭해서 이름 변경">
+              <Icon name="visualize" size={12} style={{ opacity: 0.6 }} />
+              {editId === sh.id
+                ? <input autoFocus className="viz-tab-edit" value={draft}
+                    onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+                    onKeyDown={(e) => { if (e.key === "Enter") commit(); else if (e.key === "Escape") setEditId(null); }}
+                    onClick={(e) => e.stopPropagation()} />
+                : <span className="viz-tab-nm">{sh.name}</span>}
+              {sh.id === active && (
+                <span className="viz-tab-dup" title="탭 복제"
+                  onClick={(e) => { e.stopPropagation(); actions.duplicateVizSheet(sh.id); }}><Icon name="duplicate" size={11} /></span>
+              )}
+              {sheets.length > 1 && (
+                <span className="viz-tab-x" title="탭 닫기"
+                  onClick={(e) => { e.stopPropagation(); actions.removeVizSheet(sh.id); }}><Icon name="x" size={11} /></span>
+              )}
+            </div>
+          ))}
+          <button className="viz-tab-add" title="새 시각화 탭" onClick={() => actions.addVizSheet()}><Icon name="plus" size={13} /></button>
+        </div>
+        <div className="spacer" />
+        <div className="viz-tab-ds" title="이 탭의 데이터셋">
+          <Icon name="layers" size={12} style={{ opacity: 0.6 }} />
+          <select className="sel" value={activeSheet.datasetId || globalActive}
+            onChange={(e) => actions.setSheetDataset(activeSheet.id, e.target.value)}>
+            {datasets.map((d) => <option key={d.id} value={d.id}>{d.short}</option>)}
+          </select>
+        </div>
+      </div>
+    );
+  }
+
   // ─── Center panel ─────────────────────────────────────────────────────────
   function VizCenter() {
     const activeId = useStore((s) => s.activeId);
-    const viz = useStore((s) => s.viz);
+    const vizSheets = useStore((s) => s.vizSheets);
+    const vizActive = useStore((s) => s.vizActive);
+    const viz = vizSheets.find((x) => x.id === vizActive) || vizSheets[0];
+    // Keep this tab's remembered dataset in sync with the active dataset, so the
+    // shelves always match the rendered data (switching datasets can't mismatch).
+    React.useEffect(() => {
+      if (viz && viz.datasetId !== activeId) actions.setSheetDataset(viz.id, activeId);
+    }, [activeId, viz && viz.id]);
     const theme = useStore((s) => s.theme);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const { rows, columns } = derive.getActiveData(activeId);
     const measures = viz.rows;
     const colsChips = viz.cols.map((c) => (
@@ -609,49 +887,425 @@
         <span className="x" onClick={() => actions.removeFromShelf("cols", c.key)}><Icon name="x" size={12} /></span>
       </span>
     ));
-    const rowChips = measures.map((c) => <MeasureChip key={c.key} chip={c} />);
+    const markable = ["bar", "line", "area"].includes(viz.type) && !viz.color;
+    const baseMark = viz.type === "line" || viz.type === "area" ? viz.type : "bar";
+    const rowChips = measures.map((c) => <MeasureChip key={c.key} chip={c} showMark={markable} baseMark={baseMark} />);
 
     const option = React.useMemo(() => {
       if (viz.type === "facet") return null;
-      return buildOption(viz.type, { rows, cols: viz.cols, measures, color: viz.color, sortDesc: viz.sortDesc, topN: viz.topN });
+      return applyFormat(buildOption(viz.type, { rows, cols: viz.cols, measures, color: viz.color, sortDesc: viz.sortDesc, topN: viz.topN }), viz.format);
     }, [viz, rows, theme]);
 
     const title = measures.length && viz.cols.length
       ? `${measures.map((m) => `${m.agg.toUpperCase()}(${m.label})`).join(", ")} by ${viz.cols.map((c) => c.label).join(", ")}`
       : "Untitled visualization";
 
+    const [expOpen, setExpOpen] = React.useState(false);
+    const doExport = (kind, bg) => {
+      const name = "insight-" + (viz.type || "chart");
+      const bgVal = bg === "current" ? undefined : (bg === "white" ? "#ffffff" : "transparent");
+      const ok = kind === "svg" ? window.Charts.downloadSVG(name, bgVal) : window.Charts.downloadPNG(name, bgVal);
+      if (!ok) alert("차트를 먼저 그려주세요. / Draw a chart first.");
+      else window.LOG && window.LOG.info("export", kind.toUpperCase() + " exported · " + bg);
+      setExpOpen(false);
+    };
+    const doCopy = () => {
+      window.Charts.copyPNG(undefined).then((ok) => alert(ok ? "클립보드에 복사됨 · 파워포인트에서 Ctrl+V로 붙여넣기" : "복사를 지원하지 않는 브라우저입니다. PNG 다운로드를 사용하세요."));
+      setExpOpen(false);
+    };
+    const doPPTX = () => {
+      const opt = window.Charts.lastInst ? window.Charts.lastInst.getOption() : null;
+      const r = window.PptxExport ? window.PptxExport.exportChart(viz, opt, "insight-" + (viz.type || "chart"), (viz.format && viz.format.title && viz.format.title.text) || "") : { ok: false, reason: "no-lib" };
+      if (!r.ok) {
+        if (r.reason === "no-lib") alert("PowerPoint 내보내기 라이브러리(PptxGenJS)가 아직 설치되지 않았습니다.\nvendor/pptxgenjs/pptxgen.bundle.js 를 추가하세요 (vendor/pptxgenjs/README.md 참고).");
+        else if (r.reason === "unsupported") alert("이 차트 종류는 PPT 네이티브 차트(데이터 편집)로는 지원되지 않습니다.\n막대·라인·영역·파이만 가능 — 나머지는 이미지/SVG로 내보내세요.");
+        else if (r.reason === "no-chart") alert("차트를 먼저 그려주세요.");
+        else alert("PPTX 내보내기 실패: " + r.reason);
+      } else window.LOG && window.LOG.info("export", "PPTX exported");
+      setExpOpen(false);
+    };
+    const piStyle = { width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8, padding: "7px 14px" };
+    const saveToDash = () => {
+      if (!measures.length) { alert("측정값을 먼저 올려주세요. / Add a measure first."); return; }
+      const st = window.Store.getState();
+      const sheet = (st.dash.sheets || []).find((x) => x.id === st.dash.active) || (st.dash.sheets || [])[0];
+      const widgets = ((sheet && sheet.widgets) || []).slice();
+      widgets.push({ id: "w" + Date.now(), type: "chart", x: 0, y: 99, w: 6, h: 6, title,
+        spec: { chartType: viz.type, cols: viz.cols.map((c) => c.key), measures: measures.map((m) => [m.key, m.agg || "sum"]), color: viz.color ? viz.color.key : undefined } });
+      actions.setDashWidgets(widgets);
+      window.LOG && window.LOG.info("viz", "Saved chart to dashboard");
+      alert("활성 대시보드에 추가되었습니다. / Added to the active dashboard.");
+    };
+
+    const chartH = (viz.format && viz.format.height) || null;
+    const chartW = (viz.format && viz.format.width) || null;
+    // ── Free positioning (drag) for legend or title ──
+    const canvasRef = React.useRef(null);
+    const [poseTarget, setPoseTarget] = React.useState(null);   // "legend" | "title" | null
+    React.useEffect(() => {
+      const h = (e) => setPoseTarget((e.detail && e.detail.target) || "legend");
+      window.addEventListener("viz-pose", h);
+      return () => window.removeEventListener("viz-pose", h);
+    }, []);
+    const poseFmt = poseTarget ? ((viz.format && viz.format[poseTarget]) || {}) : {};
+    const poseFree = !!poseFmt.free;
+    const pfx = poseFmt.fx != null ? poseFmt.fx : 0.5, pfy = poseFmt.fy != null ? poseFmt.fy : (poseTarget === "title" ? 0.02 : 0.04);
+    React.useEffect(() => { if (poseTarget && !poseFree) setPoseTarget(null); }, [poseFree, poseTarget]);
+    const onHandleDown = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const rect = canvasRef.current.getBoundingClientRect();
+      const hr = e.currentTarget.getBoundingClientRect();
+      const offX = e.clientX - hr.left, offY = e.clientY - hr.top;
+      const tgt = poseTarget;
+      const move = (ev) => {
+        const nfx = Math.max(0, Math.min(0.95, (ev.clientX - offX - rect.left) / rect.width));
+        const nfy = Math.max(0, Math.min(0.92, (ev.clientY - offY - rect.top) / rect.height));
+        actions.setFormat({ [tgt]: { fx: nfx, fy: nfy } });
+      };
+      const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+      window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+    };
+    const showPose = poseTarget && poseFree && (measures.length || viz.cols.length) && viz.type !== "facet";
+
+    // ── Drag-to-resize chart from any edge (PowerPoint-style) ──
+    const clampV = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const onEdgeDown = (edge) => (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const startX = e.clientX, startY = e.clientY;
+      const startH = canvasRef.current ? canvasRef.current.clientHeight : 400;
+      const startW = canvasRef.current ? canvasRef.current.clientWidth : 600;
+      const startOffTop = (viz.format && viz.format.offsetTop) || 0;
+      const startOffLeft = (viz.format && viz.format.offsetLeft) || 0;
+      const bottomPos = startOffTop + startH;          // keep the bottom edge fixed for the top handle
+      const rightPos = startOffLeft + startW;          // keep the right edge fixed for the left handle
+      const plotMode = (viz.format && viz.format.resizeMode) === "plot";
+      const pi0 = (viz.format && viz.format.plotInset) || {};
+      const clamp0 = (v) => Math.max(0, Math.min(600, v));
+      document.body.style.cursor = (edge === "left" || edge === "right") ? "ew-resize" : "ns-resize";
+      const move = (ev) => {
+        const patch = {};
+        if (plotMode) {
+          const dx = ev.clientX - startX, dy = ev.clientY - startY;
+          if (edge === "bottom") patch.plotInset = { bottom: clamp0((pi0.bottom || 0) - dy) };
+          else if (edge === "top") patch.plotInset = { top: clamp0((pi0.top || 0) + dy) };
+          else if (edge === "right") patch.plotInset = { right: clamp0((pi0.right || 0) - dx) };
+          else if (edge === "left") patch.plotInset = { left: clamp0((pi0.left || 0) + dx) };
+          actions.setFormat(patch);
+          return;
+        }
+        if (edge === "bottom") patch.height = clampV(startH + (ev.clientY - startY), 180, 1800);
+        else if (edge === "top") { const off = clampV(startOffTop + (ev.clientY - startY), 0, bottomPos - 180); patch.offsetTop = off; patch.height = bottomPos - off; }
+        else if (edge === "right") patch.width = clampV(startW + (ev.clientX - startX), 260, 3200);
+        else if (edge === "left") { const off = clampV(startOffLeft + (ev.clientX - startX), 0, rightPos - 260); patch.offsetLeft = off; patch.width = rightPos - off; }
+        actions.setFormat(patch);
+      };
+      const up = () => { document.body.style.cursor = ""; window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+      window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+    };
+
     return (
       <React.Fragment>
+        <VizTabs />
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>{title}</span>
           <div className="spacer" />
-          <button className="btn ghost sm"><Icon name="download" /> PNG</button>
-          <button className="btn sm"><Icon name="save" /> Save to dashboard</button>
+          <div style={{ position: "relative" }}>
+            <button className="btn ghost sm" onClick={() => setExpOpen((v) => !v)}><Icon name="download" /> Export</button>
+            {expOpen && (
+              <React.Fragment>
+                <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setExpOpen(false)} />
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 8001, background: "var(--bg-2)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-md)", boxShadow: "var(--shadow-pop)", minWidth: 200, overflow: "hidden", padding: "6px 0" }}>
+                  <button className="pi" style={piStyle} onClick={doCopy}><Icon name="duplicate" size={13} /> 클립보드 복사 (PPT에 Ctrl+V)</button>
+                  <div className="sep" />
+                  <div className="ph" style={{ padding: "3px 12px" }}>PNG 이미지</div>
+                  <button className="pi" style={piStyle} onClick={() => doExport("png", "current")}><Icon name="image" size={13} /> 현재 배경</button>
+                  <button className="pi" style={piStyle} onClick={() => doExport("png", "white")}><Icon name="image" size={13} /> 흰색 배경</button>
+                  <button className="pi" style={piStyle} onClick={() => doExport("png", "transparent")}><Icon name="image" size={13} /> 투명 배경</button>
+                  <div className="sep" />
+                  <div className="ph" style={{ padding: "3px 12px" }}>SVG · 벡터</div>
+                  <button className="pi" style={piStyle} onClick={() => doExport("svg", "current")}><Icon name="visualize" size={13} /> 현재 배경</button>
+                  <button className="pi" style={piStyle} onClick={() => doExport("svg", "transparent")}><Icon name="visualize" size={13} /> 투명 배경</button>
+                  <div className="sep" />
+                  <div className="ph" style={{ padding: "3px 12px" }}>PowerPoint</div>
+                  <button className="pi" style={piStyle} onClick={doPPTX}><Icon name="dashboard" size={13} /> .pptx (데이터 편집 가능)</button>
+                </div>
+              </React.Fragment>
+            )}
+          </div>
+          <button className="btn sm" onClick={saveToDash}><Icon name="save" /> Save to dashboard</button>
         </div>
         <div className="shelfbar">
-          <Shelf label="Columns" kind="cols" chips={colsChips} accept="Drop dimensions (x-axis / groups)" />
-          <Shelf label="Rows" kind="rows" chips={rowChips} accept="Drop measures (y-axis values)" />
+          <Shelf label={T("vizColumns")} kind="cols" chips={colsChips} accept={T("vizColumnsHint")} />
+          <Shelf label={T("vizRows")} kind="rows" chips={rowChips} accept={T("vizRowsHint")} />
         </div>
-        <div className="vizcanvas">
-          {viz.type === "facet"
-            ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
-            : (measures.length || viz.cols.length
-              ? <EChart option={option} theme={theme} style={{ height: "100%" }} />
-              : <div className="empty"><Icon name="visualize" /><div className="t">Build a chart</div><div className="s">Drag fields from the Data Explorer onto the <b>Columns</b> and <b>Rows</b> shelves — or double-click a field. Then pick a chart type on the right.</div></div>
-            )
-          }
+        <div className="vizcanvas" style={{ display: "flex", flexDirection: "column", alignItems: chartW ? "flex-start" : "stretch", overflow: (chartH || chartW) ? "auto" : "hidden" }}>
+          <div className="viz-chart-area" ref={canvasRef} style={{ position: "relative", flex: chartH ? "0 0 auto" : "1 1 auto", height: chartH || "auto", width: chartW || "100%", marginTop: chartH ? ((viz.format && viz.format.offsetTop) || 0) : 0, marginLeft: chartW ? ((viz.format && viz.format.offsetLeft) || 0) : 0, minHeight: 0 }}>
+            {viz.type === "facet"
+              ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
+              : (measures.length || viz.cols.length
+                ? <EChart option={option} theme={theme} style={{ height: "100%" }} />
+                : <div className="empty"><Icon name="visualize" /><div className="t">Build a chart</div><div className="s">Drag fields from the Data Explorer onto the <b>Columns</b> and <b>Rows</b> shelves — or double-click a field. Then pick a chart type on the right.</div></div>
+              )
+            }
+            {showPose && (
+              <div className="legend-pose-overlay">
+                <div className="legend-pose-handle" style={{ left: (pfx * 100) + "%", top: (pfy * 100) + "%" }} onMouseDown={onHandleDown}>
+                  <Icon name="move" size={12} /> {poseTarget === "title" ? "타이틀" : "범례"} · 여기를 잡고 드래그
+                </div>
+                <button className="btn primary sm legend-pose-done" onClick={() => setPoseTarget(null)}><Icon name="check" size={13} /> 이동 완료</button>
+              </div>
+            )}
+            {!showPose && viz.type !== "facet" && (measures.length || viz.cols.length) && (
+              <React.Fragment>
+                <div className="rh rh-top" onMouseDown={onEdgeDown("top")} title="드래그해서 높이 조절" />
+                <div className="rh rh-bottom" onMouseDown={onEdgeDown("bottom")} title="드래그해서 높이 조절" />
+                <div className="rh rh-left" onMouseDown={onEdgeDown("left")} title="드래그해서 너비 조절" />
+                <div className="rh rh-right" onMouseDown={onEdgeDown("right")} title="드래그해서 너비 조절" />
+              </React.Fragment>
+            )}
+          </div>
         </div>
       </React.Fragment>
     );
   }
 
+  // ─── Format panel (PowerPoint-style: pick a category from a dropdown) ──────
+  const FMT_SECTIONS = [
+    ["title", "제목 · Title"], ["legend", "범례 · Legend"], ["labels", "값 레이블 · Data labels"],
+    ["axis", "축 · Axis (스케일·방향)"], ["grid", "격자·보조선 · Grid lines"], ["bg", "배경 · Background"],
+    ["text", "텍스트 · Text"], ["series", "계열 · Series (색·이름)"], ["size", "크기 · Size"],
+  ];
+  const CIN = { width: 26, height: 22, padding: 0, border: "1px solid var(--line)", borderRadius: 4, background: "none", cursor: "pointer", flexShrink: 0 };
+  const rotBtns = (cur, onPick) => [["auto", "자동"], [0, "가로"], [45, "45°"], [90, "세로"]].map(([v, s]) =>
+    <button key={String(v)} className={((v === "auto" && cur == null) || cur === v) ? "on" : ""} onClick={() => onPick(v === "auto" ? null : v)}>{s}</button>);
+
+  function FormatPanel({ viz }) {
+    const fmt = viz.format || {};
+    const setF = actions.setFormat;
+    const [sec, setSec] = React.useState("title");
+    const [sel, setSel] = React.useState([]);   // selected series keys (Series section)
+    const t = fmt.title || {}, lg = fmt.legend || {}, lb = fmt.labels || {}, ax = fmt.axis || {}, g = fmt.grid || {}, tx = fmt.text || {};
+    const legendOn = lg.show !== false, labelsOn = !!lb.show, isLine = viz.type === "line" || viz.type === "area";
+    const num = (v) => v == null || v === "" ? "" : v;
+    return (
+      <div className="cp-block fmt-panel">
+        <select className="sel fmt-sel" value={sec} onChange={(e) => setSec(e.target.value)}>
+          {FMT_SECTIONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+
+        {sec === "title" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>텍스트</span>
+              <input className="inp" placeholder="차트 제목 입력" value={t.text || ""} onChange={(e) => setF({ title: { text: e.target.value } })} style={{ flex: 1, minWidth: 0 }} /></div>
+            {t.text && (
+              <React.Fragment>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>세로</span>
+                  <div className="seg">{[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!t.free && (t.v || "top") === p) ? "on" : ""} onClick={() => setF({ title: { v: p, free: false } })}>{s}</button>)}
+                    <button className={t.free ? "on" : ""} onClick={() => { setF({ title: { free: true } }); window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "title" } })); }}>자유</button></div></div>
+                {!t.free && <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로</span>
+                  <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(t.h || "center") === p ? "on" : ""} onClick={() => setF({ title: { h: p } })}>{s}</button>)}</div></div>}
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        {sec === "legend" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>표시</span>
+              <div className="seg"><button className={legendOn ? "on" : ""} onClick={() => setF({ legend: { show: true } })}>On</button><button className={!legendOn ? "on" : ""} onClick={() => setF({ legend: { show: false } })}>Off</button></div></div>
+            {legendOn && (
+              <React.Fragment>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>세로</span>
+                  <div className="seg">{[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!lg.free && (lg.v || "top") === p) ? "on" : ""} onClick={() => setF({ legend: { v: p, free: false } })}>{s}</button>)}
+                    <button className={lg.free ? "on" : ""} onClick={() => { setF({ legend: { free: true } }); window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "legend" } })); }}>자유</button></div></div>
+                {!lg.free && <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로</span>
+                  <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(lg.h || "center") === p ? "on" : ""} onClick={() => setF({ legend: { h: p } })}>{s}</button>)}</div></div>}
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        {sec === "labels" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>표시</span>
+              <div className="seg"><button className={labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: true } })}>On</button><button className={!labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: false } })}>Off</button></div></div>
+            {labelsOn && (
+              <React.Fragment>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>형식</span>
+                  <div className="seg"><button className={(lb.fmt || "full") === "full" ? "on" : ""} onClick={() => setF({ labels: { fmt: "full" } })}>Full</button><button className={lb.fmt === "compact" ? "on" : ""} onClick={() => setF({ labels: { fmt: "compact" } })}>Compact</button></div></div>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>위치</span>
+                  <div className="seg">{[["top", "위"], ["inside", "안쪽"]].map(([p, s]) => <button key={p} className={(lb.pos || "top") === p ? "on" : ""} onClick={() => setF({ labels: { pos: p } })}>{s}</button>)}</div></div>
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        {sec === "axis" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Y 범위</span>
+              <input className="inp" type="number" placeholder="min" value={num(ax.yMin)} onChange={(e) => setF({ axis: { yMin: e.target.value === "" ? null : +e.target.value } })} style={{ width: 62 }} />
+              <input className="inp" type="number" placeholder="max" value={num(ax.yMax)} onChange={(e) => setF({ axis: { yMax: e.target.value === "" ? null : +e.target.value } })} style={{ width: 62 }} /></div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>X 범위</span>
+              <input className="inp" type="number" placeholder="min" value={num(ax.xMin)} onChange={(e) => setF({ axis: { xMin: e.target.value === "" ? null : +e.target.value } })} style={{ width: 62 }} />
+              <input className="inp" type="number" placeholder="max" value={num(ax.xMax)} onChange={(e) => setF({ axis: { xMax: e.target.value === "" ? null : +e.target.value } })} style={{ width: 62 }} /></div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 6px" }}>값(숫자) 축에만 적용 · 비우면 자동. 범위를 좁히면 차이가 극적으로 보입니다.</div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Y 레이블</span><div className="seg">{rotBtns(ax.yLabelRotate, (v) => setF({ axis: { yLabelRotate: v } }))}</div></div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>X 레이블</span><div className="seg">{rotBtns(ax.xLabelRotate, (v) => setF({ axis: { xLabelRotate: v } }))}</div></div>
+          </React.Fragment>
+        )}
+
+        {sec === "grid" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>표시</span>
+              <div className="seg"><button className={fmt.gridlines !== false ? "on" : ""} onClick={() => setF({ gridlines: true })}>On</button><button className={fmt.gridlines === false ? "on" : ""} onClick={() => setF({ gridlines: false })}>Off(투명)</button></div></div>
+            {fmt.gridlines !== false && (
+              <React.Fragment>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>굵기</span>
+                  <div className="seg">{[1, 2, 3].map((w) => <button key={w} className={(g.width || 1) === w ? "on" : ""} onClick={() => setF({ grid: { width: w } })}>{w}</button>)}</div></div>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>색상</span>
+                  <input type="color" value={g.color || rgbToHex(Charts.themeColors().split)} onChange={(e) => setF({ grid: { color: e.target.value } })} style={CIN} />
+                  {g.color && <button className="iconbtn" style={{ width: 20, height: 20 }} onClick={() => setF({ grid: { color: null } })}><Icon name="undo" size={11} /></button>}</div>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>빈도</span>
+                  <div className="seg">{[["auto", "자동"], [3, "3"], [5, "5"], [8, "8"], [10, "10"]].map(([v, s]) => <button key={String(v)} className={((v === "auto" && g.splitNumber == null) || g.splitNumber === v) ? "on" : ""} onClick={() => setF({ grid: { splitNumber: v === "auto" ? null : v } })}>{s}</button>)}</div></div>
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        {sec === "bg" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>배경색</span>
+              <input type="color" value={fmt.background || "#ffffff"} onChange={(e) => setF({ background: e.target.value })} style={CIN} />
+              <div className="seg" style={{ marginLeft: 6 }}><button onClick={() => setF({ background: "#ffffff" })}>흰색</button><button className={!fmt.background ? "on" : ""} onClick={() => setF({ background: null })}>기본/투명</button></div></div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>PNG로 내보낼 때 이 배경으로 저장됩니다 — 다른 자료 배경에 맞추세요.</div>
+          </React.Fragment>
+        )}
+
+        {sec === "text" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>글자색</span>
+              <input type="color" value={tx.color || rgbToHex(Charts.themeColors().text)} onChange={(e) => setF({ text: { color: e.target.value } })} style={CIN} />
+              {tx.color && <button className="iconbtn" style={{ width: 20, height: 20 }} onClick={() => setF({ text: { color: null } })}><Icon name="undo" size={11} /></button>}</div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>크기</span>
+              <div className="seg">{[["auto", "자동"], [10, "10"], [12, "12"], [14, "14"], [16, "16"]].map(([v, s]) => <button key={String(v)} className={((v === "auto" && !tx.size) || tx.size === v) ? "on" : ""} onClick={() => setF({ text: { size: v === "auto" ? null : v } })}>{s}</button>)}</div></div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>스타일</span>
+              <div className="seg"><button className={tx.bold ? "on" : ""} style={{ fontWeight: 700 }} onClick={() => setF({ text: { bold: !tx.bold } })}>B</button><button className={tx.italic ? "on" : ""} style={{ fontStyle: "italic" }} onClick={() => setF({ text: { italic: !tx.italic } })}>I</button></div></div>
+          </React.Fragment>
+        )}
+
+        {sec === "series" && (() => {
+          const isPie = viz.type === "pie";
+          const markOf = (m) => m.mark || (viz.type === "line" || viz.type === "area" ? viz.type : "bar");
+          const hasBar = !isPie && viz.rows.some((m) => markOf(m) === "bar");
+          // series list: pie → slices; else → measures
+          let list = [];
+          if (isPie) {
+            const pd = window.Charts.lastInst ? (((window.Charts.lastInst.getOption().series || [])[0] || {}).data || []) : [];
+            list = pd.map((d) => { const nm = (d && d.name != null) ? String(d.name) : String(d); return { key: nm, colorKey: nm, name: nm, mark: "pie" }; });
+          } else if (!viz.color) {
+            list = viz.rows.map((m) => ({ key: m.label, colorKey: m.label, label: m.label, name: (fmt.seriesNames && fmt.seriesNames[m.label]) || m.label, mark: markOf(m) }));
+          }
+          const selected = list.filter((it) => sel.includes(it.key));
+          const toggle = (k) => setSel((s) => s.includes(k) ? s.filter((x) => x !== k) : [...s, k]);
+          const allLine = selected.length > 0 && selected.every((it) => it.mark === "line" || it.mark === "area");
+          const someLine = selected.some((it) => it.mark === "line" || it.mark === "area");
+          const first = selected[0];
+          const firstIdx = first ? list.findIndex((x) => x.key === first.key) : 0;
+          const curColor = (first && fmt.colors && fmt.colors[first.colorKey]) || rgbToHex(Charts.palette()[(firstIdx < 0 ? 0 : firstIdx) % 8]);
+          const applyEach = (fn) => { const p = {}; selected.forEach((it) => fn(p, it)); return p; };
+          return (
+            <React.Fragment>
+              {hasBar && (
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>막대 간격</span>
+                  <div className="seg">{[["10%", "좁게"], ["30%", "보통"], ["50%", "넓게"], ["70%", "아주넓게"]].map(([v, s]) => <button key={v} className={((fmt.bar && fmt.bar.categoryGap) || "30%") === v ? "on" : ""} onClick={() => setF({ bar: { categoryGap: v } })}>{s}</button>)}</div></div>
+              )}
+              {isPie && (
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>파이 굵기</span>
+                  <div className="seg">{[["0%", "꽉참"], ["40%", "도넛"], ["58%", "얇게"]].map(([v, s]) => <button key={v} className={((fmt.pie && fmt.pie.inner) || "40%") === v ? "on" : ""} onClick={() => setF({ pie: { inner: v } })}>{s}</button>)}</div></div>
+              )}
+
+              {!list.length ? (
+                <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 8 }}>{viz.color ? "색상(Color) 차원을 쓰면 계열이 색으로 나뉩니다 — 해제 후 이용하세요." : (isPie ? "차트를 먼저 그리면 조각이 나옵니다." : "측정값(Rows)을 올리면 계열이 나옵니다.")}</div>
+              ) : (
+                <React.Fragment>
+                  <div className="fieldlabel" style={{ marginTop: 8, display: "flex", justifyContent: "space-between" }}>
+                    <span>계열 선택 (다중)</span>
+                    <span><span style={{ color: "var(--accent)", cursor: "pointer" }} onClick={() => setSel(list.map((it) => it.key))}>전체</span> · <span style={{ color: "var(--accent)", cursor: "pointer" }} onClick={() => setSel([])}>해제</span></span>
+                  </div>
+                  <div className="fmt-serieslist">
+                    {list.map((it, i) => { const on = sel.includes(it.key); const sw = (fmt.colors && fmt.colors[it.colorKey]) || rgbToHex(Charts.palette()[i % 8]);
+                      return (
+                        <div key={it.key} className={"fmt-seriesitem" + (on ? " on" : "")} onClick={() => toggle(it.key)}>
+                          <span className={"checkbox" + (on ? " on" : "")}>{on && <Icon name="check" size={11} />}</span>
+                          <span className="sw" style={{ background: sw }} />
+                          <span className="nm">{it.name}</span>
+                          {!isPie && it.mark !== "bar" && <span style={{ fontSize: 9, color: "var(--tx-faint)" }}>{it.mark}</span>}
+                        </div>
+                      ); })}
+                  </div>
+
+                  {selected.length === 0 ? (
+                    <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 6 }}>위에서 계열을 선택하면 설정이 나옵니다.</div>
+                  ) : (
+                    <React.Fragment>
+                      <div className="fieldlabel" style={{ marginTop: 8 }}>{selected.length}개 선택됨 — 설정</div>
+                      <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>색상</span>
+                        <input type="color" value={curColor} onChange={(e) => setF({ colors: applyEach((p, it) => { p[it.colorKey] = e.target.value; }) })} style={CIN} />
+                        <button className="iconbtn" style={{ width: 20, height: 20 }} title="색 초기화" onClick={() => setF({ colors: applyEach((p, it) => { p[it.colorKey] = null; }) })}><Icon name="undo" size={11} /></button></div>
+                      {isPie && (
+                        <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>조각 분리</span>
+                          <div className="seg"><button onClick={() => setF({ explode: applyEach((p, it) => { p[it.name] = true; }) })}>분리</button><button onClick={() => setF({ explode: applyEach((p, it) => { p[it.name] = false; }) })}>붙이기</button></div></div>
+                      )}
+                      {!isPie && selected.length === 1 && (
+                        <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>이름</span>
+                          <input className="inp" placeholder={first.label} value={(fmt.seriesNames && fmt.seriesNames[first.label]) || ""} onChange={(e) => setF({ seriesNames: { [first.label]: e.target.value } })} style={{ flex: 1, minWidth: 0 }} /></div>
+                      )}
+                      {!isPie && allLine && (
+                        <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>선 굵기</span>
+                          <div className="seg">{[1, 2, 3, 4].map((w) => <button key={w} className={((fmt.seriesOpts && fmt.seriesOpts[first.label] && fmt.seriesOpts[first.label].lineWidth) || 2) === w ? "on" : ""} onClick={() => setF({ seriesOpts: applyEach((p, it) => { p[it.label] = { lineWidth: w }; }) })}>{w}</button>)}</div></div>
+                      )}
+                      {!isPie && !allLine && someLine && (
+                        <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 4 }}>선 굵기는 라인 계열만 골랐을 때 편집됩니다 (복합차트에서 라인 하나만 선택).</div>
+                      )}
+                    </React.Fragment>
+                  )}
+                </React.Fragment>
+              )}
+            </React.Fragment>
+          );
+        })()}
+
+        {sec === "size" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>리사이즈</span>
+              <div className="seg">
+                <button className={(fmt.resizeMode || "all") === "all" ? "on" : ""} onClick={() => setF({ resizeMode: "all" })}>전체</button>
+                <button className={fmt.resizeMode === "plot" ? "on" : ""} onClick={() => setF({ resizeMode: "plot" })}>플롯만</button>
+              </div></div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 6px" }}>전체 = 범례 포함 요소 전체 · 플롯만 = 그래프 영역만(범례·제목 고정)</div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>프리셋</span>
+              <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(!fmt.width && (fmt.height || null) === h) ? "on" : ""} onClick={() => setF(h === null ? { height: null, width: null, offsetTop: 0, offsetLeft: 0, plotInset: { top: 0, bottom: 0, left: 0, right: 0 } } : { height: h, offsetTop: 0 })}>{s}</button>)}</div></div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>차트 모서리(상·하·좌·우)를 드래그해 크기 조절 · Auto로 초기화</div>
+          </React.Fragment>
+        )}
+      </div>
+    );
+  }
+
   // ─── Right panel: Show Me + Marks ─────────────────────────────────────────
   function VizPanel() {
-    const viz = useStore((s) => s.viz);
+    const vizSheets = useStore((s) => s.vizSheets);
+    const vizActive = useStore((s) => s.vizActive);
     const activeId = useStore((s) => s.activeId);
-    const { columns } = derive.getActiveData(activeId);
+    const viz = vizSheets.find((x) => x.id === vizActive) || vizSheets[0];
+    const { columns, rows } = derive.getActiveData(activeId);
     const nDim = viz.cols.length, nMeas = viz.rows.length;
     const hasOHLC = ["open", "high", "low", "close"].every((k) => columns.some((c) => c.key === k));
+
+    const rec = window.ChartAdvisor ? window.ChartAdvisor.recommend(
+      viz.cols.map((c) => ({ key: c.key, type: c.type, cardinality: (c.type === "category" || c.type === "string") ? new Set(rows.map((r) => r[c.key])).size : null })),
+      viz.rows, { hasOHLC }
+    ) : null;
 
     const valid = (need) => {
       if (need === "fin")    return hasOHLC;
@@ -661,9 +1315,21 @@
       if (need === "2d+1m")  return nDim >= 2 && nMeas >= 1;
       return nDim >= 1 && nMeas >= 1;
     };
+    const [ptab, setPtab] = React.useState("chart");
 
     return (
       <div className="vizpanel">
+        <div className="viz-subtabs">
+          <button className={ptab === "chart" ? "on" : ""} onClick={() => setPtab("chart")}><Icon name="visualize" size={13} /> 차트 / Chart</button>
+          <button className={ptab === "format" ? "on" : ""} onClick={() => setPtab("format")}><Icon name="sliders" size={13} /> 서식 / Format</button>
+        </div>
+        {ptab === "chart" && (
+        <React.Fragment>
+        {rec && rec.type && rec.type !== viz.type && (
+          <button className="viz-rec" onClick={() => actions.setViz({ type: rec.type })} title={rec.reason}>
+            <Icon name="bolt" size={13} /><span><b>Show Me:</b> {rec.type} — {rec.reason}</span>
+          </button>
+        )}
         {CHART_GROUPS.map((group) => (
           <div key={group.label} className="cp-block">
             <div className="cp-blocktitle">{group.label}</div>
@@ -724,13 +1390,17 @@
             ))}
           </div>
         </div>
+        </React.Fragment>
+        )}
+
+        {ptab === "format" && <FormatPanel viz={viz} />}
       </div>
     );
   }
 
   window.VizMode = function () {
     return <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
-      center={<VizCenter />} right={<VizPanel />} rightTitle="Show Me & Marks" />;
+      center={<VizCenter />} right={<VizPanel />} rightTitle="Chart & Format" />;
   };
   window.buildVizOption = buildOption; // reused by dashboard
 })();

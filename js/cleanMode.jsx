@@ -42,7 +42,27 @@
 
   function CleanCenter() {
     const activeId = useStore((s) => s.activeId);
+    const selCol = useStore((s) => s.ui.selCol);
     const { ds, rows, columns, steps, cursor } = derive.getActiveData(activeId);
+
+    // Direct grid editing — same non-destructive step pipeline as Data mode,
+    // so column add/delete/insert/rename/type + row add/delete live in the "…" menu.
+    const uniqKey = (base) => {
+      const keys = new Set(columns.map((c) => c.key)); let k = base, i = 1;
+      while (keys.has(k)) k = base + "_" + (++i);
+      return k;
+    };
+    const editHandlers = {
+      onCell: (rid, key, val) => actions.editCell(rid, key, val),
+      onDeleteRows: (rids) => actions.deleteRows(rids),
+      onAddRow: () => actions.addRow({}),
+      onAddCol: () => actions.addColumn({ key: uniqKey("new_col"), type: "string" }),
+      onInsertCol: (at) => actions.addColumn({ key: uniqKey("new_col"), type: "string", at }),
+      onRename: (key, to) => actions.addStep({ op: "rename", col: key, params: { to } }),
+      onChangeType: (key, t) => actions.addStep({ op: "change_type", col: key, params: { to: t } }),
+      onDeleteCol: (key) => actions.addStep({ op: "drop_col", col: key }),
+      onReorder: (order) => actions.reorderCols(order),
+    };
 
     const issues = React.useMemo(() => {
       const missing = {}; let totalMissing = 0;
@@ -87,7 +107,9 @@
           </div>
         </div>
 
-        <DataGrid columns={columns} rows={rows} pageSize={100} />
+        <DataGrid columns={columns} rows={rows} pageSize={100}
+          selCol={selCol} onSelectCol={(k) => actions.setUI({ selCol: k })}
+          editable={true} cellEditable={false} edit={editHandlers} />
       </React.Fragment>
     );
   }
@@ -154,6 +176,19 @@
           </div>
 
           <div className="opgroup">
+            <div className="opgroup-h">Columns</div>
+            <div className="opbtns">
+              <button className="opbtn" onClick={() => {
+                const keys = new Set(columns.map((c) => c.key)); let k = "new_col", i = 1;
+                while (keys.has(k)) k = "new_col_" + (++i);
+                actions.addColumn({ key: k, type: "string" });
+              }}><Icon name="plus" size={13} />Add column</button>
+              <button className="opbtn" style={{ color: "var(--danger, #e05)" }} onClick={() => add("drop_col")}><Icon name="x" size={13} />Drop column</button>
+            </div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3 }}>열 위치 변경은 그리드 헤더를 드래그하세요. 헤더 <b>⋯</b> 메뉴에서도 삽입·삭제·이름변경 가능.</div>
+          </div>
+
+          <div className="opgroup">
             <div className="opgroup-h">Transform</div>
             <div className="op-inline">
               <input className="inp" placeholder={`Rename "${selCol ? selCol.label : ""}"`} value={renameVal} onChange={(e) => setRenameVal(e.target.value)} />
@@ -166,12 +201,9 @@
             </div>
             <div className="op-inline">
               <span className="fieldlabel" style={{ flex: 1 }}>Change type</span>
-              {["string", "integer", "float", "category", "datetime"].map((t) => (
-                <button key={t} className="typebtn" onClick={() => add("change_type", { to: t })}>{t.slice(0, 3)}</button>
+              {[["string"], ["integer"], ["float"], ["category"], ["datetime"], ["boolean", "T/F"]].map(([t, lbl]) => (
+                <button key={t} className="typebtn" onClick={() => add("change_type", { to: t })}>{lbl || t.slice(0, 3)}</button>
               ))}
-            </div>
-            <div className="opbtns" style={{ marginTop: 6 }}>
-              <button className="opbtn" style={{ color: "var(--danger, #e05)" }} onClick={() => add("drop_col")}><Icon name="x" size={13} />Drop column</button>
             </div>
           </div>
 

@@ -6,17 +6,46 @@ All notable changes to insight Analytics Workbench are documented here.
 
 ## [Unreleased] — Phase 2 (진행 중)
 
+### 밤샘 자율 작업 — 견고성·테스트·분석 엔진 (2026-07-12, `feat/analytics`)
+> 계획: `docs/OVERNIGHT_PLAN.md`. 매 항목 tsc(TS1xxx 0)+Node 테스트+asset bump 후 커밋. **Node 98 → 217** (+119 테스트).
+
+#### Added — 신규 순수 분석 엔진 (브라우저 단독·결정적·Node 테스트)
+- **`timeSeriesDecomp.js` (window.TSDecomp)**: 고전적 계절분해(중심이동평균 추세·짝수주기 2×period 위상정렬 → 계절지수 → 잔차, additive/multiplicative)
+- **`outliers.js` (window.Outliers)**: 다변량 Mahalanobis 거리 이상치(자기완결 Gauss-Jordan 역행렬 + Wilson-Hilferty χ² 컷오프, alpha/topK, 특이공분산 degrade)
+- **`geoMatch.js` (window.GeoMatch)**: 지역명 정규화·매칭(한국 행정접미사·EN/KO 별칭) — 데이터 기반 단계구분도(choropleth)용
+- **분포 적합 확장(`distributionFit.js`)**: 지수·로그정규 MLE + `compareFits` AIC 랭킹(어떤 분포가 가장 잘 맞나)
+
+#### Fixed — 엔진 엣지케이스 버그 & 모드 크래시 가드
+- **pivotEngine**: null/빈 차원값 그룹의 셀·소계가 0으로 표시되던 정합 버그(버킷키 정규화 불일치) → 소계=총계 복원
+- **clustering**: `hierarchical.labelsAt(k<1)` 크래시 → k 클램프
+- **spc**: 빈 서브그룹 X-bar/R·S Infinity/NaN, p·u 차트 크기0, capability 역전 스펙 음수 → 가드/degrade
+- **distributionFit**: `jarqueBera` n<4 거짓 "정규" → null
+- **모드 견고성 가드**(ANOVA 크래시와 동일 계열): mlMode(특성 0개 회귀 백지화·k-NN 빈투표·scatter Infinity), mapMode(Seoul/World 시드 부재 ds.rows·미매칭 find), statsMode(Builder scatter Infinity), dashMode(인스펙터 measures[0]), vizMode(bubble 5000점 초과 다운샘플)
+
+#### Refactored — 테스트 잠금 (하드코딩-치유/동적생성 로직을 dual-mode 모듈로 추출)
+- `statsCfg.js`·`mlCfg.js`·`dashWidgets.js`·`aiIntent.js`·`sheets.js` — 소비 .jsx는 `window.X`에서 배선, 각각 Node 회귀 테스트 확보
+
+
+
 ### Planned (아직 미구현)
-- XLSX Import + 다중 시트 선택
-- Union/Join 데이터 결합
-- Pivot Table Builder
-- Dashboard 위젯 설정 + 안전한 KPI 수식
 - SQL JOIN/window 및 DuckDB-WASM 전환
-- Auto Chart Recommendation
-- PCA + Biplot + Scree Plot
-- Logistic Regression, Decision Tree, Naive Bayes, ROC/AUC, Precision-Recall Curve, Cross Validation
-- SPC Control Charts (X-Bar/R/S/P/C/U), Process Capability (Cp/Cpk/Pp/Ppk)
-- Moving Average, Exponential Smoothing, Seasonal Decomposition, ACF/PACF
+- Decision Tree, Naive Bayes, Cross Validation, Seasonal Decomposition
+- 배포 시 차트 공유 링크
+- PPT 네이티브 차트 매핑 확장(스택/보조축/캔들 등)
+
+### Added — 차트 서식 & 내보내기 (Chart Format & Export, `feat/analytics`)
+> Chart 모드 우측 패널을 **차트 / 서식** 서브탭으로 분리하고, 서식은 PowerPoint식 **카테고리 드롭다운**으로 정리.
+- **복합 차트**: 막대/라인/영역에서 측정값별 마크(막대·라인·영역) 지정 → 자동 combo, 스케일 다른 지표는 **보조축(우측)** 분리
+- **제목**: 텍스트 + 9방향(세로×가로) 위치 + 자유 드래그
+- **범례**: 표시·9방향 위치 + **자유 드래그 배치**(주황 오버레이+핸들+이동완료)
+- **값 레이블**: 표시·형식(Full/Compact)·위치
+- **축**: X/Y min·max 스케일(극적 표현), X/Y 레이블 방향(자동/가로/45°/세로)
+- **격자·보조선**: 표시(투명)·굵기·색상·빈도
+- **배경색** · **텍스트**(색·크기·굵게·기울임)
+- **계열(다중선택 리스트)**: 계열 선택 후 공통(색·파이 조각분리) 일괄 / 개별(이름·라인 굵기는 단일·동일타입 선택 시). 파이 조각별 색·굵기(도넛)·분리, 막대 간격, 계열별 선 굵기
+- **크기 조절**: 프리셋(Auto/S/M/L/XL) + **네 모서리 드래그 리사이즈**(각 모서리는 자기 변만 이동, 반대편 고정) + **리사이즈 대상 전체/플롯만** 선택
+- **내보내기 메뉴**: 클립보드 복사(PPT에 Ctrl+V) · PNG(현재/흰색/투명 배경) · **SVG 벡터** · **PowerPoint .pptx(데이터 편집 가능, PptxGenJS 벤더링)**
+- **버그수정**: 차트 전체 빈화면(oklch→canvas 폴백), PNG/Save-to-dashboard 죽은 버튼 연결
 
 ### Documentation
 - 현재 코드 기준으로 기능 현황 동기화: 차트 20종, 기본 데이터셋 7종, Map 3개 탭, Import/Export 지원 범위
@@ -30,6 +59,82 @@ All notable changes to insight Analytics Workbench are documented here.
 - schema version 1 portable JSON 백업·복원, 미래 schema 명시적 거부, 동일 ID import 복제
 - Store hydration과 데이터셋 등록·삭제 API 중앙화, 복원된 최대 `__rid` 이후 행 ID 연속성 보장
 - Node 기본 테스트 러너 기반 persistence/schema 회귀 테스트 추가
+
+### Added — Core v2 Milestone 2 (기능 브랜치)
+- SheetJS CE 0.20.3 standalone build를 로컬 vendoring하고 Apache-2.0 라이선스와 SHA-256 기록
+- CSV/TSV/JSON/XLSX 공통 `window.ImportEngine`과 결정적 타입 추론 추가
+- CSV 선행 0 코드 보존, 멀티라인/escaped quote, JSON 키 합집합, XLSX 날짜 셀 처리
+- Workbook 시트 범위·행/열 수·첫 20행 Preview, 복수 시트 선택, 컬럼별 타입 override UI
+- TopBar와 Data Explorer Drop 영역을 동일 Import 흐름으로 통합하고 완료 후 프로젝트 즉시 저장
+- Node import 회귀 테스트와 no-build 브라우저 `tests/runner.html` 추가
+
+### Added — Core v2 Milestone 3 (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.DataOps` — Union/Join 엔진 (부수효과 없음, 타임스탬프는 호출부 주입)
+- Union: 컬럼 key 합집합, 타입 충돌 `boolean→integer→float→string` 승격, 없는 값 null, 선택적 `__source` 컬럼
+- Join: Inner/Left/Right/Full, 복수 키 복합 매칭, null 키 미매칭, 숫자·날짜·문자 정규화 비교, 우측 중복 컬럼 리네임, many-to-many 폭증 감지
+- 결과는 lineage(`op/sourceIds/joinType/keyPairs/createdAt`) 포함 새 데이터셋으로 materialize
+- Combine datasets 모달(Data explorer 진입), 실시간 Preview + 폭증 경고, `registerDataset`+`saveNow` 연동
+- Node 9/9 회귀 테스트, `tests/runner.html` DataOps 케이스 추가
+
+### Added — Core v2 Milestone 4 (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.PivotEngine` — Rows × Columns 크로스탭 집계 엔진
+- 복수 Values와 개별 집계(sum/avg/count/countd/min/max/median), 범주·범위 필터
+- 빈 셀 안전 처리(sum/count 0, 그 외 null), Grand Total은 원본 행에서 재계산(avg/median 정확)
+- `toDataset` 평탄화 → registerable 데이터셋(옵션 Grand Total 행) + lineage
+- Pivot rail 모드: 필드 드래그 shelf(Rows/Columns/Values), 크로스탭 테이블, Save & open in Chart
+- Node 8/8 회귀 테스트, `tests/runner.html` Pivot 케이스 추가
+
+### Added — Core v2 Milestone 5 (기능 브랜치, 밤샘 자율)
+- 안전한 `window.KPIFormula` — eval/new Function 없는 재귀하강 파서+평가기
+- 문법: `SUM/AVG/COUNT(*)/COUNTD/MIN/MAX/MEDIAN(field)` + `+ - * / ( )` + 숫자 리터럴
+- 임의 코드·미지 함수·미지 필드·0 나눗셈 거부(→ `—`), `compute()`는 `{value,error}` 반환
+- 위젯 Inspector(우측 패널, 선택 위젯 편집): 공통 제목·크기, KPI(라벨·집계|수식 토글·형식·단위·소수), Chart(타입·차원·측정·집계·색상·Top N), Table(차원·측정·집계·행 제한), Text(평문)
+- KPI 위젯이 `spec.formula`를 Cross Filtering 이후 행 기준으로 계산
+- Text 위젯 `dangerouslySetInnerHTML` 제거 → 평문 렌더, 기존 `spec.html`은 태그 제거해 `spec.text`로 마이그레이션
+- Node 7/7 회귀 테스트, `tests/runner.html` KPI 케이스 추가
+
+### Changed
+- Rail에 **Pivot** 모드 추가(Chart 다음). Dashboard 위젯의 Chart Top N·Table 행 제한을 Inspector에서 조절 가능
+
+### Added — 분석 엔진 UI 배선 (`feat/analytics`)
+- **ML 모드 확장:** 기존 회귀/k-NN/KMeans에 **Logistic Regression + ROC/AUC**, **PCA**(Scree+로딩표), **DBSCAN**, **계층군집(Ward)** 추가. Task 선택기를 7종 그리드로 개편, task별 target/split/k/K/eps·minPts 컨트롤, 5k행 초과 O(n²) 경고.
+- **Stats 모드 확장:** **Normal Q-Q**(왜도·첨도·Jarque-Bera + 정규성 판정), **Time Series**(원계열+MA+EMA 라인 + ACF 막대, datetime 자동 정렬), **SPC 관리도**(I-MR 개별값 관리도 + CL/UCL/LCL + 관리이탈점 강조) 추가.
+- 언어 토글(한/영)과 Chart 모드 축 라벨(X축·차원 / Y축·측정값) 반영.
+
+### Added — 언어 전환
+- TopBar에 한국어/English 토글(테마 토글 옆). Rail 모드명·Import/Export·Ask Insight 등 UI 라벨 전환, `<html lang>` 반영.
+
+### Added — 분석 심화 & Show Me (Batch G)
+- **Auto Chart Recommendation** (`window.ChartAdvisor`) — Tableau "Show Me"식 규칙 기반 추천(날짜→line, 2측정→scatter, 3→bubble, 범주→bar, 저카디널리티→pie, 2차원→heatmap, OHLC→candlestick). Chart 모드에 원클릭 추천 배너. (Node 8)
+- **Time Series**: PACF 막대 추가(ACF와 나란히).
+- **SPC**: 선택적 LSL/USL 입력 → 공정능력 **Cp/Cpk/Pp/Ppk** 카드(1.33/1.0 임계 색상).
+- **Logistic**: ROC 외 **Precision-Recall 곡선 + AP** 추가.
+
+### Added — 복합 차트(측정값별 마크) & 보조축
+- **막대/라인/영역 차트에서 측정값마다 표시 형태를 개별 지정** — Rows의 측정값 칩을 클릭해 **마크(막대/라인/영역)** 와 **축(좌 주축 / 우 보조축)** 선택. 예: `open`은 막대, `close`는 선 → 자동으로 복합(combo) 차트가 됨(엑셀 "차트 종류 변경" 방식). 스케일이 크게 다른 지표는 **보조축(우측)** 으로 분리.
+- 별도 "Combo" 타입 대신, 일반 차트에서 마크를 섞으면 복합차트가 되도록 통합. 색상 차원이 있을 땐 마크 컨트롤 숨김.
+- (되돌림) 캔들차트의 임의 MA5/MA20 오버레이 제거 — 데이터에 없는 값을 임의로 표시하지 않음. 이동평균이 필요하면 파생 컬럼으로 생성 예정.
+
+### Changed
+- StatusBar·SQL 배지의 가짜 "DuckDB" 표기를 실제 "in-browser JS/SQL"로 정정 (IMPLEMENTATION_PLAN §9).
+- Chart 헤더 **PNG / Save to dashboard** 버튼 동작 연결(기존 무동작).
+- **Tweaks 패널 → 설정/Setting** 이름 변경, **Accent 색상 선택 제거**(브랜드 오렌지 고정).
+
+### Fixed
+- **차트 전체가 빈 화면으로 렌더되던 문제 수정** — `charts.jsx`의 `resolveVar`가 `oklch()` 색을 canvas로만 변환하던 탓에, canvas가 oklch를 지원하지 않는 브라우저에서 모든 색이 검정(rgb(0,0,0))으로 폴백 → 다크 배경에서 차트가 보이지 않음. oklch→sRGB 변환을 JS(Ottosson 행렬)로 직접 수행하도록 개선하여 canvas 색공간 지원과 무관하게 정상 색 반환. Chart/Dashboard/Map/Stats 등 ECharts 전반에 적용.
+
+### Security
+- Dashboard Text 위젯의 임의 HTML 주입 경로(`dangerouslySetInnerHTML`) 제거
+
+### Added — Phase 2 분석 엔진 (기능 브랜치 `feat/analytics`, 밤샘 자율)
+> 모두 순수·결정적 window.* 라이브러리로 로드됨. Stats/ML 모드 UI 배선은 후속.
+- `window.PCA` — 표준화 공분산 + Jacobi 고유분해, Scree/Biplot (Node 11)
+- `window.Logistic` — 경사하강 로지스틱 회귀, ROC/AUC·PR 곡선·지표 (Node 7)
+- `window.TimeSeries` — MA/WMA/EMA, Holt 이중지수, diff, ACF/PACF, rolling std (Node 17)
+- `window.DistFit` — normInv/normCdf, QQ-정규, 정규 적합, Jarque-Bera, 히스토그램 (Node 10)
+- `window.SPC` — I-MR·X-bar/R·X-bar/S·p·c·u 관리도, Cp/Cpk/Pp/Ppk, Pareto (Node 7)
+- `window.Clustering` — DBSCAN + 병합형 계층군집(single/complete/average/ward), O(n²) ~5k행 (Node 4)
+- 전체 Node 테스트 90/90 통과, `tests/runner.html` 8개 분석 케이스 추가
 
 ---
 

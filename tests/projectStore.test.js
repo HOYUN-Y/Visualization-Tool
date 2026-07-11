@@ -42,7 +42,10 @@ function validBundle() {
       activeId: "sales",
       ui: { leftW: 230, aiOpen: true },
       clean: {},
-      viz: {},
+      vizSheets: [{ id: "sheet-1", name: "시트 1", datasetId: null, type: "bar", cols: [], rows: [] }],
+      vizActive: "sheet-1",
+      pivotSheets: [{ id: "pivot-1", name: "피벗 1", datasetId: null, rows: [], columns: [], values: [] }],
+      pivotActive: "pivot-1",
       dash: {},
       tweaks: {},
       transientValue: "do not persist",
@@ -68,7 +71,10 @@ test("portable project validation keeps supported state and removes session-only
   assert.equal(result.state.ui.leftW, 230);
   assert.equal(result.state.ui.aiOpen, undefined);
   assert.equal(result.state.transientValue, undefined);
-  assert.equal(typeof result.state.pivot, "object");
+  assert.ok(Array.isArray(result.state.vizSheets) && result.state.vizSheets.length === 1);
+  assert.ok(Array.isArray(result.state.pivotSheets) && result.state.pivotSheets.length === 1);
+  assert.equal(result.state.vizActive, "sheet-1");
+  assert.equal(result.state.pivotActive, "pivot-1");
   assert.equal(result.analysis.mlHistory.length, 1);
 
   input.datasets[0].rows[0].amount = 999;
