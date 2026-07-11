@@ -105,6 +105,20 @@
     } catch (e) { window.LOG && window.LOG.error && window.LOG.error("export", "PNG failed: " + e.message); return false; }
   }
 
+  // Copy the chart to the clipboard as a PNG image (paste straight into PowerPoint/Slides).
+  function copyPNG(background) {
+    const inst = Charts.lastInst;
+    if (!inst || !navigator.clipboard || typeof window.ClipboardItem === "undefined") return Promise.resolve(false);
+    try {
+      const opt = inst.getOption ? inst.getOption() : null;
+      const bg = background !== undefined ? background : ((opt && opt.backgroundColor) || resolveVar("--bg-1"));
+      const url = inst.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: bg });
+      return fetch(url).then((r) => r.blob())
+        .then((blob) => navigator.clipboard.write([new window.ClipboardItem({ "image/png": blob })]).then(() => true))
+        .catch((e) => { window.LOG && window.LOG.error && window.LOG.error("export", "copy failed: " + e.message); return false; });
+    } catch (e) { return Promise.resolve(false); }
+  }
+
   // Vector SVG export — re-render the current option with the SVG renderer offscreen.
   function downloadSVG(filename, background) {
     const inst = Charts.lastInst;
@@ -149,5 +163,5 @@
     return true;
   }
 
-  window.Charts = { resolveVar, palette, themeColors, baseGrid, EChart, downloadPNG, downloadSVG, downloadCSV, lastInst: null };
+  window.Charts = { resolveVar, palette, themeColors, baseGrid, EChart, downloadPNG, downloadSVG, copyPNG, downloadCSV, lastInst: null };
 })();

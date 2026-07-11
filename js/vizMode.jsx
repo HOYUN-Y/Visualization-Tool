@@ -802,6 +802,10 @@
       else window.LOG && window.LOG.info("export", kind.toUpperCase() + " exported · " + bg);
       setExpOpen(false);
     };
+    const doCopy = () => {
+      window.Charts.copyPNG(undefined).then((ok) => alert(ok ? "클립보드에 복사됨 · 파워포인트에서 Ctrl+V로 붙여넣기" : "복사를 지원하지 않는 브라우저입니다. PNG 다운로드를 사용하세요."));
+      setExpOpen(false);
+    };
     const piStyle = { width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8, padding: "7px 14px" };
     const saveToDash = () => {
       if (!measures.length) { alert("측정값을 먼저 올려주세요. / Add a measure first."); return; }
@@ -878,7 +882,9 @@
             {expOpen && (
               <React.Fragment>
                 <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setExpOpen(false)} />
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 8001, background: "var(--bg-2)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-md)", boxShadow: "var(--shadow-pop)", minWidth: 176, overflow: "hidden", padding: "6px 0" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 8001, background: "var(--bg-2)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-md)", boxShadow: "var(--shadow-pop)", minWidth: 200, overflow: "hidden", padding: "6px 0" }}>
+                  <button className="pi" style={piStyle} onClick={doCopy}><Icon name="duplicate" size={13} /> 클립보드 복사 (PPT에 Ctrl+V)</button>
+                  <div className="sep" />
                   <div className="ph" style={{ padding: "3px 12px" }}>PNG 이미지</div>
                   <button className="pi" style={piStyle} onClick={() => doExport("png", "current")}><Icon name="image" size={13} /> 현재 배경</button>
                   <button className="pi" style={piStyle} onClick={() => doExport("png", "white")}><Icon name="image" size={13} /> 흰색 배경</button>
