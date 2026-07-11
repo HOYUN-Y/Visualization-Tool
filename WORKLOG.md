@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 밤샘 자율(Batch A~F) 완료 → 후속 quick-win(FOLLOWUP P5·P6·P8) 처리 완료 |
-| Status | Core v2 M3~M5 + 분석엔진 6종 UI + A~F(테스트잠금·버그4종·엔진3종·geoMatch·견고성·문서) + P5/P6/P8 quick-win 완료. main 대비 90커밋. |
+| Current milestone | 밤샘 자율(Batch A~F) 완료 → 후속 quick-win(FOLLOWUP P4·P5·P6·P8) 처리 완료 |
+| Status | Core v2 M3~M5 + 분석엔진 6종 UI + A~F + P4(메모)·P5(편집견고성)·P6(위생)·P8(카피) 완료. main 대비 92커밋. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `c361cc0` — .gitignore + .DS_Store 언트랙 (P6) |
-| Working tree | 깨끗. quick-win: grid/store 편집 견고성(P5)·app 플레이스홀더(P8)·.gitignore(P6)·문서 드리프트 |
-| Last verified | 2026-07-12 — Node 217/217, JSX 구문검사(tsc TS1xxx 0), asset v=253 |
+| Last checkpoint commit | `7814f8e` — getActiveData 메모이제이션 (P4) |
+| Working tree | 깨끗. quick-win: store 메모(P4)·grid/store 편집(P5)·app 카피(P8)·.gitignore(P6)·문서 드리프트 |
+| Last verified | 2026-07-12 — Node 221/221, JSX 구문검사(tsc TS1xxx 0), asset v=254 |
 | Updated at | 2026-07-12 |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
@@ -54,6 +54,17 @@
    - D2 geoMatch → MyDataMap choropleth 배선(geojson 로딩·ECharts map 등록)
 3. **main 병합·태그·원격 push**: `feat/analytics` 90커밋 스택 검토→승인→`--no-ff`. (자율 금지 항목)
 4. **후속작업 제안 검토**: [`docs/FOLLOWUP_PROPOSALS.md`](./docs/FOLLOWUP_PROPOSALS.md) — 실브라우저 클릭 검증(2026-07-12) 결과 기반 P1~P12 우선순위 제안 (미배선 UI·getActiveData 메모·편집 op 견고성 3종·i18n 잔존·E2E 자동화 등). 참고: 위 1번 실브라우저 왕복 중 편집/피벗→차트/Export/SPC/ML은 제어 브라우저로 검증 완료.
+
+## 세션 기록 — 2026-07-12 (후속 quick-win: FOLLOWUP P4·P5·P6·P8)
+
+`docs/FOLLOWUP_PROPOSALS.md`(실브라우저 검증 기반 제안) 검토 → 저위험·검증가능 항목 처리. 각 코드 주장을 실제로 대조 확인 후 수정.
+
+- `41d24bd` **P5 편집 견고성 3종**(데이터 손상 방지): rename 충돌(기존 key 덮어써 소실 → grid+store 양쪽 거부), set_cell 타입오염(숫자열에 문자열 저장 → invalid는 null + grid 빨간테두리 경고), IME Enter(한글 조합 종료 오발 → isComposing 가드). **P8**: 로딩 폴백 카피 "In this build iteration" → 한국어+복구 버튼.
+- `c361cc0` **P6 위생**: .gitignore 신설 + 추적 중이던 .DS_Store 5건 언트랙.
+- `b0ca001` **문서 드리프트**: IMPLEMENTATION_PLAN 헤더 v2→v3, WORKLOG Quick Start 경로(/Users/hoyun→/Users/lyuhoyun), FOLLOWUP 수치(.DS_Store 5건·커밋 87) 정정.
+- `7814f8e` **P4 getActiveData 메모이제이션**: (dataset ref, steps ref, cursor) 키 캐시 → applySteps 반복 rows 복제 제거(XLSX 수만 행 대비). **소비자 read-only 감사 후 안전 확인.** `tests/storeMemo.test.js`로 **store.jsx 실코드**(스텁 window/React 로드)에 캐시 적중·편집/undo/redo 무효화·원본 불변 검증 — store 첫 실코드 테스트. Node 217→221.
+
+**아침 게이트 잔여(FOLLOWUP)**: P1(IndexedDB 리로드 왕복) · P2(main 병합) · P3(엔진 3종 UI 배선) · P7(i18n) · P9~P12. P4는 로직·실코드 테스트로 검증했으나 **실렌더 체감(대용량 편집/undo 즉시 반영)은 브라우저 게이트 권장**.
 
 ## 세션 기록 — 2026-07-12 (밤샘 자율: Batch E — 견고성 가드 스윕)
 
