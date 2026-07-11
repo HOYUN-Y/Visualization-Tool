@@ -32,6 +32,28 @@
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
 
+## 🌙 밤샘 자율 실행 최종 요약 (2026-07-12, Batch A~F)
+
+계획 `docs/OVERNIGHT_PLAN.md`의 START 신호 수신 후 Batch A→F 순차 완료. **Node 98/98 → 217/217**(+119 테스트), **asset v=246 → v=252**, main 대비 **~88커밋**. 모든 항목 tsc(TS1xxx 0)+Node 그린+asset bump 후 커밋, 매 배치 종료 시 이 WORKLOG 갱신.
+
+| 배치 | 내용 | 결과 |
+|---|---|---|
+| **A** 테스트 잠금 | statsCfg/mlCfg/dashWidgets/aiIntent/sheets dual-mode 추출 | +38 테스트 |
+| **B** 엔진 버그 사냥 | 서브에이전트 3기 프로빙 → 실버그 4종 수정(pivot 정합·clustering 크래시·spc Infinity·JB) | +53 테스트 |
+| **C** 신규 분석 엔진 | timeSeriesDecomp·outliers·distributionFit 확장(지수/로그정규/AIC) | +20 테스트 |
+| **D1** 지도 범용화 | geoMatch 지역명 정규화·매칭 엔진 | +8 테스트 |
+| **E** 견고성 가드 | 서브에이전트 감사 → 모드 언가드 크래시/Infinity 6곳 | 가드(tsc 검증) |
+| **F** 문서 동기화 | CHANGELOG·HANDOFF·WORKLOG 최종 정리 | — |
+
+### ☀️ 아침 게이트 (사용자 확인/승인 필요 — 자율 범위 밖)
+1. **실브라우저 왕복 검증**(MCP Chrome이 사용자 localhost 미접근 → 자율 불가): 각 모드가 추출 모듈(A)로 정상 동작, Batch B/E 수정 후 pivot 소계·SPC·ML·지도 렌더 확인.
+2. **미배선 UI(엔진은 준비 완료, 시각검증 필요)**:
+   - A5 `sheets.js` → store.jsx 실배선(작동 중 store 리팩터 위험)
+   - C1 계절분해(TSDecomp) → Stats/Time Series 토글
+   - C2 다변량 이상치(Outliers) → 시각화
+   - D2 geoMatch → MyDataMap choropleth 배선(geojson 로딩·ECharts map 등록)
+3. **main 병합·태그·원격 push**: `feat/analytics` ~88커밋 스택 검토→승인→`--no-ff`. (자율 금지 항목)
+
 ## 세션 기록 — 2026-07-12 (밤샘 자율: Batch E — 견고성 가드 스윕)
 
 서브에이전트로 모든 .jsx 모드를 감사해 "ANOVA 크래시와 동일 계열"의 언가드 접근(빈 배열 `[0]`, 빈 데이터 `Math.min/max` → ±Infinity, `find().field` 미매칭)을 6곳 수정. 전역 ErrorBoundary가 있어도 모드-레벨 크래시를 원천 제거. `5e1b310`.

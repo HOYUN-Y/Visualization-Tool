@@ -6,6 +6,27 @@ All notable changes to insight Analytics Workbench are documented here.
 
 ## [Unreleased] — Phase 2 (진행 중)
 
+### 밤샘 자율 작업 — 견고성·테스트·분석 엔진 (2026-07-12, `feat/analytics`)
+> 계획: `docs/OVERNIGHT_PLAN.md`. 매 항목 tsc(TS1xxx 0)+Node 테스트+asset bump 후 커밋. **Node 98 → 217** (+119 테스트).
+
+#### Added — 신규 순수 분석 엔진 (브라우저 단독·결정적·Node 테스트)
+- **`timeSeriesDecomp.js` (window.TSDecomp)**: 고전적 계절분해(중심이동평균 추세·짝수주기 2×period 위상정렬 → 계절지수 → 잔차, additive/multiplicative)
+- **`outliers.js` (window.Outliers)**: 다변량 Mahalanobis 거리 이상치(자기완결 Gauss-Jordan 역행렬 + Wilson-Hilferty χ² 컷오프, alpha/topK, 특이공분산 degrade)
+- **`geoMatch.js` (window.GeoMatch)**: 지역명 정규화·매칭(한국 행정접미사·EN/KO 별칭) — 데이터 기반 단계구분도(choropleth)용
+- **분포 적합 확장(`distributionFit.js`)**: 지수·로그정규 MLE + `compareFits` AIC 랭킹(어떤 분포가 가장 잘 맞나)
+
+#### Fixed — 엔진 엣지케이스 버그 & 모드 크래시 가드
+- **pivotEngine**: null/빈 차원값 그룹의 셀·소계가 0으로 표시되던 정합 버그(버킷키 정규화 불일치) → 소계=총계 복원
+- **clustering**: `hierarchical.labelsAt(k<1)` 크래시 → k 클램프
+- **spc**: 빈 서브그룹 X-bar/R·S Infinity/NaN, p·u 차트 크기0, capability 역전 스펙 음수 → 가드/degrade
+- **distributionFit**: `jarqueBera` n<4 거짓 "정규" → null
+- **모드 견고성 가드**(ANOVA 크래시와 동일 계열): mlMode(특성 0개 회귀 백지화·k-NN 빈투표·scatter Infinity), mapMode(Seoul/World 시드 부재 ds.rows·미매칭 find), statsMode(Builder scatter Infinity), dashMode(인스펙터 measures[0]), vizMode(bubble 5000점 초과 다운샘플)
+
+#### Refactored — 테스트 잠금 (하드코딩-치유/동적생성 로직을 dual-mode 모듈로 추출)
+- `statsCfg.js`·`mlCfg.js`·`dashWidgets.js`·`aiIntent.js`·`sheets.js` — 소비 .jsx는 `window.X`에서 배선, 각각 Node 회귀 테스트 확보
+
+
+
 ### Planned (아직 미구현)
 - SQL JOIN/window 및 DuckDB-WASM 전환
 - Decision Tree, Naive Bayes, Cross Validation, Seasonal Decomposition

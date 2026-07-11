@@ -106,8 +106,17 @@ js/
   distributionFit.js       # window.DistFit — normInv/normCdf, QQ-normal, normal fit, Jarque-Bera
   spc.js                   # window.SPC — control charts (I-MR/X-bar/p/c/u), Cp/Cpk, Pareto
   clustering.js            # window.Clustering — DBSCAN + agglomerative hierarchical (Lance-Williams)
+  timeSeriesDecomp.js      # window.TSDecomp — classical seasonal decomposition (trend/seasonal/residual, add|mult)
+  outliers.js              # window.Outliers — multivariate Mahalanobis outliers (self-contained inverse + χ² cutoff)
+  geoMatch.js              # window.GeoMatch — region-name normalize/match (KO admin suffix + EN/KO aliases) for choropleths
   i18n.js                  # window.I18N — ko/en dictionary + t(lang,key); lang in tweaks.lang
   chartAdvisor.js          # window.ChartAdvisor — rule-based chart-type recommendation (Show Me)
+  # ── config helpers extracted from mode .jsx for Node regression tests (dual-mode) ──
+  statsCfg.js              # window.StatsCfg — schema-agnostic Stats starter/heal (catsOf/numsOf/defaultCfg/resolveCfg)
+  mlCfg.js                 # window.MlCfg — schema-agnostic ML config (mlNums/mlCats/mlDefaultCfg/mlResolveCfg)
+  dashWidgets.js           # window.DashWidgets — dynamic dashboard starter widgets + staleness (defaultWidgets/widgetStale)
+  aiIntent.js              # window.AiIntent — Ask Insight column helpers + NL→intent + suggestion chips
+  sheets.js                # window.Sheets — generic multi-tab sheet reducers (add/rename/remove/duplicate/updateActive); store wiring pending
   pptxExport.js            # window.PptxExport — native .pptx chart export (needs vendor/pptxgenjs)
   # vizMode.jsx: FormatPanel (title/legend/labels/axis/grid/bg/text/series/size), applyFormat post-processor,
   #   chart resize handles, legend/title free-drag, Export menu (PNG/SVG/clipboard/PPTX). viz.format holds all overrides.

@@ -140,9 +140,9 @@ test("...", () => { assert.equal(...); });
 
 ## Batch F — 문서 최종 동기화 (CHANGELOG/HANDOFF; WORKLOG는 배치마다 이미 갱신)
 
-- [ ] **F1. CHANGELOG.md** — Added(신규 엔진·테스트·지도 Stage2), Fixed(먹통2·크래시), Refactored(하드코딩 제거·테스트 잠금) 항목.
-- [ ] **F2. HANDOFF.md** — js 트리에 신규 모듈(statsCfg/mlCfg/dashWidgets/aiIntent/[sheets]/timeSeriesDecomp/outliers/geoMatch) 및 각 역할 반영.
-- [ ] **F3. WORKLOG.md 최종 확정** — 전체 배치 결과·최종 수치·"아침 게이트 목록"(main 병합·브라우저 검증 항목) 정리.
+- [x] **F1. CHANGELOG.md** — "밤샘 자율 작업" 섹션: Added(신규 엔진 3종+분포확장)·Fixed(엔진 버그 4종+모드 가드)·Refactored(테스트 잠금 5모듈). Node 98→217 명기.
+- [x] **F2. HANDOFF.md** — js 트리에 신규 모듈 9개(statsCfg/mlCfg/dashWidgets/aiIntent/sheets/timeSeriesDecomp/outliers/geoMatch) 역할 반영.
+- [x] **F3. WORKLOG.md 최종 확정** — 상단에 "🌙 밤샘 최종 요약"(배치표) + "☀️ 아침 게이트"(실브라우저·미배선 UI·main 병합) 정리.
 
 ---
 
