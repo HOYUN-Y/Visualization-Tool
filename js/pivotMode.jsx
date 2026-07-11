@@ -82,6 +82,8 @@
   function PivotPanel() {
     const pv = useStore(pvState);
     const activeId = useStore((s) => s.activeId);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const { columns } = derive.getActiveData(activeId);
     const setP = actions.setPivot;
 
@@ -96,13 +98,13 @@
 
     return (
       <div className="pv-panel">
-        <Shelf label="Rows" hint="Drop dimension fields" onDropField={addDim("rows")}>
+        <Shelf label={T("pRows")} hint={T("pDropDim")} onDropField={addDim("rows")}>
           {pv.rows.map((k) => <DimChip key={k} label={colLabel(columns, k)} onRemove={() => rmDim("rows", k)} />)}
         </Shelf>
-        <Shelf label="Columns" hint="Drop dimension fields" onDropField={addDim("columns")}>
+        <Shelf label={T("pColumns")} hint={T("pDropDim")} onDropField={addDim("columns")}>
           {pv.columns.map((k) => <DimChip key={k} label={colLabel(columns, k)} onRemove={() => rmDim("columns", k)} />)}
         </Shelf>
-        <Shelf label="Values" hint="Drop measure/dimension fields" onDropField={addVal}>
+        <Shelf label={T("pValues")} hint={T("pDropVal")} onDropField={addVal}>
           {pv.values.map((v, i) => (
             <span className="pv-chip meas" key={v.key + v.agg + i}>
               <select value={v.agg} onChange={(e) => setValAgg(i, e.target.value)}>{AGGS.map((a) => <option key={a} value={a}>{a}</option>)}</select>
@@ -111,9 +113,9 @@
             </span>
           ))}
         </Shelf>
-        <div className="pv-note">필드는 좌측 Data Explorer에서 드래그하세요. 합계·집계는 원본 행에서 재계산됩니다.</div>
+        <div className="pv-note">{T("pNote")}</div>
         {(pv.rows.length || pv.columns.length || pv.values.length) ?
-          <button className="btn ghost sm" style={{ margin: "8px 12px" }} onClick={() => actions.setPivot({ rows: [], columns: [], values: [], filters: [] })}>Clear</button> : null}
+          <button className="btn ghost sm" style={{ margin: "8px 12px" }} onClick={() => actions.setPivot({ rows: [], columns: [], values: [], filters: [] })}>{T("gClear")}</button> : null}
       </div>
     );
   }
@@ -126,6 +128,8 @@
     React.useEffect(() => {
       if (sheet && sheet.datasetId !== activeId) actions.setPivotSheetDataset(sheet.id, activeId);
     }, [activeId, sheet && sheet.id]);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const { ds, rows, columns } = derive.getActiveData(activeId);
     const [name, setName] = React.useState("");
 
@@ -156,20 +160,20 @@
         <PivotTabs />
         <div className="phead">
           <span className="ttl" style={{ color: "var(--tx-hi)", textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0 }}>
-            <Icon name="grid" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />Pivot Table
+            <Icon name="grid" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("pTitle")}
           </span>
           <span className="badge mono">{ds.short}</span>
           <div className="spacer" />
           {result && !result.err && (
             <React.Fragment>
               <input className="inp" placeholder={`${ds.short}_pivot`} value={name} onChange={(e) => setName(e.target.value)} style={{ width: 150, marginRight: 8 }} />
-              <button className="btn primary sm" onClick={saveAsDataset}><Icon name="visualize" size={12} /> Save & open in Chart</button>
+              <button className="btn primary sm" onClick={saveAsDataset}><Icon name="visualize" size={12} /> {T("pSaveOpen")}</button>
             </React.Fragment>
           )}
         </div>
 
         {!pv.values.length ? (
-          <div className="empty"><Icon name="grid" /><div className="t">Build a pivot</div><div className="s">Drag fields into Rows, Columns, and Values in the right panel. Values need at least one field.</div></div>
+          <div className="empty"><Icon name="grid" /><div className="t">{T("pBuildTitle")}</div><div className="s">{T("pBuildDesc")}</div></div>
         ) : result.err ? (
           <div className="empty"><Icon name="info" /><div className="t">Pivot error</div><div className="s">{result.err}</div></div>
         ) : (
