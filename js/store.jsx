@@ -44,11 +44,13 @@
       sortDesc: true,
       topN: 0,
       format: {          // chart formatting overrides (applied post-build)
+        title: { text: "", v: "top", h: "center" },      // chart title (empty = none); v/h/free like legend
         legend: { show: true, v: "top", h: "center" },   // v: top|middle|bottom · h: left|center|right
         labels: { show: false, pos: "top", fmt: "full" },
         gridlines: true,
         smooth: null,    // null = per chart default; true/false override
         colors: {},      // { seriesName: "#hex" }
+        seriesNames: {}, // { originalName: "custom label" }
       },
     },
     pivot: {},
@@ -411,9 +413,11 @@
     setFormat: (patch) => setState((s) => {
       const f = s.viz.format || {};
       const next = { ...f, ...patch };
+      if (patch.title) next.title = { ...f.title, ...patch.title };
       if (patch.legend) next.legend = { ...f.legend, ...patch.legend };
       if (patch.labels) next.labels = { ...f.labels, ...patch.labels };
       if (patch.colors) next.colors = { ...f.colors, ...patch.colors };
+      if (patch.seriesNames) next.seriesNames = { ...f.seriesNames, ...patch.seriesNames };
       return { ...s, viz: { ...s.viz, format: next } };
     }),
     setRowMark: (key, mark) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, mark } : r) } })),

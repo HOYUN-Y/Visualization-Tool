@@ -674,6 +674,23 @@
         }
       }
     }
+    // Title
+    if (fmt.title && fmt.title.text) {
+      const t = fmt.title;
+      const tt = { text: t.text, textStyle: { color: c.textHi, fontSize: 15, fontWeight: 600, fontFamily: "IBM Plex Sans" } };
+      if (t.free) { tt.left = ((t.fx != null ? t.fx : 0.5) * 100).toFixed(1) + "%"; tt.top = ((t.fy != null ? t.fy : 0.01) * 100).toFixed(1) + "%"; }
+      else {
+        const tv = t.v || "top", th = t.h || "center";
+        tt.left = th === "left" ? "left" : th === "right" ? "right" : "center";
+        tt.top = tv === "bottom" ? "bottom" : tv === "middle" ? "middle" : "top";
+        if (tv === "top" && o.grid && !Array.isArray(o.grid)) {
+          const g = { ...o.grid }; g.top = Math.max(typeof g.top === "number" ? g.top : 16, 34);
+          if (o.legend && o.legend.top === 0) { o.legend = { ...o.legend, top: 28 }; g.top = Math.max(g.top, 52); }
+          o.grid = g;
+        }
+      }
+      o.title = tt;
+    }
     // Value (data) labels
     if (fmt.labels && fmt.labels.show) {
       const fv = (v) => v == null ? "" : (fmt.labels.fmt === "compact" ? NODE.fmtCompact(v) : (typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 1 }) : String(v)));
@@ -681,10 +698,14 @@
         label: { show: true, position: fmt.labels.pos || "top", color: c.text, fontSize: 10, fontFamily: "IBM Plex Sans",
           formatter: (p) => { const v = Array.isArray(p.value) ? p.value[p.value.length - 1] : p.value; return fv(v); } } } : s);
     }
-    // Per-series colour overrides (keyed by series name)
+    // Per-series colour overrides (keyed by original series name)
     if (fmt.colors && Object.keys(fmt.colors).length) {
       o.series = o.series.map((s) => { const col = fmt.colors[s.name]; if (!col) return s;
         return { ...s, itemStyle: { ...(s.itemStyle || {}), color: col }, lineStyle: s.lineStyle ? { ...s.lineStyle, color: col } : s.lineStyle, areaStyle: s.areaStyle ? { ...s.areaStyle, color: col } : s.areaStyle }; });
+    }
+    // Custom series (legend) names — applied last so colours still key off the original name
+    if (fmt.seriesNames && Object.keys(fmt.seriesNames).length) {
+      o.series = o.series.map((s) => { const nm = fmt.seriesNames[s.name]; return (nm && nm.trim()) ? { ...s, name: nm } : s; });
     }
     // Grid lines
     if (fmt.gridlines === false) {
@@ -745,32 +766,33 @@
 
     const chartH = (viz.format && viz.format.height) || null;
     const chartW = (viz.format && viz.format.width) || null;
-    // ── Free legend positioning (drag) ──
-    const legFmt = (viz.format && viz.format.legend) || {};
-    const legFree = !!legFmt.free;
-    const fx = legFmt.fx != null ? legFmt.fx : 0.5, fy = legFmt.fy != null ? legFmt.fy : 0.04;
+    // ── Free positioning (drag) for legend or title ──
     const canvasRef = React.useRef(null);
-    const [posing, setPosing] = React.useState(false);
+    const [poseTarget, setPoseTarget] = React.useState(null);   // "legend" | "title" | null
     React.useEffect(() => {
-      const h = () => setPosing(true);
-      window.addEventListener("viz-legend-pose", h);
-      return () => window.removeEventListener("viz-legend-pose", h);
+      const h = (e) => setPoseTarget((e.detail && e.detail.target) || "legend");
+      window.addEventListener("viz-pose", h);
+      return () => window.removeEventListener("viz-pose", h);
     }, []);
-    React.useEffect(() => { if (!legFree) setPosing(false); }, [legFree]);
+    const poseFmt = poseTarget ? ((viz.format && viz.format[poseTarget]) || {}) : {};
+    const poseFree = !!poseFmt.free;
+    const pfx = poseFmt.fx != null ? poseFmt.fx : 0.5, pfy = poseFmt.fy != null ? poseFmt.fy : (poseTarget === "title" ? 0.02 : 0.04);
+    React.useEffect(() => { if (poseTarget && !poseFree) setPoseTarget(null); }, [poseFree, poseTarget]);
     const onHandleDown = (e) => {
       e.preventDefault(); e.stopPropagation();
       const rect = canvasRef.current.getBoundingClientRect();
       const hr = e.currentTarget.getBoundingClientRect();
       const offX = e.clientX - hr.left, offY = e.clientY - hr.top;
+      const tgt = poseTarget;
       const move = (ev) => {
         const nfx = Math.max(0, Math.min(0.95, (ev.clientX - offX - rect.left) / rect.width));
         const nfy = Math.max(0, Math.min(0.92, (ev.clientY - offY - rect.top) / rect.height));
-        actions.setFormat({ legend: { fx: nfx, fy: nfy } });
+        actions.setFormat({ [tgt]: { fx: nfx, fy: nfy } });
       };
       const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
       window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
     };
-    const showPose = posing && legFree && (measures.length || viz.cols.length) && viz.type !== "facet";
+    const showPose = poseTarget && poseFree && (measures.length || viz.cols.length) && viz.type !== "facet";
 
     // ── Drag-to-resize chart from any edge (PowerPoint-style) ──
     const clampV = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -819,10 +841,10 @@
             }
             {showPose && (
               <div className="legend-pose-overlay">
-                <div className="legend-pose-handle" style={{ left: (fx * 100) + "%", top: (fy * 100) + "%" }} onMouseDown={onHandleDown}>
-                  <Icon name="move" size={12} /> 범례 · 여기를 잡고 드래그
+                <div className="legend-pose-handle" style={{ left: (pfx * 100) + "%", top: (pfy * 100) + "%" }} onMouseDown={onHandleDown}>
+                  <Icon name="move" size={12} /> {poseTarget === "title" ? "타이틀" : "범례"} · 여기를 잡고 드래그
                 </div>
-                <button className="btn primary sm legend-pose-done" onClick={() => setPosing(false)}><Icon name="check" size={13} /> 이동 완료</button>
+                <button className="btn primary sm legend-pose-done" onClick={() => setPoseTarget(null)}><Icon name="check" size={13} /> 이동 완료</button>
               </div>
             )}
             {!showPose && viz.type !== "facet" && (measures.length || viz.cols.length) && (
@@ -947,6 +969,21 @@
           return (
             <div className="cp-block">
               <div className="cp-blocktitle">Format · 서식</div>
+              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Title · 제목</span>
+                <input className="inp" placeholder="차트 제목 입력" value={(fmt.title && fmt.title.text) || ""} onChange={(e) => setF({ title: { text: e.target.value } })} style={{ flex: 1, minWidth: 0 }} /></div>
+              {fmt.title && fmt.title.text && (
+                <React.Fragment>
+                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>제목 세로</span>
+                    <div className="seg">
+                      {[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!(fmt.title && fmt.title.free) && (fmt.title && fmt.title.v || "top") === p) ? "on" : ""} onClick={() => setF({ title: { v: p, free: false } })}>{s}</button>)}
+                      <button className={fmt.title && fmt.title.free ? "on" : ""} onClick={() => { setF({ title: { free: true } }); window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "title" } })); }}>자유</button>
+                    </div></div>
+                  {!(fmt.title && fmt.title.free) && (
+                    <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>제목 가로</span>
+                      <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(fmt.title && fmt.title.h || "center") === p ? "on" : ""} onClick={() => setF({ title: { h: p } })}>{s}</button>)}</div></div>
+                  )}
+                </React.Fragment>
+              )}
               <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Legend</span>
                 <div className="seg"><button className={legendOn ? "on" : ""} onClick={() => setF({ legend: { show: true } })}>On</button><button className={!legendOn ? "on" : ""} onClick={() => setF({ legend: { show: false } })}>Off</button></div></div>
               {legendOn && (
@@ -954,12 +991,12 @@
                   <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>세로 / Vert.</span>
                     <div className="seg">
                       {[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!(fmt.legend && fmt.legend.free) && (fmt.legend && fmt.legend.v || "top") === p) ? "on" : ""} onClick={() => setF({ legend: { v: p, free: false } })}>{s}</button>)}
-                      <button className={fmt.legend && fmt.legend.free ? "on" : ""} onClick={() => { setF({ legend: { free: true } }); window.dispatchEvent(new CustomEvent("viz-legend-pose")); }}>자유</button>
+                      <button className={fmt.legend && fmt.legend.free ? "on" : ""} onClick={() => { setF({ legend: { free: true } }); window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "legend" } })); }}>자유</button>
                     </div></div>
                   {fmt.legend && fmt.legend.free ? (
                     <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 8px", lineHeight: 1.5 }}>
                       차트에서 범례 핸들을 드래그해 위치를 정하고 <b style={{ color: "var(--tx-hi)" }}>이동 완료</b>를 누르세요.
-                      <span style={{ color: "var(--accent)", cursor: "pointer", marginLeft: 4 }} onClick={() => window.dispatchEvent(new CustomEvent("viz-legend-pose"))}>다시 이동</span>
+                      <span style={{ color: "var(--accent)", cursor: "pointer", marginLeft: 4 }} onClick={() => window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "legend" } }))}>다시 이동</span>
                     </div>
                   ) : (
                     <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로 / Horiz.</span>
@@ -988,15 +1025,16 @@
               )}
               {viz.rows.length > 0 && !viz.color && (
                 <div style={{ marginTop: 8 }}>
-                  <span className="fieldlabel">Series colours</span>
+                  <span className="fieldlabel">Series · 계열 (색 · 이름)</span>
                   {viz.rows.map((m, i) => {
                     const overridden = fmt.colors && fmt.colors[m.label];
                     const cur = overridden || rgbToHex(Charts.palette()[i % 8]);
+                    const nm = (fmt.seriesNames && fmt.seriesNames[m.label]) || "";
                     return (
-                      <div key={m.key} className="ctl-row" style={{ gap: 8, marginTop: 4 }}>
-                        <input type="color" value={cur} onChange={(e) => setF({ colors: { [m.label]: e.target.value } })} style={{ width: 26, height: 22, padding: 0, border: "1px solid var(--line)", borderRadius: 4, background: "none", cursor: "pointer" }} />
-                        <span style={{ flex: 1, fontSize: "var(--fs-11)", color: "var(--tx-mid)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.label}</span>
-                        {overridden && <button className="iconbtn" style={{ width: 20, height: 20 }} title="Reset" onClick={() => setF({ colors: { [m.label]: null } })}><Icon name="undo" size={11} /></button>}
+                      <div key={m.key} className="ctl-row" style={{ gap: 6, marginTop: 4 }}>
+                        <input type="color" title="색상" value={cur} onChange={(e) => setF({ colors: { [m.label]: e.target.value } })} style={{ width: 24, height: 22, padding: 0, border: "1px solid var(--line)", borderRadius: 4, background: "none", cursor: "pointer", flexShrink: 0 }} />
+                        <input className="inp" title="범례 이름 (비우면 원래 필드명)" placeholder={m.label} value={nm} onChange={(e) => setF({ seriesNames: { [m.label]: e.target.value } })} style={{ flex: 1, minWidth: 0 }} />
+                        {(overridden || nm) && <button className="iconbtn" style={{ width: 20, height: 20, flexShrink: 0 }} title="초기화" onClick={() => setF({ colors: { [m.label]: null }, seriesNames: { [m.label]: "" } })}><Icon name="undo" size={11} /></button>}
                       </div>
                     );
                   })}
