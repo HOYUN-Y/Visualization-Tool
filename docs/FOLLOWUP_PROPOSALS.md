@@ -9,7 +9,7 @@
 
 ## 0. 우선순위 요약
 
-> ✅ = 처리 + **재검증 통과** (2026-07-12 2차, §5). 남은 것: **P1·P2(즉시) → P3·P7(단기) → P9~P12(중기)**.
+> ✅ = 처리 + **재검증 통과** (2026-07-12 2차, §5). 남은 것: **P1·P2(즉시) → P3(단기) → P9~P12(중기)**. (P7 핵심 완료·`13092a3`)
 
 | # | 항목 | 분류 | 노력 | 효과 | 권장 | 상태 |
 |---|---|---|---|---|---|---|
@@ -19,7 +19,7 @@
 | P4 | `getActiveData` 메모이제이션 | 성능 | 소 | ★★★ | 단기 | ✅ 완료·검증 |
 | P5 | 편집 op 견고성 3종 (rename 충돌·set_cell 타입·IME Enter) | 버그예방 | 소 | ★★ | 단기 | ✅ 완료·검증 |
 | P6 | `.gitignore` 추가 + 문서 드리프트 정정 | 위생 | 극소 | ★★ | 즉시 | ✅ 완료·검증 (훅 파일 삭제만 선택 잔여) |
-| P7 | i18n 커버리지 완성 (영문 잔존 라벨) | UX | 중 | ★★ | 단기 | 대기 |
+| P7 | i18n 커버리지 완성 (영문 잔존 라벨) | UX | 중 | ★★ | 단기 | ✅ 핵심 완료 (grid·data·pivot) — stats/ml/sql/dash 내부라벨 잔여 |
 | P8 | 언가드 플레이스홀더 카피 정비 | UX | 극소 | ★ | 단기 | ✅ 완료·검증 |
 | P9 | Excel식 편집 확장 (다중셀 붙여넣기·방향키 이동·Cmd+Z) | 기능 | 중 | ★★ | 중기 | 대기 |
 | P10 | CHANGELOG Planned 잔여 (DT/NB/CV·SQL JOIN·공유링크·PPT 매핑 확장) | 기능 | 대 | ★★ | 중기 | 대기 |
@@ -61,8 +61,9 @@ Node 테스트까지 통과했지만 어떤 화면에서도 호출되지 않음 
 > 참고 1: `DistFit`의 지수·로그정규 MLE+AIC 확장(Batch C3)도 Stats Distribution UI 노출 여부 점검 필요.
 > 참고 2: `sheets.js` → store 실배선(A5)도 아침 게이트 보류 항목 — 단, `vizSheets/pivotSheets` 멀티시트가 이미 동작 중이므로 현황 재확인 후 판단.
 
-### P7. i18n 커버리지 완성
-언어 토글은 있으나 한국어 모드에서 영문 잔존: `Data Preview`·`Profiling`·`Edit`·`Add row`·`Add column`·`Search all columns…`·DataGrid 메뉴(`Sort ascending`…)·Pivot `Rows/Columns/Values` 등. `js/i18n.js` 사전에 일괄 등록 + 하드코딩 문자열 스윕.
+### ~~P7. i18n 커버리지 완성~~ ✅ 핵심 완료 (`13092a3`)
+플래그된 항목 전량 처리: `Data Preview`·`Profiling`·`Edit/Editing/Undo/Redo`·`Add row/column`·`Search all columns…`·DataGrid 컬럼 메뉴(정렬/필터/고정/숨김/이름변경/타입 6종/삽입/삭제)·컬럼 토글·필터 팝오버(min/max/All/None/Clear/Apply)·좌측 Explorer(검색/Datasets/Combine/Union·Join/Connect/Drop)·Pivot `Rows/Columns/Values`+힌트+note+제목+Save&open+빈상태. `js/i18n.js` ko/en 대칭 80키, `tests/i18n.test.js`로 사전 대칭·폴백 회귀 잠금.
+- **잔여(별도·큰 스윕)**: stats/ml/sql/dashboard 모드의 **내부 분석 라벨**(테스트명·지표명·차트 옵션 등)은 영문 다수 — 도메인 용어 성격이라 우선순위·번역 방침 별도 판단 권장.
 
 ### ~~P4. getActiveData 메모이제이션~~ ✅ 완료 (`7814f8e`)
 `(ds 참조, steps 배열 참조, cursor)` 키로 캐시, 스텝 불변성 기반 참조 비교. `tests/storeMemo.test.js`(+4)가 **실제 store.jsx를 스텁 window/React로 로드**해 회귀 잠금 — 이 테스트 방식은 P3 배선 시에도 재사용 가치 있음.

@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 밤샘 자율(Batch A~F) 완료 → 후속 quick-win(FOLLOWUP P4·P5·P6·P8) 처리 완료 |
-| Status | Core v2 M3~M5 + 분석엔진 6종 UI + A~F + P4(메모)·P5(편집견고성)·P6(위생)·P8(카피) 완료. main 대비 92커밋. |
+| Current milestone | 밤샘 자율(A~F) + FOLLOWUP 후속(P4·P5·P6·P8·P7 핵심) 완료 |
+| Status | Core v2 M3~M5 + 분석엔진 6종 UI + A~F + P4/P5/P6/P8 + **P7(grid·data·pivot 한/영)** 완료. main 대비 95커밋. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `7814f8e` — getActiveData 메모이제이션 (P4) |
-| Working tree | 깨끗. quick-win: store 메모(P4)·grid/store 편집(P5)·app 카피(P8)·.gitignore(P6)·문서 드리프트 |
-| Last verified | 2026-07-12 — Node 221/221, JSX 구문검사(tsc TS1xxx 0), asset v=254 |
+| Last checkpoint commit | `13092a3` — i18n grid·data·pivot 커버리지 (P7) |
+| Working tree | 깨끗. P7: i18n.js(ko/en 80키)·grid/dataMode/pivotMode 배선 + tests/i18n.test.js |
+| Last verified | 2026-07-12 — Node 225/225, JSX 구문검사(tsc TS1xxx 0), asset v=255 |
 | Updated at | 2026-07-12 |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
@@ -54,6 +54,16 @@
    - D2 geoMatch → MyDataMap choropleth 배선(geojson 로딩·ECharts map 등록)
 3. **main 병합·태그·원격 push**: `feat/analytics` 90커밋 스택 검토→승인→`--no-ff`. (자율 금지 항목)
 4. **후속작업 제안 검토**: [`docs/FOLLOWUP_PROPOSALS.md`](./docs/FOLLOWUP_PROPOSALS.md) — 실브라우저 클릭 검증(2026-07-12) 결과 기반 P1~P12 우선순위 제안 (미배선 UI·getActiveData 메모·편집 op 견고성 3종·i18n 잔존·E2E 자동화 등). 참고: 위 1번 실브라우저 왕복 중 편집/피벗→차트/Export/SPC/ML은 제어 브라우저로 검증 완료.
+
+## 세션 기록 — 2026-07-12 (FOLLOWUP P7: i18n 커버리지)
+
+한국어 모드에서 영문 잔존하던 핵심 chrome을 한/영 i18n으로 완성(`13092a3`). `js/i18n.js` 사전에 ko/en **대칭 80키** 추가 후 3개 파일 배선:
+- **grid.jsx**(DataGrid/ColumnsMenu/FilterPopover): 검색·행/열 추가·편집 힌트·컬럼 메뉴(정렬/필터/고정/숨김/이름변경/타입 6종/삽입/삭제)·컬럼 토글·필터 팝오버(min/max/All/None/Clear/Apply)
+- **dataMode.jsx**: Preview/Profiling 탭·Edit/Editing·Undo/Redo·auto-profiled·좌측 Explorer(검색/Datasets/Combine/Union·Join/Connect/Drop/hint)
+- **pivotMode.jsx**: Rows/Columns/Values 셸프+힌트·note·Clear·Pivot Table 제목·Save&open·빈 상태
+
+`tests/i18n.test.js`(+4): ko/en 키 대칭·빈값 없음·`t()` 폴백·신규키 해석 회귀 잠금. Node 221→225.
+**잔여(별도 큰 스윕)**: stats/ml/sql/dashboard 내부 분석 라벨(테스트명·지표·차트옵션)은 도메인 용어라 번역 방침 별도 판단.
 
 ## 세션 기록 — 2026-07-12 (후속 quick-win: FOLLOWUP P4·P5·P6·P8)
 
