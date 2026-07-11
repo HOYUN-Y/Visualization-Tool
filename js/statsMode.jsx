@@ -312,10 +312,12 @@
     let visual = null, statTable = null;
 
     if (type === "regression" && data) {
-      const lo = Math.min(...data.terms.map((t) => t.coef)), hi = Math.max(...data.terms.map((t) => t.coef));
-      const scatterData = rows.filter((r) => numInputs && numInputs.every((c2) => r[c2.key] != null) && r[targetCol.key] != null)
+      const _coefs = data.terms.map((t) => t.coef);
+      const lo = _coefs.length ? Math.min(..._coefs) : 0, hi = _coefs.length ? Math.max(..._coefs) : 1;
+      const scatterData = rows.filter((r) => numInputs && numInputs.every((c2) => r[c2.key] != null) && r[targetCol.key] != null && data.terms.length)
         .map((r) => { const ym = data.terms[0].coef + (numInputs || []).reduce((s, c2, i) => s + (data.terms[i + 1] ? data.terms[i + 1].coef * r[c2.key] : 0), 0); return [r[targetCol.key], ym]; });
-      const scMin = Math.min(...scatterData.flat()), scMax = Math.max(...scatterData.flat());
+      const _scFlat = scatterData.flat();
+      const scMin = _scFlat.length ? Math.min(..._scFlat) : 0, scMax = _scFlat.length ? Math.max(..._scFlat) : 1;
       const scOpt = {
         ...Charts.baseGrid(c),
         grid: { left: 8, right: 16, top: 8, bottom: 28, containLabel: true },

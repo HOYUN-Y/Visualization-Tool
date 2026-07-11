@@ -39,7 +39,7 @@
     const [view, setView] = React.useState("choropleth");
     const [geo, setGeo] = React.useState(_geoState);
     const ds = NODE.datasets.find((d) => d.id === "district_stats");
-    const rows = ds.rows;
+    const rows = ds ? ds.rows : [];   // seed dataset may be absent (deleted / custom-only project)
     const m = METRICS.find((x) => x.k === metric);
 
     React.useEffect(() => {
@@ -54,7 +54,7 @@
 
     const c = Charts.themeColors(); const pal = Charts.palette();
     const data = rows.map((r) => ({ name: r.district, value: r[metric], lat: r.lat, lon: r.lon }));
-    const vals = data.map((d) => d.value); const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const vals = data.map((d) => d.value); const minV = vals.length ? Math.min(...vals) : 0, maxV = vals.length ? Math.max(...vals) : 1;
 
     const visualMap = {
       min: minV, max: maxV, calculable: true, left: 12, bottom: 18, orient: "vertical",
@@ -119,9 +119,10 @@
     const sel = useStore((s) => s.dash.cross);
     const [metric] = [useStore((s) => s.ui.mapMetric) || "avg_price_per_m2"];
     const ds = NODE.datasets.find((d) => d.id === "district_stats");
-    const rank = [...ds.rows].map((r) => ({ d: r.district, v: r.avg_price_per_m2, p: r.avg_price_manwon, n: r.txn_count }))
+    const dsRows = ds ? ds.rows : [];
+    const rank = [...dsRows].map((r) => ({ d: r.district, v: r.avg_price_per_m2, p: r.avg_price_manwon, n: r.txn_count }))
       .sort((a, b) => b.v - a.v);
-    const max = Math.max(...rank.map((r) => r.v));
+    const max = rank.length ? Math.max(...rank.map((r) => r.v), 1) : 1;
     const selD = sel && sel.key === "district" ? sel.value : null;
     return (
       <div className="mappanel">
@@ -139,7 +140,8 @@
           </div>
         </div>
         {selD && (() => {
-          const r = ds.rows.find((x) => x.district === selD);
+          const r = dsRows.find((x) => x.district === selD);
+          if (!r) return null;   // selection came from a different dataset's district column
           return (
             <div className="cp-block">
               <div className="cp-blocktitle">{selD}</div>
@@ -579,7 +581,7 @@
 
     const c = Charts.themeColors(); const pal = Charts.palette();
     const vals = rows.map((r) => r[metric]);
-    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const minV = vals.length ? Math.min(...vals) : 0, maxV = vals.length ? Math.max(...vals) : 1;
 
     const visualMap = {
       min: minV, max: maxV, calculable: true, left: 12, bottom: 18, orient: "vertical",
@@ -636,7 +638,7 @@
   function WorldPanel() {
     const ds = NODE.datasets.find((d) => d.id === "world_gdp");
     const rows = ds ? [...ds.rows].sort((a, b) => b.gdp_bn - a.gdp_bn) : [];
-    const maxGDP = Math.max(...rows.map((r) => r.gdp_bn));
+    const maxGDP = rows.length ? Math.max(...rows.map((r) => r.gdp_bn), 1) : 1;
     const regions = [...new Set(rows.map((r) => r.region))];
     return (
       <div className="mappanel">

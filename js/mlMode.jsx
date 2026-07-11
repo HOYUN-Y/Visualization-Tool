@@ -64,7 +64,9 @@
       const zr = z(r);
       const nn = trZ.map((t) => ({ d: t.z.reduce((s, v, i) => s + (v - zr[i]) ** 2, 0), c: t.c })).sort((a, b) => a.d - b.d).slice(0, k);
       const vote = {}; for (const x of nn) vote[x.c] = (vote[x.c] || 0) + 1;
-      const predClass = Object.entries(vote).sort((a, b) => b[1] - a[1])[0][0];
+      const voteRanked = Object.entries(vote).sort((a, b) => b[1] - a[1]);
+      if (!voteRanked.length) continue; // empty training set → no neighbors to vote
+      const predClass = voteRanked[0][0];
       cm[classes.indexOf(r[target])][classes.indexOf(predClass)]++;
       if (predClass === r[target]) correct++;
     }
@@ -186,7 +188,8 @@
 
     let option, metrics;
     if (res.kind === "reg") {
-      const lo = Math.min(...res.scatter.flat()), hi = Math.max(...res.scatter.flat());
+      const _flat = res.scatter.flat();
+      const lo = _flat.length ? Math.min(..._flat) : 0, hi = _flat.length ? Math.max(..._flat) : 1;
       option = { ...Charts.baseGrid(c), grid: { left: 8, right: 16, top: 16, bottom: 30, containLabel: true },
         tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item", formatter: (p) => `actual ${NODE.fmtCompact(p.value[0])}<br/>pred ${NODE.fmtCompact(p.value[1])}` },
         xAxis: { type: "value", name: "actual", min: lo, max: hi, axisLabel: { color: c.text, fontSize: 10, formatter: NODE.fmtCompact }, splitLine: { lineStyle: { color: c.split } } },
@@ -313,10 +316,10 @@
         )}
 
         {/* Feature importance for regression */}
-        {res.kind === "reg" && (
+        {res.kind === "reg" && res.importance && res.importance.length > 0 && (
           <div className="ml-importance">
             <div className="ml-charttitle">Feature importance (standardized coefficient)</div>
-            {res.importance.map((f) => <div className="imp-row" key={f.f}><span className="imp-name">{f.f}</span><span className="imp-bar"><span style={{ width: (f.imp / res.importance[0].imp * 100) + "%" }} /></span><span className="imp-v mono">{f.imp.toFixed(2)}</span></div>)}
+            {res.importance.map((f) => <div className="imp-row" key={f.f}><span className="imp-name">{f.f}</span><span className="imp-bar"><span style={{ width: ((res.importance[0].imp ? f.imp / res.importance[0].imp : 0) * 100) + "%" }} /></span><span className="imp-v mono">{f.imp.toFixed(2)}</span></div>)}
           </div>
         )}
 
@@ -400,6 +403,10 @@
 
     const train = () => {
       const feats = cfg.feats.filter((f) => featPool.find((c) => c.key === f));
+      // reg/clf/logit need at least one feature; clustering falls back to numeric cols below.
+      if ((cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit") && !feats.length) {
+        alert("특성(feature)을 하나 이상 선택하세요."); return;
+      }
       window.LOG && window.LOG.info('ml', 'Train started', { task: cfg.task, target: cfg.target, feats, rows: rows.length });
       const clusterFeats = feats.length >= 2 ? feats : numCols.slice(0, 2).map((c) => c.key);
       let result;

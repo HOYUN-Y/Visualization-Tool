@@ -259,7 +259,12 @@
       const mx = measures[0], my = measures[1], ms = measures[2];
       const allSizes = rows.map((r) => r[ms.key] || 0);
       const maxSz = Math.max(...allSizes, 1);
-      const mkData = (arr) => arr.map((r) => [r[mx.key], r[my.key], r[ms.key]]);
+      // Bubble's per-point symbolSize callback is incompatible with ECharts' `large` renderer,
+      // so instead deterministically downsample when there are too many points to draw sanely
+      // (thousands of overlapping bubbles are both unreadable and a browser-freeze risk).
+      const BUBBLE_CAP = 5000;
+      const capPoints = (arr) => { if (arr.length <= BUBBLE_CAP) return arr; const step = Math.ceil(arr.length / BUBBLE_CAP); return arr.filter((_, i) => i % step === 0); };
+      const mkData = (arr) => capPoints(arr).map((r) => [r[mx.key], r[my.key], r[ms.key]]);
       const symbolSize = (val) => Math.max(6, Math.sqrt(Math.abs(val[2]) / maxSz) * 52);
       let series;
       if (colorKey) {
