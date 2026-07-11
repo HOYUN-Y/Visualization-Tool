@@ -91,3 +91,8 @@
   cursor: grab; box-shadow: 0 4px 14px rgba(0,0,0,.35); white-space: nowrap; user-select: none; pointer-events: auto; }
 .legend-pose-handle:active { cursor: grabbing; }
 .legend-pose-done { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 21; pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+
+/* Drag-to-resize chart height handle (bottom, PowerPoint-style) */
+.viz-resize { flex: 0 0 auto; height: 12px; display: flex; align-items: center; justify-content: center; cursor: ns-resize; }
+.viz-resize-grip { width: 44px; height: 4px; border-radius: 2px; background: var(--line-strong); transition: .12s; }
+.viz-resize:hover .viz-resize-grip { background: var(--accent); width: 64px; }

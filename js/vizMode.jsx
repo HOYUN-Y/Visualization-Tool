@@ -771,6 +771,17 @@
     };
     const showPose = posing && legFree && (measures.length || viz.cols.length) && viz.type !== "facet";
 
+    // ── Drag-to-resize chart height (PowerPoint-style bottom handle) ──
+    const onResizeDown = (e) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startH = canvasRef.current ? canvasRef.current.clientHeight : 400;
+      document.body.style.cursor = "ns-resize";
+      const move = (ev) => actions.setFormat({ height: Math.max(180, Math.min(1800, startH + (ev.clientY - startY))) });
+      const up = () => { document.body.style.cursor = ""; window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+      window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+    };
+
     return (
       <React.Fragment>
         <div className="phead">
@@ -783,22 +794,27 @@
           <Shelf label={T("vizColumns")} kind="cols" chips={colsChips} accept={T("vizColumnsHint")} />
           <Shelf label={T("vizRows")} kind="rows" chips={rowChips} accept={T("vizRowsHint")} />
         </div>
-        <div className="vizcanvas" ref={canvasRef} style={{ position: "relative", overflowY: chartH ? "auto" : "hidden" }}>
-          {viz.type === "facet"
-            ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
-            : (measures.length || viz.cols.length
-              ? <EChart option={option} theme={theme} style={{ height: chartH || "100%" }} />
-              : <div className="empty"><Icon name="visualize" /><div className="t">Build a chart</div><div className="s">Drag fields from the Data Explorer onto the <b>Columns</b> and <b>Rows</b> shelves — or double-click a field. Then pick a chart type on the right.</div></div>
-            )
-          }
-          {showPose && (
-            <div className="legend-pose-overlay">
-              <div className="legend-pose-handle" style={{ left: (fx * 100) + "%", top: (fy * 100) + "%" }} onMouseDown={onHandleDown}>
-                <Icon name="move" size={12} /> 범례 · 여기를 잡고 드래그
+        <div className="vizcanvas" style={{ display: "flex", flexDirection: "column", overflowY: chartH ? "auto" : "hidden" }}>
+          <div className="viz-chart-area" ref={canvasRef} style={{ position: "relative", flex: chartH ? "0 0 auto" : "1 1 auto", height: chartH || "auto", minHeight: 0 }}>
+            {viz.type === "facet"
+              ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
+              : (measures.length || viz.cols.length
+                ? <EChart option={option} theme={theme} style={{ height: "100%" }} />
+                : <div className="empty"><Icon name="visualize" /><div className="t">Build a chart</div><div className="s">Drag fields from the Data Explorer onto the <b>Columns</b> and <b>Rows</b> shelves — or double-click a field. Then pick a chart type on the right.</div></div>
+              )
+            }
+            {showPose && (
+              <div className="legend-pose-overlay">
+                <div className="legend-pose-handle" style={{ left: (fx * 100) + "%", top: (fy * 100) + "%" }} onMouseDown={onHandleDown}>
+                  <Icon name="move" size={12} /> 범례 · 여기를 잡고 드래그
+                </div>
+                <button className="btn primary sm legend-pose-done" onClick={() => setPosing(false)}><Icon name="check" size={13} /> 이동 완료</button>
               </div>
-              <button className="btn primary sm legend-pose-done" onClick={() => setPosing(false)}><Icon name="check" size={13} /> 이동 완료</button>
-            </div>
-          )}
+            )}
+          </div>
+          {viz.type !== "facet" && (measures.length || viz.cols.length) ? (
+            <div className="viz-resize" onMouseDown={onResizeDown} title="드래그해서 차트 높이 조절 · Drag to resize height"><span className="viz-resize-grip" /></div>
+          ) : null}
         </div>
       </React.Fragment>
     );
