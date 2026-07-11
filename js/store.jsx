@@ -315,6 +315,26 @@
           if (r) r[s.col] = v;
           break;
         }
+        // Batch cell edit (e.g. multi-cell paste) — one undoable step for N cells.
+        case "set_cells": {
+          const cells = s.params.cells || [];
+          if (cells.length) {
+            const colByKey = new Map(columns.map((c) => [c.key, c]));
+            const rowByRid = new Map(rows.map((row) => [row.__rid, row]));
+            for (const cell of cells) {
+              const col = colByKey.get(cell.col);
+              if (!col) continue;
+              let v = cell.value;
+              if (col.type === "integer" || col.type === "float") {
+                if (v === "" || v == null) v = null;
+                else { const n = Number(v); v = Number.isNaN(n) ? null : (col.type === "integer" ? Math.round(n) : n); }
+              }
+              const r = rowByRid.get(cell.rid);
+              if (r) r[cell.col] = v;
+            }
+          }
+          break;
+        }
         case "drop_rows": {
           const set = new Set(s.rids || []);
           rows = rows.filter((r) => !set.has(r.__rid));
@@ -514,6 +534,7 @@
 
     // direct editing (all routed through addStep → undo/redo + step log for free)
     editCell: (rid, col, value) => actions.addStep({ op: "set_cell", rid, col, params: { value } }),
+    editCells: (cells) => actions.addStep({ op: "set_cells", params: { cells } }), // cells: [{rid, col, value}] — one undo step
     deleteRows: (rids) => actions.addStep({ op: "drop_rows", rids: Array.isArray(rids) ? rids : [rids] }),
     addRow: (row) => actions.addStep({ op: "add_row", params: { row: row || {}, rid: nextRid() } }),
     addColumn: (def) => actions.addStep({ op: "add_col", params: def || {} }),
