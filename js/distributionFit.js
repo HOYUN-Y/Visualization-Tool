@@ -234,10 +234,59 @@
     return { bins: result, max: maxCount };
   }
 
+  // --- parametric fits with AIC (for "which distribution fits best?") -------
+  var LN2PI = Math.log(2 * Math.PI);
+
+  function normalLogLik(values) {
+    var a = clean(values), n = a.length;
+    if (n < 2) return null;
+    var mu = mean(a), sd = stdDev(a, mu);
+    if (!(sd > 0)) return null;
+    var ll = 0;
+    for (var i = 0; i < n; i++) { var d = a[i] - mu; ll += -0.5 * LN2PI - Math.log(sd) - (d * d) / (2 * sd * sd); }
+    return { dist: "normal", params: { mean: mu, std: sd }, logLik: ll, k: 2, n: n, aic: 2 * 2 - 2 * ll };
+  }
+
+  // Exponential MLE: rate = 1/mean (requires strictly positive data).
+  function exponentialFit(values) {
+    var a = clean(values), n = a.length;
+    if (n < 2) return { ok: false, reason: "need >= 2 values" };
+    if (a.some(function (v) { return v <= 0; })) return { ok: false, reason: "exponential needs strictly positive values" };
+    var mu = mean(a), rate = 1 / mu, sum = a.reduce(function (s, v) { return s + v; }, 0);
+    var ll = n * Math.log(rate) - rate * sum;
+    return { ok: true, dist: "exponential", params: { rate: rate, mean: mu }, logLik: ll, k: 1, n: n, aic: 2 * 1 - 2 * ll };
+  }
+
+  // Lognormal MLE: fit a normal to ln(x) (requires strictly positive data).
+  function lognormalFit(values) {
+    var a = clean(values), n = a.length;
+    if (n < 2) return { ok: false, reason: "need >= 2 values" };
+    if (a.some(function (v) { return v <= 0; })) return { ok: false, reason: "lognormal needs strictly positive values" };
+    var logs = a.map(function (v) { return Math.log(v); });
+    var mu = mean(logs), sd = stdDev(logs, mu);
+    if (!(sd > 0)) return { ok: false, reason: "zero variance in log-space" };
+    var ll = 0;
+    for (var i = 0; i < n; i++) { var d = logs[i] - mu; ll += -Math.log(a[i]) - Math.log(sd) - 0.5 * LN2PI - (d * d) / (2 * sd * sd); }
+    return { ok: true, dist: "lognormal", params: { logMean: mu, logStd: sd }, logLik: ll, k: 2, n: n, aic: 2 * 2 - 2 * ll };
+  }
+
+  // Rank candidate distributions by AIC (lower is better). Skips fits that don't apply.
+  function compareFits(values) {
+    var candidates = [];
+    var nrm = normalLogLik(values); if (nrm) candidates.push(nrm);
+    var exp = exponentialFit(values); if (exp.ok) candidates.push({ dist: exp.dist, params: exp.params, logLik: exp.logLik, k: exp.k, n: exp.n, aic: exp.aic });
+    var lnm = lognormalFit(values); if (lnm.ok) candidates.push({ dist: lnm.dist, params: lnm.params, logLik: lnm.logLik, k: lnm.k, n: lnm.n, aic: lnm.aic });
+    candidates.sort(function (x, y) { return x.aic - y.aic; });
+    return { fits: candidates, best: candidates[0] ? candidates[0].dist : null };
+  }
+
   // --- exports -------------------------------------------------------------
   var api = {
     normInv: normInv,
     normCdf: normCdf,
+    exponentialFit: exponentialFit,
+    lognormalFit: lognormalFit,
+    compareFits: compareFits,
     erf: erf,
     qqNormal: qqNormal,
     normalFit: normalFit,
