@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A 완료, Batch B 진행 예정 |
-| Status | Core v2 M3~M5 + 분석엔진 6종 UI + 차트 Format/Export + **Batch A 테스트 잠금(5모듈 추출)** 완료. main 대비 76커밋. |
+| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A·B 완료, Batch C 진행 예정 |
+| Status | Core v2 M3~M5 + 분석엔진 6종 UI + 차트 Format/Export + **Batch A(테스트 잠금 5모듈) + Batch B(엔진 버그 4종 수정·회귀 +53)** 완료. main 대비 78커밋. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `3034677` — 제네릭 시트 리듀서(js/sheets.js) 엔진+테스트 |
-| Working tree | 깨끗(`.DS_Store` 제외). Batch A: statsCfg/mlCfg/dashWidgets/aiIntent/sheets dual-mode 추출 |
-| Last verified | 2026-07-12 — Node 136/136, JSX 구문검사(tsc TS1xxx 0), asset v=247 |
+| Last checkpoint commit | `2fe6533` — 엔진 엣지케이스 버그 4종 수정 + 테스트 53 |
+| Working tree | 깨끗(`.DS_Store` 제외). Batch B: pivot/clustering/spc/distFit 수정 + *.edge.test.js |
+| Last verified | 2026-07-12 — Node 189/189, JSX 구문검사(tsc TS1xxx 0), asset v=248 |
 | Updated at | 2026-07-12 |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
@@ -31,6 +31,20 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (밤샘 자율: Batch B — 엔진 엣지케이스 버그 사냥)
+
+병렬 서브에이전트 3기로 순수 엔진 10종(dataOps/pivotEngine/kpiFormula/pca/logistic/clustering/timeSeries/spc/distributionFit/chartAdvisor)에 degenerate 입력을 던져 **실제 버그 4종**을 찾아 수정하고 **회귀 테스트 53개**를 잠갔다(Node 136→189). 커밋 `2fe6533`.
+
+**🐛 수정된 버그:**
+1. `pivotEngine` — null/빈 차원값 그룹의 셀·소계가 0으로 표시(버킷키 `null→""` 와 읽기 `String(null)="null"` 불일치). `tupleKey` 공용 정규화로 소계=총계 정합 복원. 실데이터의 흔한 공백값에서 광범위 영향.
+2. `clustering.hierarchical` — `labelsAt(k<1)`이 존재하지 않는 merge 접근으로 하드 크래시. `k`를 `[1,n]` 클램프.
+3. `spc` — 빈 서브그룹 `xbarR/xbarS`가 Infinity/NaN 한계 방출(→ `subgroupSize` 검증 throw), `pChart/uChart` 크기0 → per-point null, `capability` 역전스펙(lsl≥usl) → 음수 대신 null.
+4. `distributionFit.jarqueBera` — n<4에서 거짓 "정규"(pValue 1) → null 반환. statsMode Q-Q 가드 3→4 동기화.
+
+**안전 잠금(버그 없음 확인):** dataOps(union/join 매트릭스·null키·m2m), kpiFormula(0나눗셈·구문오류·COUNT*), pca(상수열·특이행렬), logistic(완전분리·빈 ROC), timeSeries(window초과·상수 ACF), chartAdvisor(null입력).
+테스트 파일: `tests/{dataOps,pivotEngine,kpiFormula,spc,clustering,analytics}.edge.test.js`.
+**NEXT: Batch C(신규 순수 분석 엔진 — 계절분해·다변량 이상치).**
 
 ## 세션 기록 — 2026-07-12 (밤샘 자율: Batch A — 테스트 잠금)
 

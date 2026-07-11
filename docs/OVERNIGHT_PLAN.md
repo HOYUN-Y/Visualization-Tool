@@ -68,7 +68,7 @@ test("...", () => { assert.equal(...); });
 ## 3. 반복 항목 (★ 매 배치 종료마다 반드시 — 잊지 말 것)
 
 - [x] **★ 배치 A 종료 → WORKLOG.md 갱신** (CURRENT STATE: 커밋수/asset v/Node N/N + 배치 A 요약 항목)  ✅
-- [ ] **★ 배치 B 종료 → WORKLOG.md 갱신**
+- [x] **★ 배치 B 종료 → WORKLOG.md 갱신**  ✅
 - [ ] **★ 배치 C 종료 → WORKLOG.md 갱신**
 - [ ] **★ 배치 D 종료 → WORKLOG.md 갱신**
 - [ ] **★ 배치 E 종료 → WORKLOG.md 갱신**
@@ -112,11 +112,12 @@ test("...", () => { assert.equal(...); });
 
 기존 `tests/*.test.js`에 degenerate 입력 케이스 추가. **버그 발견 시 엔진 수정 + 진행로그에 명시.**
 
-- [ ] **B1. dataOps** — 빈 데이터셋 union/join, 전부-null 조인키(미매칭), 타입충돌 승격 경계, many-to-many 예상행수 경고.
-- [ ] **B2. pivotEngine** — values 0개, 빈 그룹, 행·열 Grand Total 원본 재계산, null 차원, 다중 컬럼 평탄화 헤더.
-- [ ] **B3. kpiFormula** — 0나눗셈→null/—, 미지 컬럼, 구문오류, 중첩괄호, COUNT(*)·COUNTD, 음수·소수.
-- [ ] **B4. pca/logistic/clustering/timeSeries/spc/distributionFit** — 상수열, 단일행, n<차원(특이행렬), 전부-동일 라벨, 빈 배열.
-- [ ] **B5. chartAdvisor** — 0차원/0측정, OHLC 4컬럼 감지, 고cardinality 차원.
+- [x] **B1. dataOps** — `tests/dataOps.edge.test.js` 10케이스(union 최소2·키합집합·null채움·__source·0행, join null키미매칭·숫자↔문자정규화·m2m플래그·중복컬럼리네임·검증). **버그 없음(안전 잠금).** 커밋 `2fe6533`
+- [x] **B2. pivotEngine** — `tests/pivotEngine.edge.test.js` 8케이스. **🐛수정: null/빈 차원값 그룹 셀·소계가 0으로 나오던 정합 버그**(tupleKey 공용 정규화). 커밋 `2fe6533`
+- [x] **B3. kpiFormula** — `tests/kpiFormula.edge.test.js` 7케이스(0나눗셈·미지컬럼·구문오류·중첩괄호·COUNT(*)·COUNTD·음수/소수·빈행). **버그 없음.** 커밋 `2fe6533`
+- [x] **B4. pca/logistic/clustering/timeSeries/spc/distributionFit** — `analytics.edge.test.js`+`clustering.edge.test.js`+`spc.edge.test.js`. **🐛수정 3종: clustering labelsAt(k<1) 크래시 / spc 빈서브그룹·크기0·역전스펙 Infinity·NaN·음수 / distFit jarqueBera n<4 거짓정규.** 커밋 `2fe6533`
+- [x] **B5. chartAdvisor** — analytics.edge.test.js에 포함(null/빈 입력 reason 문자열 보장). **버그 없음.** 커밋 `2fe6533`
+  - **요약: 실제 버그 4종 수정(pivot 정합 · clustering 크래시 · spc Infinity/NaN/음수 · JB 거짓정규), 회귀 테스트 +53. Node 136→189.**
 
 ## Batch C — 신규 순수 분석 엔진 (additive · +Node 테스트 · 결정적이면 UI 배선)
 
@@ -169,3 +170,7 @@ test("...", () => { assert.equal(...); });
   - A5 `js/sheets.js` 제네릭 시트 리듀서 엔진+테스트 커밋 `3034677` — **store.jsx 배선은 아침 게이트 보류**.
   - 각 소비 .jsx는 인라인 정의 삭제 후 `const {...} = window.X;` 로 배선. 매 항목 tsc(TS1xxx 0)+Node 그린 확인.
   - **다음 정확한 행동(NEXT): Batch B1 — dataOps 엣지케이스 테스트 보강.**
+- 2026-07-12: **Batch B 완료.** 병렬 서브에이전트 3기로 10개 엔진 프로빙 → 실제 버그 4종 수정 + 회귀 테스트 53개. Node **136→189**, asset v=248, main 대비 **78커밋**. 커밋 `2fe6533`.
+  - 🐛 pivotEngine null/빈 차원 그룹 소계 0 정합버그 · clustering labelsAt(k<1) 크래시 · spc(빈서브그룹/크기0/역전스펙 Infinity·NaN·음수) · distFit jarqueBera n<4 거짓정규.
+  - 안전 잠금(버그없음): dataOps, kpiFormula, pca, logistic, timeSeries, chartAdvisor.
+  - **NEXT: Batch C1 — js/timeSeriesDecomp.js (고전적 계절분해) 신규 엔진+테스트.**
