@@ -743,6 +743,7 @@
       alert("대시보드에 추가되었습니다. / Added to dashboard.");
     };
 
+    const chartH = (viz.format && viz.format.height) || null;
     // ── Free legend positioning (drag) ──
     const legFmt = (viz.format && viz.format.legend) || {};
     const legFree = !!legFmt.free;
@@ -782,11 +783,11 @@
           <Shelf label={T("vizColumns")} kind="cols" chips={colsChips} accept={T("vizColumnsHint")} />
           <Shelf label={T("vizRows")} kind="rows" chips={rowChips} accept={T("vizRowsHint")} />
         </div>
-        <div className="vizcanvas" ref={canvasRef} style={{ position: "relative" }}>
+        <div className="vizcanvas" ref={canvasRef} style={{ position: "relative", overflowY: chartH ? "auto" : "hidden" }}>
           {viz.type === "facet"
             ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
             : (measures.length || viz.cols.length
-              ? <EChart option={option} theme={theme} style={{ height: "100%" }} />
+              ? <EChart option={option} theme={theme} style={{ height: chartH || "100%" }} />
               : <div className="empty"><Icon name="visualize" /><div className="t">Build a chart</div><div className="s">Drag fields from the Data Explorer onto the <b>Columns</b> and <b>Rows</b> shelves — or double-click a field. Then pick a chart type on the right.</div></div>
             )
           }
@@ -943,6 +944,8 @@
               )}
               <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Grid lines</span>
                 <div className="seg"><button className={fmt.gridlines !== false ? "on" : ""} onClick={() => setF({ gridlines: true })}>On</button><button className={fmt.gridlines === false ? "on" : ""} onClick={() => setF({ gridlines: false })}>Off</button></div></div>
+              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>높이 / Height</span>
+                <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(fmt.height || null) === h ? "on" : ""} onClick={() => setF({ height: h })}>{s}</button>)}</div></div>
               {isLine && (
                 <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Smooth</span>
                   <div className="seg"><button className={fmt.smooth == null ? "on" : ""} onClick={() => setF({ smooth: null })}>Auto</button><button className={fmt.smooth === true ? "on" : ""} onClick={() => setF({ smooth: true })}>On</button><button className={fmt.smooth === false ? "on" : ""} onClick={() => setF({ smooth: false })}>Off</button></div></div>
