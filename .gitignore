@@ -12,3 +12,6 @@ node_modules/
 
 # Scratch / local
 *.log
+
+# Claude Code env-specific hooks (disarmed; not shared)
+.claude/hooks/
