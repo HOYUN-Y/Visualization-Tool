@@ -43,6 +43,13 @@
       filters: [],      // [{key,label,values:[...]}]  (category filters)
       sortDesc: true,
       topN: 0,
+      format: {          // chart formatting overrides (applied post-build)
+        legend: { show: true, pos: "top" },
+        labels: { show: false, pos: "top", fmt: "full" },
+        gridlines: true,
+        smooth: null,    // null = per chart default; true/false override
+        colors: {},      // { seriesName: "#hex" }
+      },
     },
     pivot: {},
     dash: { widgets: null, cross: null, edit: false },
@@ -401,6 +408,14 @@
       return { ...s, viz };
     }),
     setRowAgg: (key, agg) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, agg, id: r.key + "_" + agg } : r) } })),
+    setFormat: (patch) => setState((s) => {
+      const f = s.viz.format || {};
+      const next = { ...f, ...patch };
+      if (patch.legend) next.legend = { ...f.legend, ...patch.legend };
+      if (patch.labels) next.labels = { ...f.labels, ...patch.labels };
+      if (patch.colors) next.colors = { ...f.colors, ...patch.colors };
+      return { ...s, viz: { ...s.viz, format: next } };
+    }),
     setRowMark: (key, mark) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, mark } : r) } })),
     setRowAxis: (key, axis) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, axis } : r) } })),
 

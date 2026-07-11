@@ -629,6 +629,55 @@
     );
   }
 
+  function rgbToHex(rgb) {
+    const m = String(rgb).match(/(\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return "#888888";
+    return "#" + [m[1], m[2], m[3]].map((x) => Math.max(0, Math.min(255, +x)).toString(16).padStart(2, "0")).join("");
+  }
+
+  // ─── Format post-processor: apply legend/labels/colors/gridlines to any option ─
+  function applyFormat(opt, fmt) {
+    if (!opt || !fmt || !opt.series) return opt;
+    const c = Charts.themeColors();
+    const o = { ...opt };
+    // Legend
+    if (fmt.legend) {
+      if (fmt.legend.show === false) o.legend = undefined;
+      else {
+        const pos = fmt.legend.pos || "top";
+        const vertical = pos === "left" || pos === "right";
+        o.legend = { ...(o.legend || {}), type: "scroll", textStyle: { color: c.text, fontSize: 11 },
+          orient: vertical ? "vertical" : "horizontal",
+          top: pos === "bottom" ? "auto" : (vertical ? "middle" : 0),
+          bottom: pos === "bottom" ? 0 : "auto",
+          left: pos === "left" ? 0 : (pos === "right" ? "auto" : "center"),
+          right: pos === "right" ? 0 : "auto" };
+      }
+    }
+    // Value (data) labels
+    if (fmt.labels && fmt.labels.show) {
+      const fv = (v) => v == null ? "" : (fmt.labels.fmt === "compact" ? NODE.fmtCompact(v) : (typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 1 }) : String(v)));
+      o.series = o.series.map((s) => (s.type === "bar" || s.type === "line") ? { ...s,
+        label: { show: true, position: fmt.labels.pos || "top", color: c.text, fontSize: 10, fontFamily: "IBM Plex Sans",
+          formatter: (p) => { const v = Array.isArray(p.value) ? p.value[p.value.length - 1] : p.value; return fv(v); } } } : s);
+    }
+    // Per-series colour overrides (keyed by series name)
+    if (fmt.colors && Object.keys(fmt.colors).length) {
+      o.series = o.series.map((s) => { const col = fmt.colors[s.name]; if (!col) return s;
+        return { ...s, itemStyle: { ...(s.itemStyle || {}), color: col }, lineStyle: s.lineStyle ? { ...s.lineStyle, color: col } : s.lineStyle, areaStyle: s.areaStyle ? { ...s.areaStyle, color: col } : s.areaStyle }; });
+    }
+    // Grid lines
+    if (fmt.gridlines === false) {
+      const hide = (ax) => !ax ? ax : Array.isArray(ax) ? ax.map((a) => ({ ...a, splitLine: { show: false } })) : { ...ax, splitLine: { show: false } };
+      o.xAxis = hide(o.xAxis); o.yAxis = hide(o.yAxis);
+    }
+    // Smooth override for line series
+    if (fmt.smooth != null) {
+      o.series = o.series.map((s) => s.type === "line" ? { ...s, smooth: fmt.smooth ? 0.3 : false } : s);
+    }
+    return o;
+  }
+
   // ─── Center panel ─────────────────────────────────────────────────────────
   function VizCenter() {
     const activeId = useStore((s) => s.activeId);
@@ -651,7 +700,7 @@
 
     const option = React.useMemo(() => {
       if (viz.type === "facet") return null;
-      return buildOption(viz.type, { rows, cols: viz.cols, measures, color: viz.color, sortDesc: viz.sortDesc, topN: viz.topN });
+      return applyFormat(buildOption(viz.type, { rows, cols: viz.cols, measures, color: viz.color, sortDesc: viz.sortDesc, topN: viz.topN }), viz.format);
     }, [viz, rows, theme]);
 
     const title = measures.length && viz.cols.length
@@ -774,6 +823,57 @@
             </div>
           </div>
         </div>
+
+        {(() => {
+          const fmt = viz.format || {};
+          const setF = actions.setFormat;
+          const legendOn = fmt.legend ? fmt.legend.show !== false : true;
+          const labelsOn = fmt.labels && fmt.labels.show;
+          const isLine = viz.type === "line" || viz.type === "area";
+          return (
+            <div className="cp-block">
+              <div className="cp-blocktitle">Format · 서식</div>
+              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Legend</span>
+                <div className="seg"><button className={legendOn ? "on" : ""} onClick={() => setF({ legend: { show: true } })}>On</button><button className={!legendOn ? "on" : ""} onClick={() => setF({ legend: { show: false } })}>Off</button></div></div>
+              {legendOn && (
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Position</span>
+                  <div className="seg">{[["top", "T"], ["bottom", "B"], ["left", "L"], ["right", "R"]].map(([p, s]) => <button key={p} className={(fmt.legend && fmt.legend.pos || "top") === p ? "on" : ""} onClick={() => setF({ legend: { pos: p } })} title={p}>{s}</button>)}</div></div>
+              )}
+              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Value labels</span>
+                <div className="seg"><button className={labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: true } })}>On</button><button className={!labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: false } })}>Off</button></div></div>
+              {labelsOn && (
+                <React.Fragment>
+                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Label format</span>
+                    <div className="seg"><button className={(fmt.labels && fmt.labels.fmt || "full") === "full" ? "on" : ""} onClick={() => setF({ labels: { fmt: "full" } })}>Full</button><button className={fmt.labels && fmt.labels.fmt === "compact" ? "on" : ""} onClick={() => setF({ labels: { fmt: "compact" } })}>Compact</button></div></div>
+                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Label position</span>
+                    <div className="seg">{[["top", "Top"], ["inside", "In"]].map(([p, s]) => <button key={p} className={(fmt.labels && fmt.labels.pos || "top") === p ? "on" : ""} onClick={() => setF({ labels: { pos: p } })}>{s}</button>)}</div></div>
+                </React.Fragment>
+              )}
+              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Grid lines</span>
+                <div className="seg"><button className={fmt.gridlines !== false ? "on" : ""} onClick={() => setF({ gridlines: true })}>On</button><button className={fmt.gridlines === false ? "on" : ""} onClick={() => setF({ gridlines: false })}>Off</button></div></div>
+              {isLine && (
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Smooth</span>
+                  <div className="seg"><button className={fmt.smooth == null ? "on" : ""} onClick={() => setF({ smooth: null })}>Auto</button><button className={fmt.smooth === true ? "on" : ""} onClick={() => setF({ smooth: true })}>On</button><button className={fmt.smooth === false ? "on" : ""} onClick={() => setF({ smooth: false })}>Off</button></div></div>
+              )}
+              {viz.rows.length > 0 && !viz.color && (
+                <div style={{ marginTop: 8 }}>
+                  <span className="fieldlabel">Series colours</span>
+                  {viz.rows.map((m, i) => {
+                    const overridden = fmt.colors && fmt.colors[m.label];
+                    const cur = overridden || rgbToHex(Charts.palette()[i % 8]);
+                    return (
+                      <div key={m.key} className="ctl-row" style={{ gap: 8, marginTop: 4 }}>
+                        <input type="color" value={cur} onChange={(e) => setF({ colors: { [m.label]: e.target.value } })} style={{ width: 26, height: 22, padding: 0, border: "1px solid var(--line)", borderRadius: 4, background: "none", cursor: "pointer" }} />
+                        <span style={{ flex: 1, fontSize: "var(--fs-11)", color: "var(--tx-mid)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.label}</span>
+                        {overridden && <button className="iconbtn" style={{ width: 20, height: 20 }} title="Reset" onClick={() => setF({ colors: { [m.label]: null } })}><Icon name="undo" size={11} /></button>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="cp-block">
           <div className="cp-blocktitle">Quick fields</div>
