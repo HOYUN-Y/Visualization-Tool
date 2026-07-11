@@ -106,6 +106,8 @@ js/
   distributionFit.js       # window.DistFit — normInv/normCdf, QQ-normal, normal fit, Jarque-Bera
   spc.js                   # window.SPC — control charts (I-MR/X-bar/p/c/u), Cp/Cpk, Pareto
   clustering.js            # window.Clustering — DBSCAN + agglomerative hierarchical (Lance-Williams)
+  i18n.js                  # window.I18N — ko/en dictionary + t(lang,key); lang in tweaks.lang
+  # ML mode wires Logistic/PCA/DBSCAN/Hierarchical; Stats mode wires Q-Q/Time Series/SPC
   charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors
   grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap
   shell.jsx                # window.TopBar, Rail, StatusBar, Workspace, MODES

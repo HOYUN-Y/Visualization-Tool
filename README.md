@@ -231,11 +231,11 @@ open http://localhost:8742
 - Text 위젯 `dangerouslySetInnerHTML` 제거(보안) + 기존 HTML→평문 마이그레이션
 - Node 7/7 회귀 테스트 + 브라우저 러너 케이스
 
-### 🧪 Phase 2 분석 엔진 — 순수 JS 라이브러리 완료 (UI 배선 예정, `feat/analytics`)
-> 아래 항목은 결정적 window.* 엔진 + Node 테스트가 완료되어 로드됨. Stats/ML 모드 시각화 배선은 후속 작업.
-- **PCA** (`window.PCA`) · **Logistic Regression + ROC/AUC/PR** (`window.Logistic`)
-- **시계열** MA/EMA/Holt/ACF/PACF (`window.TimeSeries`) · **QQ/정규적합/Jarque-Bera** (`window.DistFit`)
-- **SPC 관리도 + Cp/Cpk + Pareto** (`window.SPC`) · **DBSCAN/계층군집** (`window.Clustering`)
+### ✅ Phase 2 분석 엔진 — 순수 JS + UI 배선 완료 (`feat/analytics`)
+> 결정적 window.* 엔진 + Node 테스트 + Stats/ML 모드 UI 모두 완료.
+- **ML 모드:** **PCA**(Scree+로딩), **Logistic Regression + ROC/AUC**(계수 막대), **DBSCAN**(eps/minPts), **계층군집**(Ward, K 컷) — 7종 task 그리드
+- **Stats 모드:** **Normal Q-Q**(왜도/첨도/Jarque-Bera), **Time Series**(MA/EMA + ACF), **SPC 관리도**(I-MR + CL/UCL/LCL)
+- 엔진: `window.PCA·Logistic·TimeSeries·DistFit·SPC·Clustering` (Cp/Cpk·Pareto·Holt·PACF 등 추가 함수 포함, 일부는 UI 후속)
 
 ### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
 

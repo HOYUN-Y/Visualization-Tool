@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | Batch E/F — Phase 2 분석 엔진 (완료, 자율) |
-| Status | Core v2 M3~M5 + 분석 엔진 6종(PCA/Logistic/시계열/분포/SPC/클러스터링) 완료. UI 배선 일부는 아침 게이트 |
+| Current milestone | 분석 엔진 UI 배선 + 사용자 피드백 반영 (진행) |
+| Status | Core v2 M3~M5 + 분석 엔진 6종 + Stats/ML UI 배선 완료. 차트 oklch 버그 수정·i18n·축라벨 반영. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `d4529b7` — SPC + clustering engines |
-| Working tree | 분석 엔진 완료, 최종 재검증+스모크 테스트 진행; `.DS_Store` 사용자 변경 제외 |
-| Last verified | 2026-07-11 — Node 90/90, JSX 구문검사(tsc) OK, plain-JS node --check OK, diff clean, index.html 자산 존재, runner에 8개 분석 케이스 (주: 커밋 d4529b7 메시지의 "101"은 오기, 실제 90) |
+| Last checkpoint commit | `f4e5d23` — Stats QQ/TimeSeries/SPC UI |
+| Working tree | 6종 엔진 UI 배선 완료; `.DS_Store` 사용자 변경 제외 |
+| Last verified | 2026-07-11 — Node 90/90, JSX 구문검사(tsc) OK, UI-consumed 엔진 필드 검증 통과, 차트 브라우저 렌더 확인(oklch 수정 후), asset v=205 |
 | Updated at | 2026-07-11 (밤샘 자율 세션) |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
