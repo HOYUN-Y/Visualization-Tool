@@ -755,6 +755,14 @@
         o.series = o.series.map((s) => (s.label && s.label.show) ? { ...s, label: { ...s.label, ...tl } } : s);
       }
     }
+    // Plot-only resize — extra grid padding, keeps the container & legend fixed
+    {
+      const pi = fmt.plotInset || {};
+      if ((pi.top || pi.bottom || pi.left || pi.right) && o.grid && !Array.isArray(o.grid)) {
+        const b = o.grid, nz = (v) => typeof v === "number" ? v : 0;
+        o.grid = { ...b, top: nz(b.top) + (pi.top || 0), bottom: nz(b.bottom) + (pi.bottom || 0), left: nz(b.left) + (pi.left || 0), right: nz(b.right) + (pi.right || 0) };
+      }
+    }
     // Background colour (also used by PNG export)
     if (fmt.background) o.backgroundColor = fmt.background;
     // Smooth override for line series
@@ -870,9 +878,21 @@
       const startOffLeft = (viz.format && viz.format.offsetLeft) || 0;
       const bottomPos = startOffTop + startH;          // keep the bottom edge fixed for the top handle
       const rightPos = startOffLeft + startW;          // keep the right edge fixed for the left handle
+      const plotMode = (viz.format && viz.format.resizeMode) === "plot";
+      const pi0 = (viz.format && viz.format.plotInset) || {};
+      const clamp0 = (v) => Math.max(0, Math.min(600, v));
       document.body.style.cursor = (edge === "left" || edge === "right") ? "ew-resize" : "ns-resize";
       const move = (ev) => {
         const patch = {};
+        if (plotMode) {
+          const dx = ev.clientX - startX, dy = ev.clientY - startY;
+          if (edge === "bottom") patch.plotInset = { bottom: clamp0((pi0.bottom || 0) - dy) };
+          else if (edge === "top") patch.plotInset = { top: clamp0((pi0.top || 0) + dy) };
+          else if (edge === "right") patch.plotInset = { right: clamp0((pi0.right || 0) - dx) };
+          else if (edge === "left") patch.plotInset = { left: clamp0((pi0.left || 0) + dx) };
+          actions.setFormat(patch);
+          return;
+        }
         if (edge === "bottom") patch.height = clampV(startH + (ev.clientY - startY), 180, 1800);
         else if (edge === "top") { const off = clampV(startOffTop + (ev.clientY - startY), 0, bottomPos - 180); patch.offsetTop = off; patch.height = bottomPos - off; }
         else if (edge === "right") patch.width = clampV(startW + (ev.clientX - startX), 260, 3200);
@@ -1090,8 +1110,14 @@
 
         {sec === "size" && (
           <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>리사이즈</span>
+              <div className="seg">
+                <button className={(fmt.resizeMode || "all") === "all" ? "on" : ""} onClick={() => setF({ resizeMode: "all" })}>전체</button>
+                <button className={fmt.resizeMode === "plot" ? "on" : ""} onClick={() => setF({ resizeMode: "plot" })}>플롯만</button>
+              </div></div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 6px" }}>전체 = 범례 포함 요소 전체 · 플롯만 = 그래프 영역만(범례·제목 고정)</div>
             <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>프리셋</span>
-              <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(!fmt.width && (fmt.height || null) === h) ? "on" : ""} onClick={() => setF(h === null ? { height: null, width: null, offsetTop: 0, offsetLeft: 0 } : { height: h, offsetTop: 0 })}>{s}</button>)}</div></div>
+              <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(!fmt.width && (fmt.height || null) === h) ? "on" : ""} onClick={() => setF(h === null ? { height: null, width: null, offsetTop: 0, offsetLeft: 0, plotInset: { top: 0, bottom: 0, left: 0, right: 0 } } : { height: h, offsetTop: 0 })}>{s}</button>)}</div></div>
             <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>차트 모서리(상·하·좌·우)를 드래그해 크기 조절 · Auto로 초기화</div>
           </React.Fragment>
         )}

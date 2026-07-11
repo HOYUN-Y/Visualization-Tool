@@ -52,6 +52,8 @@
         axis: {},        // { xMin, xMax, yMin, yMax, yLabelRotate, xLabelRotate }
         text: {},        // { color, size, bold, italic } chart text styling
         background: null,// chart background colour (for PNG blending); null = theme
+        resizeMode: "all", // "all" = resize whole element (legend too) · "plot" = plot area only
+        plotInset: {},   // { top, bottom, left, right } extra grid padding (plot-only resize)
         smooth: null,    // null = per chart default; true/false override
         colors: {},      // { seriesName: "#hex" }
         seriesNames: {}, // { originalName: "custom label" }
@@ -423,6 +425,7 @@
       if (patch.grid) next.grid = { ...f.grid, ...patch.grid };
       if (patch.axis) next.axis = { ...f.axis, ...patch.axis };
       if (patch.text) next.text = { ...f.text, ...patch.text };
+      if (patch.plotInset) next.plotInset = { ...f.plotInset, ...patch.plotInset };
       if (patch.colors) next.colors = { ...f.colors, ...patch.colors };
       if (patch.seriesNames) next.seriesNames = { ...f.seriesNames, ...patch.seriesNames };
       return { ...s, viz: { ...s.viz, format: next } };
