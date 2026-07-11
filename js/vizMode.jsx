@@ -16,7 +16,6 @@
         { id: "hbar",     label: "H-Bar",     icon: "bar",       need: "1d+1m" },
         { id: "line",     label: "Line",      icon: "line",      need: "1d+1m" },
         { id: "area",     label: "Area",      icon: "area",      need: "1d+1m" },
-        { id: "combo",    label: "Combo",     icon: "trend",     need: "1d+1m" },
         { id: "pie",      label: "Pie",       icon: "pie",       need: "1d+1m" },
         { id: "scatter",  label: "Scatter",   icon: "scatter",   need: "2m"    },
         { id: "treemap",  label: "Treemap",   icon: "treemap",   need: "1d+1m" },
@@ -88,13 +87,14 @@
   }
 
   const MARKS = [["bar", "Bar"], ["line", "Line"], ["area", "Area"]];
-  function MeasureChip({ chip, combo }) {
+  function MeasureChip({ chip, showMark, baseMark }) {
     const [menu, setMenu] = React.useState(null);
-    const markIcon = combo ? { bar: "bar", line: "line", area: "area" }[chip.mark || "bar"] : null;
+    const curMark = chip.mark || baseMark || "bar";
+    const markIcon = showMark ? { bar: "bar", line: "line", area: "area" }[curMark] : null;
     return (
       <span className="chip meas">
         <span className="agg" onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}>{chip.agg.toUpperCase()}</span>
-        {combo && <span className="mk" title={"mark: " + (chip.mark || "bar") + (chip.axis ? " · right axis" : "")} onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}><Icon name={markIcon} size={11} />{chip.axis ? "R" : ""}</span>}
+        {showMark && <span className="mk" title={"mark: " + curMark + (chip.axis ? " · right axis" : "")} onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}><Icon name={markIcon} size={11} />{chip.axis ? "R" : ""}</span>}
         {chip.label}
         <span className="x" onClick={() => actions.removeFromShelf("rows", chip.key)}><Icon name="x" size={12} /></span>
         {menu && (
@@ -105,13 +105,13 @@
                 {chip.agg === a && <Icon name="check" size={13} />}<span style={{ marginLeft: chip.agg === a ? 0 : 21 }}>{a.toUpperCase()}</span>
               </div>
             ))}
-            {combo && (
+            {showMark && (
               <React.Fragment>
                 <div className="sep" />
                 <div className="ph">Mark</div>
                 {MARKS.map(([mk, lbl]) => (
                   <div key={mk} className="pi" onClick={() => { actions.setRowMark(chip.key, mk); }}>
-                    {(chip.mark || "bar") === mk && <Icon name="check" size={13} />}<span style={{ marginLeft: (chip.mark || "bar") === mk ? 0 : 21 }}>{lbl}</span>
+                    {curMark === mk && <Icon name="check" size={13} />}<span style={{ marginLeft: curMark === mk ? 0 : 21 }}>{lbl}</span>
                   </div>
                 ))}
                 <div className="sep" />
@@ -211,22 +211,15 @@
         };
       }
 
-      // plain candlestick + moving-average line overlay (candle + line)
-      const closeArr = sorted.map((r) => r.close);
-      const movAvg = (n) => closeArr.map((_, i) => i < n - 1 ? null : NODE.round(closeArr.slice(i - n + 1, i + 1).reduce((a, b) => a + b, 0) / n, 2));
+      // plain candlestick
       return {
         animation: false, backgroundColor: "transparent",
-        legend: { top: 0, textStyle: { color: c.text, fontSize: 10 }, data: ["MA5", "MA20"] },
-        grid: { ...base.grid, top: 26, bottom: 40, left: 55 },
+        grid: { ...base.grid, top: 16, bottom: 40, left: 55 },
         xAxis: { type: "category", data: dates, ...axisCommon, axisLabel: { ...axisCommon.axisLabel, rotate: 35, interval: Math.max(1, Math.floor(dates.length / 8)) } },
         yAxis: { type: "value", scale: true, ...axisCommon, axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal } },
         tooltip: { trigger: "axis", axisPointer: { type: "cross" }, backgroundColor: c.bg2, borderColor: c.line, textStyle: { color: c.text, fontSize: 11 } },
         dataZoom: [{ type: "inside", start: Math.max(0, 100 - Math.round(6000 / dates.length)), end: 100 }],
-        series: [
-          { name: "Price", type: "candlestick", data: ohlcData, itemStyle: { color: upColor, color0: downColor, borderColor: upColor, borderColor0: downColor } },
-          { name: "MA5", type: "line", data: movAvg(5), showSymbol: false, smooth: true, lineStyle: { color: pal[4], width: 1.2 }, itemStyle: { color: pal[4] } },
-          { name: "MA20", type: "line", data: movAvg(20), showSymbol: false, smooth: true, lineStyle: { color: pal[2], width: 1.2 }, itemStyle: { color: pal[2] } },
-        ],
+        series: [{ type: "candlestick", data: ohlcData, itemStyle: { color: upColor, color0: downColor, borderColor: upColor, borderColor0: downColor } }],
       };
     }
 
@@ -559,43 +552,7 @@
       };
     }
 
-    // ── Combo (mixed marks + dual axis, Excel-style secondary axis) ──────────
-    if (type === "combo") {
-      let order = [...new Set(agg.map((r) => r[xKey]))].map((cat) => { const f = agg.find((r) => r[xKey] === cat); return { cat, v: f ? (f[m0.id] || 0) : 0 }; });
-      order.sort((a, b) => sortDesc ? b.v - a.v : a.v - b.v);
-      if (topN) order = order.slice(0, topN);
-      const sortedCats = order.map((o) => o.cat);
-      const hasRight = measures.some((m) => (m.axis || 0) === 1);
-      const series = measures.map((m, i) => {
-        const mark = m.mark || (i === 0 ? "bar" : "line"); // sensible default: first bar, rest line
-        return {
-          name: m.label + " · " + (m.agg || "sum").toUpperCase(),
-          type: mark === "area" ? "line" : mark,
-          yAxisIndex: m.axis || 0,
-          areaStyle: mark === "area" ? { opacity: 0.2 } : undefined,
-          smooth: (mark === "line" || mark === "area") ? 0.2 : false,
-          symbol: "none",
-          z: mark === "bar" ? 1 : 2,
-          itemStyle: { color: pal[i % 8], borderRadius: mark === "bar" ? [3, 3, 0, 0] : 0 },
-          lineStyle: mark !== "bar" ? { color: pal[i % 8], width: 2 } : undefined,
-          data: sortedCats.map((cat) => { const f = agg.find((r) => r[xKey] === cat); return f ? f[m.id] : 0; }),
-        };
-      });
-      return {
-        ...base,
-        grid: { ...base.grid, top: 30, right: hasRight ? 46 : 14, bottom: sortedCats.length > 7 ? 40 : 8 },
-        legend: { top: 0, type: "scroll", textStyle: { color: c.text, fontSize: 11 }, icon: "roundRect" },
-        tooltip: { ...base.tooltip, trigger: "axis", axisPointer: { type: "cross" }, valueFormatter: fmtVal },
-        xAxis: { type: "category", data: sortedCats, ...axisCommon, axisLabel: { ...axisCommon.axisLabel, rotate: sortedCats.length > 7 ? 32 : 0, interval: 0 } },
-        yAxis: [
-          { type: "value", ...axisCommon, axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal } },
-          { type: "value", ...axisCommon, position: "right", axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal }, splitLine: { show: false } },
-        ],
-        series,
-      };
-    }
-
-    // ── Bar / Line / Area ────────────────────────────────────────────────────
+    // ── Bar / Line / Area (per-measure mark → combo, dual/secondary axis) ────
     const horiz = type === "hbar";
     const cats = [...new Set(agg.map((r) => r[xKey]))];
     let series;
@@ -613,25 +570,36 @@
       pairs.sort((a, b) => sortDesc ? b.vals[0] - a.vals[0] : a.vals[0] - b.vals[0]);
       if (topN) pairs = pairs.slice(0, topN);
       const sortedCats = pairs.map((p) => p.cat);
-      series = measures.map((m, mi) => ({
-        name: m.label, type: type === "line" || type === "area" ? "line" : "bar",
-        areaStyle: type === "area" ? { opacity: 0.22 } : undefined,
-        smooth: type === "line" || type === "area" ? 0.2 : false, symbol: "none",
-        itemStyle: { color: pal[mi % 8], borderRadius: type.includes("bar") ? (horiz ? [0, 3, 3, 0] : [3, 3, 0, 0]) : 0 },
-        data: pairs.map((p) => p.vals[mi]),
-      }));
+      // Per-measure mark (bar/line/area) → mixed "combo" charts; default mark = base chart type.
+      const baseMark = (type === "line" || type === "area") ? type : "bar";
+      series = measures.map((m, mi) => {
+        const mk = !horiz ? (m.mark || baseMark) : baseMark;
+        const ax = !horiz ? (m.axis || 0) : 0;
+        return {
+          name: m.label, type: mk === "area" ? "line" : mk, yAxisIndex: ax,
+          areaStyle: mk === "area" ? { opacity: 0.22 } : undefined,
+          smooth: (mk === "line" || mk === "area") ? 0.2 : false, symbol: "none",
+          z: mk === "bar" ? 1 : 2,
+          itemStyle: { color: pal[mi % 8], borderRadius: mk === "bar" ? (horiz ? [0, 3, 3, 0] : [3, 3, 0, 0]) : 0 },
+          lineStyle: mk !== "bar" ? { color: pal[mi % 8], width: 2 } : undefined,
+          data: pairs.map((p) => p.vals[mi]),
+        };
+      });
       cats.length = 0; cats.push(...sortedCats);
     }
+    const grouped = colorKey && colorKey !== xKey;
+    const hasRight = !horiz && !grouped && measures.some((m) => (m.axis || 0) === 1);
     const catAxis = { type: "category", data: cats, ...axisCommon, axisLabel: { ...axisCommon.axisLabel, rotate: !horiz && cats.length > 7 ? 32 : 0, interval: 0 } };
     const valAxis = { type: "value", ...axisCommon, axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal } };
-    const hasLegend = (colorKey && colorKey !== xKey) || measures.length > 1;
+    const valAxisRight = { type: "value", ...axisCommon, position: "right", axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal }, splitLine: { show: false } };
+    const hasLegend = grouped || measures.length > 1;
     return {
       ...base,
-      grid: { ...base.grid, top: hasLegend ? 30 : 16, bottom: horiz ? 8 : (cats.length > 7 ? 40 : 8) },
+      grid: { ...base.grid, top: hasLegend ? 30 : 16, right: hasRight ? 46 : 14, bottom: horiz ? 8 : (cats.length > 7 ? 40 : 8) },
       legend: hasLegend ? { top: 0, type: "scroll", textStyle: { color: c.text, fontSize: 11 }, icon: "roundRect" } : undefined,
-      tooltip: { ...base.tooltip, trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmtVal },
+      tooltip: { ...base.tooltip, trigger: "axis", axisPointer: { type: hasRight ? "cross" : "shadow" }, valueFormatter: fmtVal },
       xAxis: horiz ? valAxis : catAxis,
-      yAxis: horiz ? { ...catAxis, inverse: true } : valAxis,
+      yAxis: horiz ? { ...catAxis, inverse: true } : (hasRight ? [valAxis, valAxisRight] : valAxis),
       series,
     };
   }
@@ -677,7 +645,9 @@
         <span className="x" onClick={() => actions.removeFromShelf("cols", c.key)}><Icon name="x" size={12} /></span>
       </span>
     ));
-    const rowChips = measures.map((c) => <MeasureChip key={c.key} chip={c} combo={viz.type === "combo"} />);
+    const markable = ["bar", "line", "area"].includes(viz.type) && !viz.color;
+    const baseMark = viz.type === "line" || viz.type === "area" ? viz.type : "bar";
+    const rowChips = measures.map((c) => <MeasureChip key={c.key} chip={c} showMark={markable} baseMark={baseMark} />);
 
     const option = React.useMemo(() => {
       if (viz.type === "facet") return null;
