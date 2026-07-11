@@ -112,6 +112,9 @@
       onChangeType: (key, t) => actions.addStep({ op: "change_type", col: key, params: { to: t } }),
       onDeleteCol: (key) => actions.addStep({ op: "drop_col", col: key }),
       onReorder: (order) => actions.reorderCols(order),
+      onCells: (cells) => actions.editCells(cells),
+      onUndo: () => actions.undo(),
+      onRedo: () => actions.redo(),
     };
     const nSteps = cl ? cl.cursor : 0;
 

@@ -78,6 +78,7 @@
     const [headEdit, setHeadEdit] = React.useState(null); // key being renamed
     const [headVal, setHeadVal] = React.useState("");
     const [selRows, setSelRows] = React.useState(() => new Set()); // selected __rid
+    const [lastSelRid, setLastSelRid] = React.useState(null); // anchor for shift-click range select
     const [dragKey, setDragKey] = React.useState(null);   // column being dragged
     const [dragOver, setDragOver] = React.useState(null); // column hovered during drag
 
@@ -113,15 +114,22 @@
     React.useEffect(() => {
       if (!editable) return;
       const h = (e) => {
+        const tag = document.activeElement && document.activeElement.tagName;
+        const inField = tag === "INPUT" || tag === "TEXTAREA";
+        // Cmd/Ctrl+Z undo, +Shift+Z or +Y redo — only when NOT editing a field (let native text-undo win there).
+        if ((e.metaKey || e.ctrlKey) && !inField) {
+          const k = e.key.toLowerCase();
+          if (k === "z") { e.preventDefault(); if (e.shiftKey) edit.onRedo && edit.onRedo(); else edit.onUndo && edit.onUndo(); return; }
+          if (k === "y") { e.preventDefault(); edit.onRedo && edit.onRedo(); return; }
+        }
         if ((e.key === "Delete" || e.key === "Backspace") && selRows.size && !cellEdit && !headEdit) {
-          const tag = document.activeElement && document.activeElement.tagName;
-          if (tag === "INPUT" || tag === "TEXTAREA") return;
+          if (inField) return;
           e.preventDefault(); edit.onDeleteRows([...selRows]); setSelRows(new Set());
         }
       };
       document.addEventListener("keydown", h);
       return () => document.removeEventListener("keydown", h);
-    }, [editable, selRows, cellEdit, headEdit]);
+    }, [editable, selRows, cellEdit, headEdit, edit]);
 
     // color maps for category cols
     const cmaps = React.useMemo(() => {
@@ -176,6 +184,43 @@
     const pageRows = sorted.slice(pg * pageSize, pg * pageSize + pageSize);
 
     React.useEffect(() => { setPage(0); }, [search, filters]);
+
+    // move edit focus to another cell (commits current). drow/dcol are deltas within pageRows/visCols.
+    // Tab wraps horizontally onto the adjacent row. Out-of-bounds targets just commit without moving.
+    const navCell = (drow, dcol) => {
+      if (!cellEdit) return;
+      const ri = pageRows.findIndex((r) => r.__rid === cellEdit.rid);
+      const ci = visCols.findIndex((c) => c.key === cellEdit.key);
+      commitCell();
+      if (ri < 0 || ci < 0) return;
+      let nr = ri, nc = ci;
+      if (dcol) {
+        nc = ci + dcol;
+        if (nc < 0) { nc = visCols.length - 1; nr = ri - 1; }
+        else if (nc >= visCols.length) { nc = 0; nr = ri + 1; }
+      }
+      if (drow) nr = ri + drow;
+      if (nr < 0 || nr >= pageRows.length || nc < 0 || nc >= visCols.length) return;
+      const trow = pageRows[nr], tcol = visCols[nc];
+      startCell(trow.__rid, tcol.key, trow[tcol.key]);
+    };
+    // paste a clipboard matrix anchored at the editing cell; clip to current pageRows/visCols (one undo step).
+    const pasteMatrix = (m) => {
+      if (!cellEdit) return;
+      const ri = pageRows.findIndex((r) => r.__rid === cellEdit.rid);
+      const ci = visCols.findIndex((c) => c.key === cellEdit.key);
+      if (ri < 0 || ci < 0) { setCellEdit(null); return; }
+      const cells = [];
+      for (let i = 0; i < m.length; i++) {
+        for (let j = 0; j < m[i].length; j++) {
+          const tr = ri + i, tc = ci + j;
+          if (tr >= pageRows.length || tc >= visCols.length) continue;
+          cells.push({ rid: pageRows[tr].__rid, col: visCols[tc].key, value: m[i][j] });
+        }
+      }
+      if (cells.length && edit.onCells) edit.onCells(cells);
+      setCellEdit(null);
+    };
 
     const toggleSort = (key) => setSort((s) => !s || s.key !== key ? { key, dir: "asc" } : s.dir === "asc" ? { key, dir: "desc" } : null);
     const headRef = React.useRef(null);
@@ -266,7 +311,17 @@
                 <tr key={editable && rid != null ? rid : i} className={rowSel ? "rowsel" : ""}>
                   <td className={"col-idx" + (editable ? " editable" : "")}
                     onClick={editable && rid != null ? (e) => {
+                      if (e.shiftKey && lastSelRid != null) {
+                        const a = pageRows.findIndex((x) => x.__rid === lastSelRid);
+                        const b = pageRows.findIndex((x) => x.__rid === rid);
+                        if (a >= 0 && b >= 0) {
+                          const lo = Math.min(a, b), hi = Math.max(a, b);
+                          setSelRows((p) => { const n = new Set(p); for (let x = lo; x <= hi; x++) n.add(pageRows[x].__rid); return n; });
+                          return;
+                        }
+                      }
                       setSelRows((p) => { const n = new Set(p); n.has(rid) ? n.delete(rid) : n.add(rid); return n; });
+                      setLastSelRid(rid);
                     } : undefined}>
                     {editable ? (
                       <span className="idx-edit">
@@ -287,7 +342,17 @@
                         <input className={"cell-input" + (cellInvalid ? " invalid" : "")} autoFocus value={cellVal}
                           title={cellInvalid ? "숫자 열입니다 — 숫자가 아니면 빈 값으로 저장됩니다." : undefined}
                           onChange={(e) => setCellVal(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) commitCell(); else if (e.key === "Escape") setCellEdit(null); }}
+                          onPaste={(e) => {
+                            const m = window.GridPaste.parseClipboardMatrix(e.clipboardData.getData("text/plain"));
+                            if (m.length > 1 || (m[0] && m[0].length > 1)) { e.preventDefault(); pasteMatrix(m); }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.nativeEvent.isComposing) return;
+                            if (e.key === "Escape") { setCellEdit(null); return; }
+                            if (e.key === "Enter" || e.key === "ArrowDown") { e.preventDefault(); navCell(1, 0); return; }
+                            if (e.key === "ArrowUp") { e.preventDefault(); navCell(-1, 0); return; }
+                            if (e.key === "Tab") { e.preventDefault(); navCell(0, e.shiftKey ? -1 : 1); return; }
+                          }}
                           onBlur={commitCell} />
                       </td>;
                     }
