@@ -82,3 +82,12 @@
 .viz-subtabs button:hover { color: var(--tx-hi); }
 .viz-subtabs button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-hi, var(--accent)); }
 .viz-subtabs svg { flex-shrink: 0; }
+
+/* Free legend positioning (drag mode) */
+.legend-pose-overlay { position: absolute; inset: 0; z-index: 20; pointer-events: none;
+  background: color-mix(in oklch, var(--accent), transparent 82%); border: 2px dashed var(--accent); border-radius: var(--r-md); }
+.legend-pose-handle { position: absolute; display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; background: var(--accent); color: #1a0f06; font-size: 11px; font-weight: 700; border-radius: 14px;
+  cursor: grab; box-shadow: 0 4px 14px rgba(0,0,0,.35); white-space: nowrap; user-select: none; pointer-events: auto; }
+.legend-pose-handle:active { cursor: grabbing; }
+.legend-pose-done { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 21; pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.35); }

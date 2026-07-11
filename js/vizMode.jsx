@@ -640,10 +640,15 @@
     if (!opt || !fmt || !opt.series) return opt;
     const c = Charts.themeColors();
     const o = { ...opt };
-    // Legend — 2-axis placement (vertical × horizontal = 9 anchors)
+    // Legend — 2-axis placement (vertical × horizontal = 9 anchors) or free (dragged) position
     if (fmt.legend) {
       if (fmt.legend.show === false) o.legend = undefined;
-      else {
+      else if (fmt.legend.free) {
+        const fx = fmt.legend.fx != null ? fmt.legend.fx : 0.5;
+        const fy = fmt.legend.fy != null ? fmt.legend.fy : 0.04;
+        o.legend = { ...(o.legend || {}), type: "scroll", orient: "horizontal", textStyle: { color: c.text, fontSize: 11 },
+          left: (fx * 100).toFixed(1) + "%", top: (fy * 100).toFixed(1) + "%", right: "auto", bottom: "auto" };
+      } else {
         // migrate legacy { pos } → { v, h }
         const v = fmt.legend.v || (fmt.legend.pos === "bottom" ? "bottom" : "top");
         const h = fmt.legend.h || (fmt.legend.pos === "left" ? "left" : fmt.legend.pos === "right" ? "right" : "center");
@@ -738,6 +743,33 @@
       alert("대시보드에 추가되었습니다. / Added to dashboard.");
     };
 
+    // ── Free legend positioning (drag) ──
+    const legFmt = (viz.format && viz.format.legend) || {};
+    const legFree = !!legFmt.free;
+    const fx = legFmt.fx != null ? legFmt.fx : 0.5, fy = legFmt.fy != null ? legFmt.fy : 0.04;
+    const canvasRef = React.useRef(null);
+    const [posing, setPosing] = React.useState(false);
+    React.useEffect(() => {
+      const h = () => setPosing(true);
+      window.addEventListener("viz-legend-pose", h);
+      return () => window.removeEventListener("viz-legend-pose", h);
+    }, []);
+    React.useEffect(() => { if (!legFree) setPosing(false); }, [legFree]);
+    const onHandleDown = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const rect = canvasRef.current.getBoundingClientRect();
+      const hr = e.currentTarget.getBoundingClientRect();
+      const offX = e.clientX - hr.left, offY = e.clientY - hr.top;
+      const move = (ev) => {
+        const nfx = Math.max(0, Math.min(0.95, (ev.clientX - offX - rect.left) / rect.width));
+        const nfy = Math.max(0, Math.min(0.92, (ev.clientY - offY - rect.top) / rect.height));
+        actions.setFormat({ legend: { fx: nfx, fy: nfy } });
+      };
+      const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+      window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
+    };
+    const showPose = posing && legFree && (measures.length || viz.cols.length) && viz.type !== "facet";
+
     return (
       <React.Fragment>
         <div className="phead">
@@ -750,7 +782,7 @@
           <Shelf label={T("vizColumns")} kind="cols" chips={colsChips} accept={T("vizColumnsHint")} />
           <Shelf label={T("vizRows")} kind="rows" chips={rowChips} accept={T("vizRowsHint")} />
         </div>
-        <div className="vizcanvas">
+        <div className="vizcanvas" ref={canvasRef} style={{ position: "relative" }}>
           {viz.type === "facet"
             ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
             : (measures.length || viz.cols.length
@@ -758,6 +790,14 @@
               : <div className="empty"><Icon name="visualize" /><div className="t">Build a chart</div><div className="s">Drag fields from the Data Explorer onto the <b>Columns</b> and <b>Rows</b> shelves — or double-click a field. Then pick a chart type on the right.</div></div>
             )
           }
+          {showPose && (
+            <div className="legend-pose-overlay">
+              <div className="legend-pose-handle" style={{ left: (fx * 100) + "%", top: (fy * 100) + "%" }} onMouseDown={onHandleDown}>
+                <Icon name="move" size={12} /> 범례 · 여기를 잡고 드래그
+              </div>
+              <button className="btn primary sm legend-pose-done" onClick={() => setPosing(false)}><Icon name="check" size={13} /> 이동 완료</button>
+            </div>
+          )}
         </div>
       </React.Fragment>
     );
@@ -876,9 +916,19 @@
               {legendOn && (
                 <React.Fragment>
                   <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>세로 / Vert.</span>
-                    <div className="seg">{[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(fmt.legend && fmt.legend.v || "top") === p ? "on" : ""} onClick={() => setF({ legend: { v: p } })}>{s}</button>)}</div></div>
-                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로 / Horiz.</span>
-                    <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(fmt.legend && fmt.legend.h || "center") === p ? "on" : ""} onClick={() => setF({ legend: { h: p } })}>{s}</button>)}</div></div>
+                    <div className="seg">
+                      {[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!(fmt.legend && fmt.legend.free) && (fmt.legend && fmt.legend.v || "top") === p) ? "on" : ""} onClick={() => setF({ legend: { v: p, free: false } })}>{s}</button>)}
+                      <button className={fmt.legend && fmt.legend.free ? "on" : ""} onClick={() => { setF({ legend: { free: true } }); window.dispatchEvent(new CustomEvent("viz-legend-pose")); }}>자유</button>
+                    </div></div>
+                  {fmt.legend && fmt.legend.free ? (
+                    <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 8px", lineHeight: 1.5 }}>
+                      차트에서 범례 핸들을 드래그해 위치를 정하고 <b style={{ color: "var(--tx-hi)" }}>이동 완료</b>를 누르세요.
+                      <span style={{ color: "var(--accent)", cursor: "pointer", marginLeft: 4 }} onClick={() => window.dispatchEvent(new CustomEvent("viz-legend-pose"))}>다시 이동</span>
+                    </div>
+                  ) : (
+                    <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로 / Horiz.</span>
+                      <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(fmt.legend && fmt.legend.h || "center") === p ? "on" : ""} onClick={() => setF({ legend: { h: p } })}>{s}</button>)}</div></div>
+                  )}
                 </React.Fragment>
               )}
               <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Value labels</span>
