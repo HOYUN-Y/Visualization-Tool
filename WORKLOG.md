@@ -25,6 +25,8 @@
 
 > ☀️ **아침 브라우저 게이트(`fix/mode-render-p0`에서 검증 후 main 병합)** — 활성 계획 `~/.claude/plans/temporal-juggling-fountain.md` Phase 3.5:
 > ① **8모드 전환 매트릭스**(크래시 0·리로드 후 정상 — P0 수정 확인), ② P3: Stats›Time Series decomposition 4단 차트·Clean "다변량 이상치" 카드·(Map choropleth Fable ✓), ③ P9: 붙여넣기(1 undo)·Enter/Tab·Cmd+Z·Shift-범위, ④ IndexedDB 리로드 복원. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
+>
+> ✅ **게이트 통과 (2026-07-12 Fable 브라우저 검증)** — ①~④ **전 항목 통과**, 콘솔 에러 0. 결과표: `docs/FOLLOWUP_PROPOSALS.md` §0-0. **병합 가능 판정** — main 병합·push는 CLI에서 진행. (관찰 2건: 다변량 카드 컬럼명 미표시, multiplicative 미클릭 — FOLLOWUP §1 참고)
 
 > ☀️ **아침 브라우저 게이트(시각·상호작용 확인 후 병합)**
 > - **Phase 2 P3**(`feat/analytics-wiring`): (1) Stats›Time Series View=decomposition→Original/Trend/Seasonal/Residual 4단 차트, (2) Clean 이슈바 "다변량 이상치" 카드→제거, (3) Map›내 데이터 "단계구분도"→지역명 매칭 채색.
