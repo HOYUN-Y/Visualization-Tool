@@ -71,7 +71,7 @@ test("...", () => { assert.equal(...); });
 - [x] **★ 배치 B 종료 → WORKLOG.md 갱신**  ✅
 - [x] **★ 배치 C 종료 → WORKLOG.md 갱신**  ✅
 - [x] **★ 배치 D 종료 → WORKLOG.md 갱신**  ✅ (D1 완료, D2 아침 게이트)
-- [ ] **★ 배치 E 종료 → WORKLOG.md 갱신**
+- [x] **★ 배치 E 종료 → WORKLOG.md 갱신**  ✅
 - [ ] **★ 이 문서(OVERNIGHT_PLAN.md)도 매 항목마다 체크박스+진행로그 갱신** (커밋에 포함)
 
 > WORKLOG 갱신 형식: 상단 "CURRENT STATE" 블록의 수치(커밋수·asset·Node) 업데이트 + 날짜 섹션에 "밤샘 배치 X: <한 줄 요약> (커밋 <hash>)".
@@ -135,8 +135,8 @@ test("...", () => { assert.equal(...); });
 
 ## Batch E — 견고성 가드 스윕
 
-- [ ] **E1.** 각 모드 unguarded `[0]`/빈데이터/미지컬럼 접근 감사 → anova류 구체 안내 가드. (pivotMode·combineModal·mlMode 결과 표시부 등)
-- [ ] **E2.** 대용량 raw-point 차트 점검 — bubble 등 scatter 외 원시점 렌더에 large/샘플링(현재 scatter만 large 적용). vizMode buildOption bubble 확인.
+- [x] **E1.** 서브에이전트 감사 → 실제 크래시/Infinity 6곳 수정. mlMode(feats 0개 회귀 importance[0] 크래시·kNN 빈투표·reg scatter Infinity) · mapMode(Seoul/World 시드부재 ds.rows·빈 Math.max·미매칭 find().field) · statsMode(Builder scatter/coef Infinity) · dashMode(인스펙터 measures[0].key). pivot/sql/clean/combine는 이미 가드됨(감사 확인). 커밋 `5e1b310`
+- [x] **E2.** bubble은 per-point symbolSize라 ECharts large 렌더 불가 → 5000점 초과 시 결정적 다운샘플로 멈춤 방지(크기 인코딩 보존). scatter는 이미 large 적용됨. 커밋 `5e1b310`
 
 ## Batch F — 문서 최종 동기화 (CHANGELOG/HANDOFF; WORKLOG는 배치마다 이미 갱신)
 
@@ -181,3 +181,5 @@ test("...", () => { assert.equal(...); });
   - **NEXT: Batch D1 — js/geoMatch.js (지역명 정규화·매칭) 신규 엔진+테스트.**
 - 2026-07-12: **Batch D1 완료** (D2는 아침 게이트). geoMatch 엔진+테스트 8. Node **209→217**, asset v=251, main 대비 **84커밋**. 커밋 `d8af7bb`.
   - **NEXT: Batch E — 견고성 가드 스윕(E1 unguarded [0]/빈데이터 감사, E2 대용량 raw-point 차트).**
+- 2026-07-12: **Batch E 완료.** 서브에이전트 모드 감사로 언가드 크래시/Infinity 6곳 수정 + bubble 다운샘플. Node 217/217, asset v=252, main 대비 **86커밋**. 커밋 `5e1b310`.
+  - **NEXT: Batch F — 문서 최종 동기화(CHANGELOG/HANDOFF; WORKLOG는 배치마다 갱신됨).**

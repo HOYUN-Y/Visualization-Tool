@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A·B·C·D1 완료, Batch E 진행 예정 |
-| Status | Core v2 M3~M5 + 분석엔진 6종 UI + A(테스트잠금)·B(버그4종)·C(엔진3종)·**D1(geoMatch)** 완료. main 대비 84커밋. |
+| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A·B·C·D1·E 완료, Batch F(문서) 진행 예정 |
+| Status | Core v2 M3~M5 + 분석엔진 6종 UI + A(테스트잠금)·B(버그4종)·C(엔진3종)·D1(geoMatch)·**E(견고성 가드)** 완료. main 대비 86커밋. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `d8af7bb` — geoMatch 지역명 매칭 엔진 |
-| Working tree | 깨끗(`.DS_Store` 제외). Batch D1: js/geoMatch.js 신규 (D2 UI는 아침 게이트) |
-| Last verified | 2026-07-12 — Node 217/217, JSX 구문검사(tsc TS1xxx 0), asset v=251 |
+| Last checkpoint commit | `5e1b310` — 견고성 가드 스윕 |
+| Working tree | 깨끗(`.DS_Store` 제외). Batch E: mlMode/mapMode/statsMode/dashMode/vizMode 가드 |
+| Last verified | 2026-07-12 — Node 217/217, JSX 구문검사(tsc TS1xxx 0), asset v=252 |
 | Updated at | 2026-07-12 |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
@@ -31,6 +31,19 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (밤샘 자율: Batch E — 견고성 가드 스윕)
+
+서브에이전트로 모든 .jsx 모드를 감사해 "ANOVA 크래시와 동일 계열"의 언가드 접근(빈 배열 `[0]`, 빈 데이터 `Math.min/max` → ±Infinity, `find().field` 미매칭)을 6곳 수정. 전역 ErrorBoundary가 있어도 모드-레벨 크래시를 원천 제거. `5e1b310`.
+
+- **mlMode**: 특성 0개 회귀 → `res.importance[0].imp` 전체 모드 백지화 크래시(가장 심각) → 렌더 가드 + Train 사전검증("특성 선택" alert). k-NN 빈 투표 `[0][0]` continue. reg scatter 빈 배열 → Infinity 축 가드.
+- **mapMode**: Seoul/World 패널이 시드 데이터셋(`district_stats`/`world_gdp`) 부재 시 `ds.rows`로 크래시(World/Korea 형제 경로는 이미 가드됐는데 Seoul만 누락) → `ds?ds.rows:[]`, 빈 배열 `Math.max` ±Infinity, 교차필터 미매칭 `find().field` null 가드.
+- **statsMode**: Analysis Builder 회귀 scatter/coef 빈 배열 Math.min/max Infinity 가드.
+- **dashMode**: 위젯 인스펙터 Aggregation 변경 시 `measures[0].key` 핸들러 크래시 가드.
+- **E2 vizMode**: bubble은 per-point symbolSize 콜백이라 ECharts `large` 렌더와 비호환 → 5000점 초과 시 결정적 다운샘플로 브라우저 멈춤 방지(크기 인코딩 보존). scatter는 이미 `large`.
+- **감사로 clean 확인**: pivotMode/sqlMode/cleanMode/combineModal은 이미 try/catch·조기반환·삼항 가드로 안전.
+
+Node 217/217 유지(가드는 .jsx 렌더라 단위테스트 대신 tsc+감사 검증). **NEXT: Batch F(문서 최종 동기화).**
 
 ## 세션 기록 — 2026-07-12 (밤샘 자율: Batch D1 — 지도 범용화 지역명 매칭 엔진)
 
