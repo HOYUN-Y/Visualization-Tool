@@ -396,7 +396,7 @@
     const col = columns.find((c) => c.key === colKey) || {};
     const vals = num(rows.map((r) => r[colKey]));
     const c = Charts.themeColors(), pal = Charts.palette();
-    if (vals.length < 3) return <React.Fragment><StatsHead title={"Normal Q-Q · " + (col.label || colKey)} /><div className="empty"><Icon name="scatter" /><div className="t">Not enough data</div><div className="s">Select a numeric column with at least 3 values.</div></div></React.Fragment>;
+    if (vals.length < 4) return <React.Fragment><StatsHead title={"Normal Q-Q · " + (col.label || colKey)} /><div className="empty"><Icon name="scatter" /><div className="t">Not enough data</div><div className="s">Select a numeric column with at least 4 values.</div></div></React.Fragment>;
     const qq = window.DistFit.qqNormal(vals);
     const jb = window.DistFit.jarqueBera(vals);
     const pts = qq.points.map((p) => [p.theoretical, p.sample]);

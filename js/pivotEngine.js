@@ -48,7 +48,11 @@
     }));
   }
 
-  const tupleId = (r, keys) => keys.map((k) => (r[k] == null ? "" : String(r[k]))).join(SEP);
+  const canonVal = (v) => (v == null ? "" : String(v));
+  const tupleId = (r, keys) => keys.map((k) => canonVal(r[k])).join(SEP);
+  // Canonicalize a raw tuple (from distinctTuples) the SAME way tupleId does, so cell/subtotal
+  // lookups match the bucket keys even when a dimension value is null/blank.
+  const tupleKey = (tuple) => tuple.map(canonVal).join(SEP);
   function distinctTuples(rows, keys) {
     if (!keys.length) return [[]];
     const seen = new Map();
@@ -87,7 +91,7 @@
     // leaf columns = colTuple × value
     const leaves = [];
     for (const ct of colTuples) {
-      const cid = colFields.length ? ct.map(String).join(SEP) : "";
+      const cid = colFields.length ? tupleKey(ct) : "";
       for (const v of values) {
         leaves.push({
           id: (colFields.length ? cid + "¦" : "") + v.id,
@@ -99,11 +103,11 @@
 
     // matrix
     const outRows = rowTuples.map((rt) => {
-      const rid = rowFields.length ? rt.map(String).join(SEP) : "";
+      const rid = rowFields.length ? tupleKey(rt) : "";
       const cells = {};
       const m = bucket.get(rid) || new Map();
       for (const leaf of leaves) {
-        const cid = colFields.length ? leaf.colTuple.map(String).join(SEP) : "";
+        const cid = colFields.length ? tupleKey(leaf.colTuple) : "";
         const slice = (m.get(cid) || []).map((r) => r[leaf.value.key]);
         cells[leaf.id] = m.has(cid) ? aggregate(slice, leaf.value.agg) : (["sum", "count", "countd"].includes(leaf.value.agg) ? 0 : null);
       }
@@ -116,7 +120,7 @@
     // column grand totals per leaf + overall grand total per value
     const colTotals = {}, grandTotal = {};
     for (const leaf of leaves) {
-      const cid = colFields.length ? leaf.colTuple.map(String).join(SEP) : "";
+      const cid = colFields.length ? tupleKey(leaf.colTuple) : "";
       colTotals[leaf.id] = aggregate((byCol.get(cid) || []).map((r) => r[leaf.value.key]), leaf.value.agg);
     }
     for (const v of values) grandTotal[v.id] = aggregate(rows.map((r) => r[v.key]), v.agg);

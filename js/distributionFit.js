@@ -167,6 +167,8 @@
   function jarqueBera(values) {
     var a = clean(values);
     var n = a.length;
+    // The JB test is undefined for tiny samples; report nulls rather than a false "normal" (pValue 1).
+    if (n < 4) return { statistic: null, skewness: null, kurtosis: null, excessKurtosis: null, pValue: null, n: n };
     var mu = mean(a);
 
     var m2 = 0, m3 = 0, m4 = 0;
@@ -187,7 +189,7 @@
     // chi-square df=2 survival function is exp(-x/2); gives an easy p-value.
     var pValue = isFinite(jb) ? Math.exp(-jb / 2) : NaN;
 
-    return { statistic: jb, skewness: s, kurtosis: k, excessKurtosis: excess, pValue: pValue };
+    return { statistic: jb, skewness: s, kurtosis: k, excessKurtosis: excess, pValue: pValue, n: n };
   }
 
   // --- histogram -----------------------------------------------------------

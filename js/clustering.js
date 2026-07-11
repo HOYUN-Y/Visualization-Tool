@@ -113,7 +113,8 @@
       // rebuild clusters by replaying merges until (n - k) merges done
       const parent = {}; for (let i = 0; i < n; i++) parent[i] = i;
       const find = (x) => { while (parent[x] !== x) x = parent[x] = parent[parent[x]]; return x; };
-      const stop = Math.max(0, n - k);
+      // clamp k to [1, n]: k<1 would replay more merges than exist (merges.length === n-1) and crash.
+      const stop = Math.max(0, Math.min(merges.length, n - k));
       for (let m = 0; m < stop; m++) { const { a, b } = merges[m]; // a,b are cluster ids at that time; map through members
         // union first members of each side
         const rootA = find(memberRep(a)); const rootB = find(memberRep(b));

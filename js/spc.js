@@ -19,6 +19,15 @@
   const sampleStd = (a) => { if (a.length < 2) return null; const m = mean(a); return Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / (a.length - 1)); };
 
   function constAt(table, n) { const k = Math.max(2, Math.min(10, n)); return table[k]; }
+  // Validate that X-bar/R/S subgroups are usable: every subgroup non-empty with a common size n in [2,10].
+  // (Size-1 subgroups belong on an I-MR chart; empty subgroups would poison limits with Infinity/NaN.)
+  function subgroupSize(groups) {
+    const sizes = groups.map((g) => g.length);
+    const n = sizes[0];
+    if (!n || n < 2) throw new Error("X-bar/R·S needs subgroups of size ≥ 2 (use I-MR for individual points)");
+    if (sizes.some((s) => s !== n)) throw new Error("X-bar/R·S needs equal-size subgroups");
+    return n;
+  }
 
   // Individuals + Moving Range (n=2 moving range)
   function iMR(values) {
@@ -36,7 +45,7 @@
   function xbarR(subgroups) {
     if (!Array.isArray(subgroups) || subgroups.length < 2) throw new Error("X-bar/R needs >= 2 subgroups");
     const groups = subgroups.map(num);
-    const n = groups[0].length;
+    const n = subgroupSize(groups);
     const means = groups.map(mean);
     const ranges = groups.map((g) => Math.max(...g) - Math.min(...g));
     const xbarbar = mean(means), rbar = mean(ranges);
@@ -50,7 +59,7 @@
   function xbarS(subgroups) {
     if (!Array.isArray(subgroups) || subgroups.length < 2) throw new Error("X-bar/S needs >= 2 subgroups");
     const groups = subgroups.map(num);
-    const n = groups[0].length;
+    const n = subgroupSize(groups);
     const means = groups.map(mean);
     const stds = groups.map(sampleStd);
     const xbarbar = mean(means), sbar = mean(stds);
@@ -64,9 +73,13 @@
   // p-chart: proportion defective; sizes may vary → per-point limits
   function pChart(defectives, sizes) {
     const d = defectives.map(Number), nArr = sizes.map(Number);
-    const pbar = d.reduce((s, v) => s + v, 0) / nArr.reduce((s, v) => s + v, 0);
-    const points = d.map((v, i) => v / nArr[i]);
-    const limits = nArr.map((ni) => { const sd = Math.sqrt(pbar * (1 - pbar) / ni); return { ucl: pbar + 3 * sd, lcl: Math.max(0, pbar - 3 * sd) }; });
+    const totalN = nArr.reduce((s, v) => s + (v > 0 ? v : 0), 0);
+    const pbar = totalN > 0 ? d.reduce((s, v, i) => s + (nArr[i] > 0 ? v : 0), 0) / totalN : null;
+    const points = d.map((v, i) => (nArr[i] > 0 ? v / nArr[i] : null));
+    const limits = nArr.map((ni) => {
+      if (!(ni > 0) || pbar == null) return { ucl: null, lcl: null };
+      const sd = Math.sqrt(pbar * (1 - pbar) / ni); return { ucl: pbar + 3 * sd, lcl: Math.max(0, pbar - 3 * sd) };
+    });
     return { center: pbar, points, limits };
   }
 
@@ -78,9 +91,13 @@
 
   function uChart(counts, sizes) {
     const c = counts.map(Number), nArr = sizes.map(Number);
-    const ubar = c.reduce((s, v) => s + v, 0) / nArr.reduce((s, v) => s + v, 0);
-    const points = c.map((v, i) => v / nArr[i]);
-    const limits = nArr.map((ni) => { const sd = Math.sqrt(ubar / ni); return { ucl: ubar + 3 * sd, lcl: Math.max(0, ubar - 3 * sd) }; });
+    const totalN = nArr.reduce((s, v) => s + (v > 0 ? v : 0), 0);
+    const ubar = totalN > 0 ? c.reduce((s, v, i) => s + (nArr[i] > 0 ? v : 0), 0) / totalN : null;
+    const points = c.map((v, i) => (nArr[i] > 0 ? v / nArr[i] : null));
+    const limits = nArr.map((ni) => {
+      if (!(ni > 0) || ubar == null) return { ucl: null, lcl: null };
+      const sd = Math.sqrt(ubar / ni); return { ucl: ubar + 3 * sd, lcl: Math.max(0, ubar - 3 * sd) };
+    });
     return { center: ubar, points, limits };
   }
 
@@ -93,10 +110,15 @@
     const overall = sampleStd(x);
     const mu = mean(x);
     const has = (v) => v != null && !isNaN(v);
-    const cp = (has(lsl) && has(usl) && within > 0) ? (usl - lsl) / (6 * within) : null;
-    const pp = (has(lsl) && has(usl) && overall > 0) ? (usl - lsl) / (6 * overall) : null;
-    const cpk = within > 0 ? Math.min(has(usl) ? (usl - mu) / (3 * within) : Infinity, has(lsl) ? (mu - lsl) / (3 * within) : Infinity) : null;
-    const ppk = overall > 0 ? Math.min(has(usl) ? (usl - mu) / (3 * overall) : Infinity, has(lsl) ? (mu - lsl) / (3 * overall) : Infinity) : null;
+    // Cp/Pp are only defined for a valid two-sided spec (usl > lsl); an inverted spec would give
+    // meaningless negative indices, so treat it as no bilateral spec.
+    const bilateral = has(lsl) && has(usl) && usl > lsl;
+    const cp = (bilateral && within > 0) ? (usl - lsl) / (6 * within) : null;
+    const pp = (bilateral && overall > 0) ? (usl - lsl) / (6 * overall) : null;
+    // A one-sided spec is fine; only reject the case where BOTH limits are given but inverted.
+    const specInverted = has(lsl) && has(usl) && usl <= lsl;
+    const cpk = (within > 0 && !specInverted) ? Math.min(has(usl) ? (usl - mu) / (3 * within) : Infinity, has(lsl) ? (mu - lsl) / (3 * within) : Infinity) : null;
+    const ppk = (overall > 0 && !specInverted) ? Math.min(has(usl) ? (usl - mu) / (3 * overall) : Infinity, has(lsl) ? (mu - lsl) / (3 * overall) : Infinity) : null;
     return { mean: mu, withinSigma: within, overallSigma: overall, cp, cpk: cpk === Infinity ? null : cpk, pp, ppk: ppk === Infinity ? null : ppk };
   }
 
