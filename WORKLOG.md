@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Core v2 → main 병합 완료** (Phase 0). 다음: Phase 1 i18n 커버리지 |
-| Status | feat/analytics(97커밋)를 main에 `--no-ff` 병합 + `checkpoint/core-v2` 태그. 신규 로드맵(병합→i18n→P3→P9→DuckDB) 진행 중. |
-| Branch | **`main`** (병합 완료). Phase 1부터 `feat/i18n` 등 새 브랜치 분기 예정 |
-| Base commit | `65754ab` — merge: Core v2 (feat/analytics 97 commits) |
-| Last checkpoint commit | `checkpoint/core-v2` 태그 @ `65754ab` |
-| Working tree | 깨끗. auto-push.sh 추적해제·`.claude/hooks/` gitignore |
-| Last verified | 2026-07-12 — Node 225/225, asset v=255. **origin 미push(로컬 106커밋 앞섬)** |
+| Current milestone | **Phase 1 i18n 완료** (7파일 한/영). 다음: Phase 2 P3 엔진 UI 배선 |
+| Status | 병합→i18n→P3→P9→DuckDB 로드맵. Phase 0(병합)·1(i18n 7파일) 완료. `feat/i18n` 브랜치. |
+| Branch | **`feat/i18n`** (main에서 분기). Phase 2는 `feat/analytics-wiring` 분기 예정 |
+| Base commit | `65754ab` — merge: Core v2 (main) |
+| Last checkpoint commit | `ea9fd16` — i18n sql+ai (Phase 1f/1g) |
+| Working tree | 깨끗. Phase 1: i18n.js(대칭 dict 대폭 확장)·7개 모드 .jsx 배선 |
+| Last verified | 2026-07-12 — Node 225/225, tsc TS1xxx 0, asset v=261. **origin 미push** |
 | Updated at | 2026-07-12 |
 
 > 활성 계획: `~/.claude/plans/temporal-juggling-fountain.md` (Phase 0~4 체크리스트). 실브라우저 검증은 Claude Desktop/Fable로 대체.
@@ -33,6 +33,21 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (Phase 1: i18n 커버리지 — 7파일 한/영)
+
+정책: 도메인/기술 용어(A: R²·AUC·ANOVA·집계명·차트타입·SQL키워드·transform명·지표라벨)는 영문 유지, 일반 UI chrome(B: 버튼·섹션헤더·빈상태·필드라벨·탭·placeholder·leftTitle/rightTitle)는 한글. 파일별 서브에이전트 초안→메인 검수(tsc+i18n 대칭 테스트)→커밋. `tests/i18n.test.js`가 ko/en 대칭·빈값·폴백 자동 검증(매 파일 통과). Node 225/225 유지.
+
+- `bbc28d6` **1a dashMode** (46키: 인스펙터 필드·Add widget·Cross-filter·Layout)
+- `909f8c8` **1b cleanMode** (42키: 연산그룹·버튼·빈상태·step 라벨 생성형; transform 고유명 영문)
+- `10ac4bc` **1c mapMode** (21키: Seoul/World 탭·라벨·안내; Korea/내데이터 기존 한글; "내 데이터" 탭은 EN모드서도 한글 — 사소)
+- `83f411e` **1d statsMode** (빈상태·Picker·Run Analysis + **Verdict 해석문 lang 삼항 in-place 번역**, 도메인 심볼 R²·Cohen's d·η²·χ²·σ 영문·${} 보간 보존)
+- `9ae7176` **1e mlMode** (21키: 빈상태·설정·Train model·이력)
+- `ea9fd16` **1f sqlMode + 1g aiDrawer** (22키: Run/Save·섹션·예시제목 + 헤더/부제)
+
+재사용 키: dashDataExplorer·rows·gClear·dUndo/dRedo·gAddRow/gAddCol·pRows/pColumns·gApply·cols·statInterpretation.
+**잔여(별도)**: stats/ml 내부 분석 라벨 중 A로 분류해 영문 유지한 것들(테스트명·지표·차트옵션)은 의도적. mapMode "내 데이터" 탭 EN 라벨은 미세 폴리시.
+**NEXT: Phase 2 P3 — TSDecomp/Outliers/GeoMatch UI 배선(`feat/analytics-wiring` 분기).**
 
 ## 세션 기록 — 2026-07-12 (Phase 0: main 병합 + 깃 위생)
 

@@ -126,10 +126,10 @@ ORDER BY avg_price DESC
 LIMIT 10`;
 
   const EXAMPLES = [
-    { t: "Top districts by price", q: DEFAULT_SQL },
-    { t: "Monthly transaction counts", q: "SELECT month, txn_count, avg_price_per_m2\nFROM monthly_index\nORDER BY month ASC" },
-    { t: "Large premium apartments", q: "SELECT complex_name, district, area_m2, price_manwon\nFROM seoul_txns\nWHERE area_m2 > 120 AND price_manwon > 200000\nORDER BY price_manwon DESC\nLIMIT 20" },
-    { t: "Mix by building type", q: "SELECT building_type, COUNT(*) AS n, AVG(price_per_m2) AS ppm2\nFROM seoul_txns\nGROUP BY building_type\nORDER BY n DESC" },
+    { tk: "sqlExTopDistricts", q: DEFAULT_SQL },
+    { tk: "sqlExMonthlyTxns", q: "SELECT month, txn_count, avg_price_per_m2\nFROM monthly_index\nORDER BY month ASC" },
+    { tk: "sqlExLargePremium", q: "SELECT complex_name, district, area_m2, price_manwon\nFROM seoul_txns\nWHERE area_m2 > 120 AND price_manwon > 200000\nORDER BY price_manwon DESC\nLIMIT 20" },
+    { tk: "sqlExMixByType", q: "SELECT building_type, COUNT(*) AS n, AVG(price_per_m2) AS ppm2\nFROM seoul_txns\nGROUP BY building_type\nORDER BY n DESC" },
   ];
 
   // Build a sensible starter query from the ACTIVE dataset's real columns.
@@ -145,6 +145,8 @@ LIMIT 10`;
   }
 
   function SQLCenter() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const activeId = useStore((s) => s.activeId);
     const initSql = React.useMemo(() => defaultSql(derive.getDataset(activeId)), []);
     const [sql, setSql] = React.useState(initSql);
@@ -170,12 +172,12 @@ LIMIT 10`;
       <React.Fragment>
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
-            <Icon name="sql" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />SQL Workspace
+            <Icon name="sql" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("sqlWorkspace")}
           </span>
-          <span className="badge mono"><Icon name="db" size={11} /> in-browser SQL</span>
+          <span className="badge mono"><Icon name="db" size={11} /> {T("sqlInBrowser")}</span>
           <div className="spacer" />
-          <button className="btn ghost sm" disabled={!result || result.error} onClick={save}><Icon name="save" /> Save as dataset</button>
-          <button className="btn primary sm" onClick={run}><Icon name="play" size={12} /> Run <span className="kbd" style={{ marginLeft: 4 }}>⌘↵</span></button>
+          <button className="btn ghost sm" disabled={!result || result.error} onClick={save}><Icon name="save" /> {T("sqlSaveDataset")}</button>
+          <button className="btn primary sm" onClick={run}><Icon name="play" size={12} /> {T("sqlRun")} <span className="kbd" style={{ marginLeft: 4 }}>⌘↵</span></button>
         </div>
 
         <div className="sql-editor">
@@ -187,12 +189,12 @@ LIMIT 10`;
         <div className="sql-resbar">
           {result.error
             ? <span className="sql-err"><Icon name="info" size={13} /> {result.error}</span>
-            : <span className="mono"><span style={{ color: "var(--pos)" }}>●</span> {result.n} rows · {result.ms} ms · from <b style={{ color: "var(--tx-hi)" }}>{result.table.short}</b></span>}
+            : <span className="mono"><span style={{ color: "var(--pos)" }}>●</span> {result.n} {T("rows")} · {result.ms} ms · {T("sqlFrom")} <b style={{ color: "var(--tx-hi)" }}>{result.table.short}</b></span>}
           <div className="spacer" />
         </div>
         <div className="sql-results">
           {result.error
-            ? <div className="empty"><Icon name="sql" /><div className="t">Query error</div><div className="s">{result.error}</div></div>
+            ? <div className="empty"><Icon name="sql" /><div className="t">{T("sqlQueryError")}</div><div className="s">{result.error}</div></div>
             : <DataGrid columns={result.columns} rows={result.rows} pageSize={50} />}
         </div>
       </React.Fragment>
@@ -200,23 +202,25 @@ LIMIT 10`;
   }
 
   function SQLPanel() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const activeId = useStore((s) => s.activeId);
     const ds = derive.getDataset(activeId);
     const examples = [{ t: "현재 데이터 · " + (ds ? ds.short : "active"), q: defaultSql(ds) }, ...EXAMPLES];
     return (
       <div className="sqlpanel">
         <div className="cp-block">
-          <div className="cp-blocktitle">Example queries</div>
+          <div className="cp-blocktitle">{T("sqlExampleQueries")}</div>
           <div className="sql-examples">
             {examples.map((e, i) => (
               <button key={i} className="sql-ex" onClick={() => window.__sqlSet && window.__sqlSet(e.q)}>
-                <Icon name="play" size={11} /><span>{e.t}</span>
+                <Icon name="play" size={11} /><span>{e.tk ? T(e.tk) : e.t}</span>
               </button>
             ))}
           </div>
         </div>
         <div className="cp-block">
-          <div className="cp-blocktitle">Tables</div>
+          <div className="cp-blocktitle">{T("sqlTables")}</div>
           {NODE.datasets.map((ds) => (
             <div key={ds.id} className="sql-table">
               <div className="sql-table-h"><Icon name={ds.icon} size={13} /><span className="mono">{ds.id}</span><span className="sql-tn mono">{ds.rows.length}</span></div>
@@ -225,11 +229,11 @@ LIMIT 10`;
           ))}
         </div>
         <div className="cp-block">
-          <div className="cp-blocktitle">Supported</div>
+          <div className="cp-blocktitle">{T("sqlSupported")}</div>
           <div className="cf-info" style={{ display: "block" }}>
             <span style={{ fontSize: "var(--fs-11)", color: "var(--tx-lo)", lineHeight: 1.6 }}>
               <code>SELECT</code> · <code>WHERE</code> (AND, LIKE) · <code>GROUP BY</code> · aggregates
-              <code> SUM/AVG/COUNT/MIN/MAX/MEDIAN</code> · <code>ORDER BY</code> · <code>LIMIT</code>. Results are queryable & savable as new datasets.
+              <code> SUM/AVG/COUNT/MIN/MAX/MEDIAN</code> · <code>ORDER BY</code> · <code>LIMIT</code>. {T("sqlSavableNote")}
             </span>
           </div>
         </div>
@@ -238,7 +242,9 @@ LIMIT 10`;
   }
 
   window.SqlMode = function () {
-    return <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
-      center={<SQLCenter />} right={<SQLPanel />} rightTitle="Reference" />;
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
+    return <window.Workspace left={<window.DatasetTree />} leftTitle={T("dashDataExplorer")}
+      center={<SQLCenter />} right={<SQLPanel />} rightTitle={T("sqlReference")} />;
   };
 })();

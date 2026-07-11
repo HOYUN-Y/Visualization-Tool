@@ -4,33 +4,33 @@
   const Icon = window.Icon, NODE = window.NODE, DataGrid = window.DataGrid;
   const { isNumType, typeShort } = window;
 
-  function stepLabel(s) {
+  function stepLabel(s, T) {
     const c = s.col;
     switch (s.op) {
-      case "drop_missing": return [`Drop missing`, c];
-      case "fill_mean": return [`Fill mean`, c];
-      case "fill_median": return [`Fill median`, c];
-      case "fill_mode": return [`Fill mode`, c];
-      case "drop_duplicates": return [`Drop duplicate rows`, ""];
+      case "drop_missing": return [T("cleanDropMissing"), c];
+      case "fill_mean": return [T("cleanFillMean"), c];
+      case "fill_median": return [T("cleanFillMedian"), c];
+      case "fill_mode": return [T("cleanFillMode"), c];
+      case "drop_duplicates": return [T("cleanDropDupRows"), ""];
       case "remove_outliers": return [`Remove outliers (IQR)`, c];
-      case "rename": return [`Rename → ${s.params.to}`, c];
-      case "replace": return [`Replace "${s.params.from}" → "${s.params.to}"`, c];
-      case "change_type": return [`Change type → ${s.params.to}`, c];
+      case "rename": return [`${T("cleanRename")} → ${s.params.to}`, c];
+      case "replace": return [`${T("cleanReplace")} "${s.params.from}" → "${s.params.to}"`, c];
+      case "change_type": return [`${T("cleanChangeType")} → ${s.params.to}`, c];
       case "label_encode": return [`Label Encode`, c];
       case "dummy_encode": return [`Dummy Encode (One-Hot)`, c];
-      case "drop_col": return [`Drop column`, c];
+      case "drop_col": return [T("cleanDropCol"), c];
       case "standardize": return [`Standardize (Z-Score)`, c];
       case "normalize": return [`Normalize (Min-Max)`, c];
       case "log_transform": return [`Log Transform (log1p)`, c];
       case "rank_transform": return [`Rank Transform`, c];
       case "winsorize": return [`Winsorize ${s.params && s.params.p != null ? s.params.p : 5}%`, c];
       case "binning": return [`Binning (${s.params && s.params.bins ? s.params.bins : 5} bins)`, c];
-      case "formula": return [`Formula: ${s.params.name}`, s.params.expr];
-      case "set_cell": return [`Edit cell → ${s.params.value === "" || s.params.value == null ? "null" : s.params.value}`, c];
-      case "drop_rows": return [`Delete ${(s.rids || []).length} row${(s.rids || []).length > 1 ? "s" : ""}`, ""];
-      case "add_row": return [`Add row`, ""];
-      case "add_col": return [`Add column`, s.params.key];
-      case "reorder_cols": return [`Reorder columns`, ""];
+      case "formula": return [`${T("cleanFormula")}: ${s.params.name}`, s.params.expr];
+      case "set_cell": return [`${T("cleanEditCell")} → ${s.params.value === "" || s.params.value == null ? "null" : s.params.value}`, c];
+      case "drop_rows": return [T("cleanDeleteRowsN").replace("{n}", (s.rids || []).length), ""];
+      case "add_row": return [T("gAddRow"), ""];
+      case "add_col": return [T("gAddCol"), s.params.key];
+      case "reorder_cols": return [T("cleanReorderCols"), ""];
       default: return [s.op, c];
     }
   }
@@ -43,6 +43,8 @@
   function CleanCenter() {
     const activeId = useStore((s) => s.activeId);
     const selCol = useStore((s) => s.ui.selCol);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const { ds, rows, columns, steps, cursor } = derive.getActiveData(activeId);
 
     // Direct grid editing — same non-destructive step pipeline as Data mode,
@@ -84,25 +86,25 @@
       <React.Fragment>
         <div className="phead">
           <span className="ttl" style={{ color: "var(--tx-hi)", textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0 }}>
-            <Icon name="clean" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />Cleaning Studio
+            <Icon name="clean" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("cleanTitle")}
           </span>
           <span className="badge mono">{ds.short}</span>
           <div className="spacer" />
-          <button className="btn ghost sm" disabled={cursor === 0} onClick={actions.undo}><Icon name="undo" /> Undo</button>
-          <button className="btn ghost sm" disabled={cursor >= steps.length} onClick={actions.redo}><Icon name="redo" /> Redo</button>
+          <button className="btn ghost sm" disabled={cursor === 0} onClick={actions.undo}><Icon name="undo" /> {T("dUndo")}</button>
+          <button className="btn ghost sm" disabled={cursor >= steps.length} onClick={actions.redo}><Icon name="redo" /> {T("dRedo")}</button>
         </div>
 
         <div className="issuebar">
-          <Issue ok={!issues.totalMissing} icon="info" label="Missing cells"
+          <Issue ok={!issues.totalMissing} icon="info" label={T("cleanMissingCells")}
             val={issues.totalMissing} cols={missCols.length}
-            action={missCols.length ? { txt: "Drop / fill", fn: () => { } } : null} />
-          <Issue ok={!issues.dups} icon="duplicate" label="Duplicate rows" val={issues.dups}
-            action={issues.dups ? { txt: "Drop dupes", fn: () => actions.addStep({ op: "drop_duplicates", col: null }) } : null} />
-          <Issue ok={!issues.outliers} icon="filter" label="Outliers" val={issues.outliers} sub={issues.outCol}
-            action={issues.outliers ? { txt: "Remove", fn: () => actions.addStep({ op: "remove_outliers", col: issues.outCol }) } : null} />
+            action={missCols.length ? { txt: T("cleanDropFill"), fn: () => { } } : null} />
+          <Issue ok={!issues.dups} icon="duplicate" label={T("cleanDupRows")} val={issues.dups}
+            action={issues.dups ? { txt: T("cleanDropDupes"), fn: () => actions.addStep({ op: "drop_duplicates", col: null }) } : null} />
+          <Issue ok={!issues.outliers} icon="filter" label={T("cleanOutliers")} val={issues.outliers} sub={issues.outCol}
+            action={issues.outliers ? { txt: T("cleanRemove"), fn: () => actions.addStep({ op: "remove_outliers", col: issues.outCol }) } : null} />
           <div className="spacer" />
           <div className="issue-meta">
-            <span className="mono">{rows.length}</span> rows after <span className="mono">{cursor}</span> step{cursor !== 1 ? "s" : ""}
+            <span className="mono">{rows.length}</span> {T("cleanRowsAfter")} <span className="mono">{cursor}</span> {T("cleanSteps")}
             <span className="delta">{rows.length - ds.rows.length !== 0 ? `${rows.length - ds.rows.length > 0 ? "+" : ""}${rows.length - ds.rows.length}` : ""}</span>
           </div>
         </div>
@@ -115,12 +117,14 @@
   }
 
   function Issue({ ok, icon, label, val, sub, cols, action }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     return (
       <div className={"issue" + (ok ? " ok" : "")}>
         <span className="issue-ic"><Icon name={ok ? "check" : icon} size={13} /></span>
         <div className="issue-body">
-          <div className="issue-val mono">{ok ? "Clean" : val.toLocaleString()}</div>
-          <div className="issue-lbl">{label}{!ok && cols ? ` · ${cols} cols` : ""}{!ok && sub ? ` · ${sub}` : ""}</div>
+          <div className="issue-val mono">{ok ? T("cleanClean") : val.toLocaleString()}</div>
+          <div className="issue-lbl">{label}{!ok && cols ? ` · ${cols} ${T("cols")}` : ""}{!ok && sub ? ` · ${sub}` : ""}</div>
         </div>
         {action && <button className="btn sm" onClick={action.fn}>{action.txt}</button>}
       </div>
@@ -130,6 +134,8 @@
   // ---------- Right: operations + history ----------
   function CleanPanel() {
     const activeId = useStore((s) => s.activeId);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const { ds, rows, columns, steps, cursor } = derive.getActiveData(activeId);
     const [col, setCol] = React.useState(columns[0] ? columns[0].key : "");
     const selCol = columns.find((c) => c.key === col) || columns[0];
@@ -151,56 +157,56 @@
     return (
       <div className="cleanpanel">
         <div className="cp-block">
-          <div className="cp-blocktitle">Add operation</div>
-          <label className="fieldlabel">Column</label>
+          <div className="cp-blocktitle">{T("cleanAddOperation")}</div>
+          <label className="fieldlabel">{T("cleanColumn")}</label>
           <select className="sel" style={{ width: "100%" }} value={col} onChange={(e) => setCol(e.target.value)}>
             {columns.map((c) => <option key={c.key} value={c.key}>{c.label} ({c.type})</option>)}
           </select>
 
           <div className="opgroup">
-            <div className="opgroup-h">Missing values</div>
+            <div className="opgroup-h">{T("cleanMissingValues")}</div>
             <div className="opbtns">
-              <button className="opbtn" onClick={() => add("drop_missing")}><Icon name="x" size={13} />Drop rows</button>
-              {isNum && <button className="opbtn" onClick={() => add("fill_mean")}><Icon name="plus" size={13} />Fill mean</button>}
-              {isNum && <button className="opbtn" onClick={() => add("fill_median")}><Icon name="plus" size={13} />Fill median</button>}
-              <button className="opbtn" onClick={() => add("fill_mode")}><Icon name="plus" size={13} />Fill mode</button>
+              <button className="opbtn" onClick={() => add("drop_missing")}><Icon name="x" size={13} />{T("cleanDropRows")}</button>
+              {isNum && <button className="opbtn" onClick={() => add("fill_mean")}><Icon name="plus" size={13} />{T("cleanFillMean")}</button>}
+              {isNum && <button className="opbtn" onClick={() => add("fill_median")}><Icon name="plus" size={13} />{T("cleanFillMedian")}</button>}
+              <button className="opbtn" onClick={() => add("fill_mode")}><Icon name="plus" size={13} />{T("cleanFillMode")}</button>
             </div>
           </div>
 
           <div className="opgroup">
-            <div className="opgroup-h">Rows</div>
+            <div className="opgroup-h">{T("pRows")}</div>
             <div className="opbtns">
-              <button className="opbtn" onClick={() => actions.addStep({ op: "drop_duplicates", col: null })}><Icon name="duplicate" size={13} />Drop duplicates</button>
-              {isNum && <button className="opbtn" onClick={() => add("remove_outliers")}><Icon name="filter" size={13} />Remove outliers</button>}
+              <button className="opbtn" onClick={() => actions.addStep({ op: "drop_duplicates", col: null })}><Icon name="duplicate" size={13} />{T("cleanDropDuplicates")}</button>
+              {isNum && <button className="opbtn" onClick={() => add("remove_outliers")}><Icon name="filter" size={13} />{T("cleanRemoveOutliers")}</button>}
             </div>
           </div>
 
           <div className="opgroup">
-            <div className="opgroup-h">Columns</div>
+            <div className="opgroup-h">{T("pColumns")}</div>
             <div className="opbtns">
               <button className="opbtn" onClick={() => {
                 const keys = new Set(columns.map((c) => c.key)); let k = "new_col", i = 1;
                 while (keys.has(k)) k = "new_col_" + (++i);
                 actions.addColumn({ key: k, type: "string" });
-              }}><Icon name="plus" size={13} />Add column</button>
-              <button className="opbtn" style={{ color: "var(--danger, #e05)" }} onClick={() => add("drop_col")}><Icon name="x" size={13} />Drop column</button>
+              }}><Icon name="plus" size={13} />{T("gAddCol")}</button>
+              <button className="opbtn" style={{ color: "var(--danger, #e05)" }} onClick={() => add("drop_col")}><Icon name="x" size={13} />{T("cleanDropCol")}</button>
             </div>
             <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3 }}>열 위치 변경은 그리드 헤더를 드래그하세요. 헤더 <b>⋯</b> 메뉴에서도 삽입·삭제·이름변경 가능.</div>
           </div>
 
           <div className="opgroup">
-            <div className="opgroup-h">Transform</div>
+            <div className="opgroup-h">{T("cleanTransform")}</div>
             <div className="op-inline">
-              <input className="inp" placeholder={`Rename "${selCol ? selCol.label : ""}"`} value={renameVal} onChange={(e) => setRenameVal(e.target.value)} />
-              <button className="btn sm" disabled={!renameVal.trim()} onClick={() => { add("rename", { to: renameVal.trim() }); setRenameVal(""); }}>Apply</button>
+              <input className="inp" placeholder={`${T("cleanRename")} "${selCol ? selCol.label : ""}"`} value={renameVal} onChange={(e) => setRenameVal(e.target.value)} />
+              <button className="btn sm" disabled={!renameVal.trim()} onClick={() => { add("rename", { to: renameVal.trim() }); setRenameVal(""); }}>{T("gApply")}</button>
             </div>
             <div className="op-inline">
-              <input className="inp" placeholder="from" value={repl.from} onChange={(e) => setRepl({ ...repl, from: e.target.value })} />
-              <input className="inp" placeholder="to" value={repl.to} onChange={(e) => setRepl({ ...repl, to: e.target.value })} />
-              <button className="btn sm" disabled={!repl.from} onClick={() => { add("replace", { from: repl.from, to: repl.to }); setRepl({ from: "", to: "" }); }}>Set</button>
+              <input className="inp" placeholder={T("cleanFrom")} value={repl.from} onChange={(e) => setRepl({ ...repl, from: e.target.value })} />
+              <input className="inp" placeholder={T("cleanTo")} value={repl.to} onChange={(e) => setRepl({ ...repl, to: e.target.value })} />
+              <button className="btn sm" disabled={!repl.from} onClick={() => { add("replace", { from: repl.from, to: repl.to }); setRepl({ from: "", to: "" }); }}>{T("cleanSet")}</button>
             </div>
             <div className="op-inline">
-              <span className="fieldlabel" style={{ flex: 1 }}>Change type</span>
+              <span className="fieldlabel" style={{ flex: 1 }}>{T("cleanChangeType")}</span>
               {[["string"], ["integer"], ["float"], ["category"], ["datetime"], ["boolean", "T/F"]].map(([t, lbl]) => (
                 <button key={t} className="typebtn" onClick={() => add("change_type", { to: t })}>{lbl || t.slice(0, 3)}</button>
               ))}
@@ -208,7 +214,7 @@
           </div>
 
           <div className="opgroup">
-            <div className="opgroup-h">Encoding</div>
+            <div className="opgroup-h">{T("cleanEncoding")}</div>
             <div className="opbtns">
               <button className="opbtn" onClick={() => add("label_encode")}><Icon name="layers" size={13} />Label Encode</button>
               <button className="opbtn" onClick={() => {
@@ -224,7 +230,7 @@
 
           {isNum && (
             <div className="opgroup">
-              <div className="opgroup-h">Numeric Transform</div>
+              <div className="opgroup-h">{T("cleanNumericTransform")}</div>
               <div className="opbtns">
                 <button className="opbtn" onClick={() => add("standardize")}><Icon name="bolt" size={13} />Z-Score</button>
                 <button className="opbtn" onClick={() => add("normalize")}><Icon name="bolt" size={13} />Min-Max</button>
@@ -237,7 +243,7 @@
                 <button className="btn sm" onClick={() => add("binning", { bins: Math.max(2, parseInt(bins) || 5) })}>Bin</button>
                 <span className="fieldlabel" style={{ whiteSpace: "nowrap", marginLeft: 8 }}>Winsorize %</span>
                 <input className="inp" type="number" min="1" max="49" value={winsP} onChange={(e) => setWinsP(e.target.value)} style={{ width: 44 }} />
-                <button className="btn sm" onClick={() => add("winsorize", { p: Math.max(1, Math.min(49, parseFloat(winsP) || 5)) })}>Apply</button>
+                <button className="btn sm" onClick={() => add("winsorize", { p: Math.max(1, Math.min(49, parseFloat(winsP) || 5)) })}>{T("gApply")}</button>
               </div>
               <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3 }}>
                 Bin: 등폭 구간 범주 컬럼 추가 | Winsorize: 상하 p% 클리핑
@@ -246,13 +252,13 @@
           )}
 
           <div className="opgroup">
-            <div className="opgroup-h">Formula Column</div>
+            <div className="opgroup-h">{T("cleanFormulaColumn")}</div>
             <div className="op-inline">
               <input className="inp" placeholder="새 컬럼 이름" value={fmlName} onChange={(e) => setFmlName(e.target.value)} style={{ width: 120 }} />
             </div>
             <div className="op-inline">
               <input className="inp mono" placeholder="row.price * 1.1" value={fmlExpr} onChange={(e) => setFmlExpr(e.target.value)} style={{ flex: 1, fontFamily: "var(--font-mono)" }} />
-              <button className="btn sm" disabled={!fmlExpr.trim() || !fmlName.trim()} onClick={() => { add("formula", { name: fmlName.trim(), expr: fmlExpr.trim() }); setFmlExpr(""); setFmlName(""); }}>Add</button>
+              <button className="btn sm" disabled={!fmlExpr.trim() || !fmlName.trim()} onClick={() => { add("formula", { name: fmlName.trim(), expr: fmlExpr.trim() }); setFmlExpr(""); setFmlName(""); }}>{T("cleanAdd")}</button>
             </div>
             <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3 }}>
               <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>row</code> 객체로 각 행 접근. 예: <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>row.area * row.price</code>
@@ -262,17 +268,17 @@
 
         <div className="cp-block">
           <div className="cp-blocktitle" style={{ display: "flex", alignItems: "center" }}>
-            Pipeline <span className="mono" style={{ color: "var(--tx-faint)", marginLeft: 6 }}>{cursor}/{steps.length}</span>
+            {T("cleanPipeline")} <span className="mono" style={{ color: "var(--tx-faint)", marginLeft: 6 }}>{cursor}/{steps.length}</span>
             <div style={{ flex: 1 }} />
-            {steps.length > 0 && <button className="btn ghost sm" onClick={actions.clearSteps}>Clear</button>}
+            {steps.length > 0 && <button className="btn ghost sm" onClick={actions.clearSteps}>{T("gClear")}</button>}
           </div>
           <div className="pipeline">
             <div className={"pl-step source" + (cursor === 0 ? " cur" : "")} onClick={() => actions.gotoStep(0)}>
               <span className="pl-ic"><Icon name="db" size={12} /></span>
-              <div className="pl-body"><div className="pl-name">Source · {ds.short}</div><div className="pl-sub">{ds.rows.length} rows loaded</div></div>
+              <div className="pl-body"><div className="pl-name">{T("cleanSource")} · {ds.short}</div><div className="pl-sub">{ds.rows.length} {T("cleanRowsLoaded")}</div></div>
             </div>
             {steps.map((s, i) => {
-              const [name, c] = stepLabel(s);
+              const [name, c] = stepLabel(s, T);
               const future = i >= cursor;
               return (
                 <div key={s.id} className={"pl-step" + (i + 1 === cursor ? " cur" : "") + (future ? " future" : "")} onClick={() => actions.gotoStep(i + 1)}>
@@ -282,7 +288,7 @@
                 </div>
               );
             })}
-            {steps.length === 0 && <div className="pl-empty">No steps yet. Add an operation above — every action is recorded and reversible.</div>}
+            {steps.length === 0 && <div className="pl-empty">{T("cleanNoSteps")}</div>}
           </div>
         </div>
       </div>
@@ -290,7 +296,9 @@
   }
 
   window.CleanMode = function () {
-    return <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
-      center={<CleanCenter />} right={<CleanPanel />} rightTitle="Operations & Pipeline" />;
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
+    return <window.Workspace left={<window.DatasetTree />} leftTitle={T("dashDataExplorer")}
+      center={<CleanCenter />} right={<CleanPanel />} rightTitle={T("cleanOpsPipeline")} />;
   };
 })();
