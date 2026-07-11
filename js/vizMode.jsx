@@ -744,6 +744,7 @@
     };
 
     const chartH = (viz.format && viz.format.height) || null;
+    const chartW = (viz.format && viz.format.width) || null;
     // ── Free legend positioning (drag) ──
     const legFmt = (viz.format && viz.format.legend) || {};
     const legFree = !!legFmt.free;
@@ -771,13 +772,22 @@
     };
     const showPose = posing && legFree && (measures.length || viz.cols.length) && viz.type !== "facet";
 
-    // ── Drag-to-resize chart height (PowerPoint-style bottom handle) ──
-    const onResizeDown = (e) => {
-      e.preventDefault();
-      const startY = e.clientY;
+    // ── Drag-to-resize chart from any edge (PowerPoint-style) ──
+    const clampV = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const onEdgeDown = (edge) => (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const startX = e.clientX, startY = e.clientY;
       const startH = canvasRef.current ? canvasRef.current.clientHeight : 400;
-      document.body.style.cursor = "ns-resize";
-      const move = (ev) => actions.setFormat({ height: Math.max(180, Math.min(1800, startH + (ev.clientY - startY))) });
+      const startW = canvasRef.current ? canvasRef.current.clientWidth : 600;
+      document.body.style.cursor = (edge === "left" || edge === "right") ? "ew-resize" : "ns-resize";
+      const move = (ev) => {
+        const patch = {};
+        if (edge === "bottom") patch.height = clampV(startH + (ev.clientY - startY), 180, 1800);
+        else if (edge === "top") patch.height = clampV(startH - (ev.clientY - startY), 180, 1800);
+        else if (edge === "right") patch.width = clampV(startW + (ev.clientX - startX), 260, 3200);
+        else if (edge === "left") patch.width = clampV(startW - (ev.clientX - startX), 260, 3200);
+        actions.setFormat(patch);
+      };
       const up = () => { document.body.style.cursor = ""; window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
       window.addEventListener("mousemove", move); window.addEventListener("mouseup", up);
     };
@@ -794,8 +804,8 @@
           <Shelf label={T("vizColumns")} kind="cols" chips={colsChips} accept={T("vizColumnsHint")} />
           <Shelf label={T("vizRows")} kind="rows" chips={rowChips} accept={T("vizRowsHint")} />
         </div>
-        <div className="vizcanvas" style={{ display: "flex", flexDirection: "column", overflowY: chartH ? "auto" : "hidden" }}>
-          <div className="viz-chart-area" ref={canvasRef} style={{ position: "relative", flex: chartH ? "0 0 auto" : "1 1 auto", height: chartH || "auto", minHeight: 0 }}>
+        <div className="vizcanvas" style={{ display: "flex", flexDirection: "column", alignItems: chartW ? "center" : "stretch", overflow: (chartH || chartW) ? "auto" : "hidden" }}>
+          <div className="viz-chart-area" ref={canvasRef} style={{ position: "relative", flex: chartH ? "0 0 auto" : "1 1 auto", height: chartH || "auto", width: chartW || "100%", minHeight: 0 }}>
             {viz.type === "facet"
               ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
               : (measures.length || viz.cols.length
@@ -811,10 +821,15 @@
                 <button className="btn primary sm legend-pose-done" onClick={() => setPosing(false)}><Icon name="check" size={13} /> 이동 완료</button>
               </div>
             )}
+            {!showPose && viz.type !== "facet" && (measures.length || viz.cols.length) && (
+              <React.Fragment>
+                <div className="rh rh-top" onMouseDown={onEdgeDown("top")} title="드래그해서 높이 조절" />
+                <div className="rh rh-bottom" onMouseDown={onEdgeDown("bottom")} title="드래그해서 높이 조절" />
+                <div className="rh rh-left" onMouseDown={onEdgeDown("left")} title="드래그해서 너비 조절" />
+                <div className="rh rh-right" onMouseDown={onEdgeDown("right")} title="드래그해서 너비 조절" />
+              </React.Fragment>
+            )}
           </div>
-          {viz.type !== "facet" && (measures.length || viz.cols.length) ? (
-            <div className="viz-resize" onMouseDown={onResizeDown} title="드래그해서 차트 높이 조절 · Drag to resize height"><span className="viz-resize-grip" /></div>
-          ) : null}
         </div>
       </React.Fragment>
     );
@@ -960,8 +975,9 @@
               )}
               <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Grid lines</span>
                 <div className="seg"><button className={fmt.gridlines !== false ? "on" : ""} onClick={() => setF({ gridlines: true })}>On</button><button className={fmt.gridlines === false ? "on" : ""} onClick={() => setF({ gridlines: false })}>Off</button></div></div>
-              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>높이 / Height</span>
-                <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(fmt.height || null) === h ? "on" : ""} onClick={() => setF({ height: h })}>{s}</button>)}</div></div>
+              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>크기 / Size</span>
+                <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(!fmt.width && (fmt.height || null) === h) ? "on" : ""} onClick={() => setF(h === null ? { height: null, width: null } : { height: h })}>{s}</button>)}</div></div>
+              <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 8px" }}>차트 모서리(상·하·좌·우)를 드래그해 크기 조절 · Auto로 초기화</div>
               {isLine && (
                 <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Smooth</span>
                   <div className="seg"><button className={fmt.smooth == null ? "on" : ""} onClick={() => setF({ smooth: null })}>Auto</button><button className={fmt.smooth === true ? "on" : ""} onClick={() => setF({ smooth: true })}>On</button><button className={fmt.smooth === false ? "on" : ""} onClick={() => setF({ smooth: false })}>Off</button></div></div>

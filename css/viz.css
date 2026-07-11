@@ -92,7 +92,14 @@
 .legend-pose-handle:active { cursor: grabbing; }
 .legend-pose-done { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 21; pointer-events: auto; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
 
-/* Drag-to-resize chart height handle (bottom, PowerPoint-style) */
-.viz-resize { flex: 0 0 auto; height: 12px; display: flex; align-items: center; justify-content: center; cursor: ns-resize; }
-.viz-resize-grip { width: 44px; height: 4px; border-radius: 2px; background: var(--line-strong); transition: .12s; }
-.viz-resize:hover .viz-resize-grip { background: var(--accent); width: 64px; }
+/* Drag-to-resize chart from any edge (PowerPoint-style midpoint handles) */
+.rh { position: absolute; z-index: 6; }
+.rh::after { content: ""; position: absolute; inset: 0; margin: auto; background: var(--line-strong); border-radius: 3px; opacity: 0; transition: opacity .12s, background .12s; }
+.viz-chart-area:hover .rh::after { opacity: .55; }
+.rh:hover::after { opacity: 1; background: var(--accent); }
+.rh-top, .rh-bottom { left: 50%; transform: translateX(-50%); width: 60px; height: 12px; cursor: ns-resize; }
+.rh-top::after, .rh-bottom::after { width: 46px; height: 4px; }
+.rh-top { top: 0; } .rh-bottom { bottom: 0; }
+.rh-left, .rh-right { top: 50%; transform: translateY(-50%); width: 12px; height: 60px; cursor: ew-resize; }
+.rh-left::after, .rh-right::after { width: 4px; height: 46px; }
+.rh-left { left: 0; } .rh-right { right: 0; }
