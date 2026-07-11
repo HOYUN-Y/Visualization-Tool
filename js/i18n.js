@@ -93,6 +93,15 @@
       statPredictorsX: "예측변수 (X)", statRunAnalysis: "분석 실행",
       statFooterInfo: "정확한 p-values (불완전 베타/감마 함수). Insight Engine이 α = 0.05 기준으로 자동 해석합니다.",
       statTestSetup: "분석 설정",
+      // ml mode — generic UI chrome (metric labels/symbols & model titles kept English)
+      mlStudio: "머신러닝 스튜디오", mlEmptyTitle: "모델 구성 및 학습",
+      mlEmptyDesc: "오른쪽에서 작업 · 목표 · 특성을 선택한 뒤 모델 학습을 누르세요. 모든 계산은 로컬에서 실행됩니다 — OLS regression, k-NN, Logistic + ROC, PCA, KMeans, DBSCAN, Hierarchical clustering.",
+      mlTrained: "학습됨", mlPerClassMetrics: "클래스별 지표",
+      mlClusterChars: "클러스터 특성 (원본 스케일)", mlFeature: "특성", mlCluster: "클러스터",
+      mlHistoryTitle: "모델 비교 이력", mlRuns: "회",
+      mlTask: "작업", mlTarget: "목표", mlBinarySuffix: " (이진)", mlFeatures: "특성",
+      mlMetric: "지표", mlScore: "점수", mlHash: "#", mlHyperparameters: "하이퍼파라미터",
+      mlTrainModel: "모델 학습", mlComputedLocally: "— 로컬에서 계산됨.", mlModelConfig: "모델 설정",
     },
     en: {
       data: "Data", clean: "Clean", sql: "SQL", visualize: "Chart", pivot: "Pivot",
@@ -172,6 +181,14 @@
       statPredictorsX: "Predictors (X)", statRunAnalysis: "Run Analysis",
       statFooterInfo: "Exact p-values (incomplete beta/gamma). Auto-interpretation via Insight Engine at α = 0.05.",
       statTestSetup: "Test Setup",
+      mlStudio: "Machine Learning Studio", mlEmptyTitle: "Configure & train a model",
+      mlEmptyDesc: "Pick a task, target, and features on the right, then Train model. Everything runs locally — OLS regression, k-NN, Logistic + ROC, PCA, KMeans, DBSCAN, and Hierarchical clustering.",
+      mlTrained: "trained", mlPerClassMetrics: "Per-class metrics",
+      mlClusterChars: "Cluster characteristics (original scale)", mlFeature: "Feature", mlCluster: "Cluster",
+      mlHistoryTitle: "Model comparison history", mlRuns: "runs",
+      mlTask: "Task", mlTarget: "Target", mlBinarySuffix: " (binary)", mlFeatures: "Features",
+      mlMetric: "Metric", mlScore: "Score", mlHash: "#", mlHyperparameters: "Hyperparameters",
+      mlTrainModel: "Train model", mlComputedLocally: "— computed locally.", mlModelConfig: "Model Config",
     },
   };
   function t(lang, key) {

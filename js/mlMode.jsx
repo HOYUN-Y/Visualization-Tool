@@ -167,14 +167,16 @@
   function MLCenter() {
     const cfg = useStore((s) => s.ui.ml) || {};
     const theme = useStore((s) => s.theme);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const res = cfg.result;
     const hist = window.NODE.mlHistory || [];
 
     if (!res) return (
       <React.Fragment>
         <div className="phead"><span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
-          <Icon name="ml" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />Machine Learning Studio</span></div>
-        <div className="empty"><Icon name="ml" /><div className="t">Configure & train a model</div><div className="s">Pick a task, target, and features on the right, then <b>Train model</b>. Everything runs locally — OLS regression, k-NN, <b>Logistic + ROC</b>, <b>PCA</b>, KMeans, <b>DBSCAN</b>, and <b>Hierarchical</b> clustering.</div></div>
+          <Icon name="ml" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("mlStudio")}</span></div>
+        <div className="empty"><Icon name="ml" /><div className="t">{T("mlEmptyTitle")}</div><div className="s">{T("mlEmptyDesc")}</div></div>
         {hist.length > 0 && <ModelHistory hist={hist} />}
       </React.Fragment>
     );
@@ -261,12 +263,12 @@
       <React.Fragment>
         <div className="phead"><span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
           <Icon name="ml" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{{ reg: "Linear Regression", clf: "k-NN Classification", logit: "Logistic Regression", pca: "Principal Component Analysis", km: "KMeans Clustering", dbscan: "DBSCAN Clustering", hier: "Hierarchical Clustering" }[res.kind] || "Model"}</span>
-          <span className="badge mono">trained · {res.nTrain} rows</span></div>
+          <span className="badge mono">{T("mlTrained")} · {res.nTrain} {T("rows")}</span></div>
 
         {/* Auto-interpretation */}
         {summary && (
           <div className="interpretation-panel" style={{ margin: "8px 12px 0" }}>
-            <div className="ip-head"><Icon name="bolt" size={13} /> Interpretation</div>
+            <div className="ip-head"><Icon name="bolt" size={13} /> {T("statInterpretation")}</div>
             <div className="ip-body">{summaryParts.map((p, i) => i % 2 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>)}</div>
           </div>
         )}
@@ -283,7 +285,7 @@
         {/* Per-class metrics for classification */}
         {res.kind === "clf" && res.perClass && (
           <div className="clf-metrics">
-            <div className="ml-charttitle">Per-class metrics</div>
+            <div className="ml-charttitle">{T("mlPerClassMetrics")}</div>
             <table className="model-comparison-table">
               <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>TP</th><th>FP</th><th>FN</th></tr></thead>
               <tbody>{res.perClass.map((pc) => (
@@ -302,9 +304,9 @@
         {/* Cluster means table */}
         {res.kind === "km" && res.clusterMeans && (
           <div className="clf-metrics">
-            <div className="ml-charttitle">Cluster characteristics (original scale)</div>
+            <div className="ml-charttitle">{T("mlClusterChars")}</div>
             <table className="model-comparison-table">
-              <thead><tr><th>Feature</th>{res.clusterMeans.map((_, i) => <th key={i}>Cluster {i + 1} (n={res.sizes[i]})</th>)}</tr></thead>
+              <thead><tr><th>{T("mlFeature")}</th>{res.clusterMeans.map((_, i) => <th key={i}>{T("mlCluster")} {i + 1} (n={res.sizes[i]})</th>)}</tr></thead>
               <tbody>{res.feats.map((f) => (
                 <tr key={f}>
                   <td style={{ color: "var(--tx-hi)", fontWeight: 500 }}>{f}</td>
@@ -351,7 +353,7 @@
           <div className="clf-metrics">
             <div className="ml-charttitle">Component loadings (PC1 · PC2)</div>
             <table className="model-comparison-table">
-              <thead><tr><th>Feature</th><th>PC1</th><th>PC2</th></tr></thead>
+              <thead><tr><th>{T("mlFeature")}</th><th>PC1</th><th>PC2</th></tr></thead>
               <tbody>{res.biplot.loadings.map((l) => (
                 <tr key={l.key}><td style={{ color: "var(--tx-hi)", fontWeight: 500 }}>{l.key}</td><td className="mono">{l.x.toFixed(3)}</td><td className="mono">{l.y.toFixed(3)}</td></tr>
               ))}</tbody>
@@ -366,12 +368,14 @@
   }
 
   function ModelHistory({ hist }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     if (!hist || hist.length === 0) return null;
     return (
       <div className="clf-metrics" style={{ padding: "0 12px 12px" }}>
-        <div className="ml-charttitle">Model comparison history ({hist.length} runs)</div>
+        <div className="ml-charttitle">{T("mlHistoryTitle")} ({hist.length} {T("mlRuns")})</div>
         <table className="model-comparison-table">
-          <thead><tr><th>#</th><th>Task</th><th>Target</th><th>Metric</th><th>Score</th></tr></thead>
+          <thead><tr><th>{T("mlHash")}</th><th>{T("mlTask")}</th><th>{T("mlTarget")}</th><th>{T("mlMetric")}</th><th>{T("mlScore")}</th></tr></thead>
           <tbody>{[...hist].reverse().map((h, i) => (
             <tr key={i}>
               <td className="mono" style={{ color: "var(--tx-faint)" }}>{hist.length - i}</td>
@@ -391,6 +395,8 @@
   function MLPanel() {
     const activeId = useStore((s) => s.activeId);
     const cfgS = useStore((s) => s.ui.ml);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const { columns, rows } = derive.getActiveData(activeId);
     const numCols = mlNums(columns);
     const catCols = mlCats(columns);
@@ -441,7 +447,7 @@
     return (
       <div className="mlpanel">
         <div className="cp-block">
-          <div className="cp-blocktitle">Task</div>
+          <div className="cp-blocktitle">{T("mlTask")}</div>
           <div className="ml-tasks">
             {[["reg", "Regression"], ["clf", "k-NN Classify"], ["logit", "Logistic + ROC"], ["pca", "PCA"], ["km", "KMeans"], ["dbscan", "DBSCAN"], ["hier", "Hierarchical"]].map(([k, l]) => {
               const catTask = k === "clf" || k === "logit";
@@ -453,7 +459,7 @@
 
         {needsTarget && (
           <div className="cp-block">
-            <div className="cp-blocktitle">Target{cfg.task === "logit" ? " (binary)" : ""}</div>
+            <div className="cp-blocktitle">{T("mlTarget")}{cfg.task === "logit" ? T("mlBinarySuffix") : ""}</div>
             <select className="sel" style={{ width: "100%" }} value={cfg.target} onChange={(e) => set({ target: e.target.value })}>
               {targets.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
             </select>
@@ -461,7 +467,7 @@
         )}
 
         <div className="cp-block">
-          <div className="cp-blocktitle">Features</div>
+          <div className="cp-blocktitle">{T("mlFeatures")}</div>
           <div className="ml-feats">
             {featPool.map((c) => {
               const on = cfg.feats.includes(c.key);
@@ -475,7 +481,7 @@
         </div>
 
         <div className="cp-block">
-          <div className="cp-blocktitle">Hyperparameters</div>
+          <div className="cp-blocktitle">{T("mlHyperparameters")}</div>
           {(cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit") && (
             <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Test split</span>
               <div className="seg">{[0.2, 0.3, 0.4].map((s) => <button key={s} className={cfg.split === s ? "on" : ""} onClick={() => set({ split: s })}>{s * 100}%</button>)}</div></div>
@@ -502,7 +508,7 @@
         {rows.length > 5000 && (cfg.task === "dbscan" || cfg.task === "hier") && (
           <div className="cf-info" style={{ borderColor: "var(--warn)" }}><Icon name="info" size={14} /><div>{rows.length.toLocaleString()}행 — {cfg.task === "dbscan" ? "DBSCAN" : "계층군집"}은 O(n²)라 5k행 초과 시 느릴 수 있습니다.</div></div>
         )}
-        <button className="btn primary" style={{ width: "100%", height: 32 }} onClick={train}><Icon name="play" size={13} /> Train model</button>
+        <button className="btn primary" style={{ width: "100%", height: 32 }} onClick={train}><Icon name="play" size={13} /> {T("mlTrainModel")}</button>
         <div className="cf-info"><Icon name="bolt" size={14} /><div>{{
           reg: "OLS via normal equations",
           clf: "k-NN on standardized features + Precision/Recall/F1",
@@ -511,13 +517,15 @@
           km: "Lloyd's KMeans + cluster characteristics table",
           dbscan: "Density-based clustering (eps/minPts) + noise detection",
           hier: "Agglomerative hierarchical (Ward) + flat cut at K",
-        }[cfg.task] || ""} — computed locally.</div></div>
+        }[cfg.task] || ""} {T("mlComputedLocally")}</div></div>
       </div>
     );
   }
 
   window.MlMode = function () {
-    return <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
-      center={<MLCenter />} right={<MLPanel />} rightTitle="Model Config" />;
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
+    return <window.Workspace left={<window.DatasetTree />} leftTitle={T("dashDataExplorer")}
+      center={<MLCenter />} right={<MLPanel />} rightTitle={T("mlModelConfig")} />;
   };
 })();
