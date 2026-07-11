@@ -63,7 +63,7 @@
   // editable: enables JMP/Excel-style editing. `edit` provides callbacks:
   //   { onCell(rid,key,val), onDeleteRows(rids), onAddRow(), onAddCol(),
   //     onRename(key,to), onChangeType(key,type), onInsertCol(atIndex), onDeleteCol(key), onReorder(orderKeys) }
-  function DataGrid({ columns, rows, selCol, onSelectCol, pageSize = 100, compact, idStart = 1, editable = false, edit = null }) {
+  function DataGrid({ columns, rows, selCol, onSelectCol, pageSize = 100, compact, idStart = 1, editable = false, edit = null, cellEditable = true }) {
     const [sort, setSort] = React.useState(null);     // {key,dir}
     const [hidden, setHidden] = React.useState(() => new Set());
     const [frozen, setFrozen] = React.useState(() => new Set());
@@ -276,17 +276,19 @@
                       </td>;
                     }
                     const f = fmtCell(r[c.key], c);
-                    const cls = [f.cls === "num" ? "num" : "", selCol === c.key ? "sel" : "", fr ? "frozen" : "", editable ? "editable" : ""].filter(Boolean).join(" ");
-                    const dbl = editable && rid != null ? () => startCell(rid, c.key, r[c.key]) : undefined;
-                    if (f.isNull) return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}><span className="cell-null">null</span></td>;
+                    const canEditCell = editable && cellEditable && rid != null;
+                    const cls = [f.cls === "num" ? "num" : "", selCol === c.key ? "sel" : "", fr ? "frozen" : "", canEditCell ? "editable" : ""].filter(Boolean).join(" ");
+                    const dbl = canEditCell ? () => startCell(rid, c.key, r[c.key]) : undefined;
+                    const cellTitle = canEditCell ? "클릭해서 수정" : undefined;
+                    if (f.isNull) return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}><span className="cell-null">null</span></td>;
                     if (c.type === "category" && cmaps[c.key]) {
-                      return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}><span className="cell-cat" style={{ "--swatch": cmaps[c.key][r[c.key]] || "var(--tx-faint)" }}>{f.text}</span></td>;
+                      return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}><span className="cell-cat" style={{ "--swatch": cmaps[c.key][r[c.key]] || "var(--tx-faint)" }}>{f.text}</span></td>;
                     }
                     if (f.cls === "num" && extents[c.key] && c.role === "measure") {
                       const [lo, hi] = extents[c.key]; const pct = hi > lo ? Math.max(2, ((f.num - lo) / (hi - lo)) * 100) : 0;
-                      return <td key={c.key} className={cls + " databar"} style={style} onDoubleClick={dbl}><span className="fill" style={{ width: pct + "%" }} /><span className="val">{f.text}</span></td>;
+                      return <td key={c.key} className={cls + " databar"} style={style} onClick={dbl} title={cellTitle}><span className="fill" style={{ width: pct + "%" }} /><span className="val">{f.text}</span></td>;
                     }
-                    return <td key={c.key} className={cls} style={style} onDoubleClick={dbl}>{f.text}</td>;
+                    return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}>{f.text}</td>;
                   })}
                 </tr>
                 );
@@ -299,6 +301,7 @@
           <div className="grid-editbar">
             <button className="btn ghost sm" onClick={() => edit.onAddRow()}><Icon name="plus" size={12} /> Add row</button>
             <button className="btn ghost sm" onClick={() => edit.onAddCol()}><Icon name="plus" size={12} /> Add column</button>
+            {cellEditable && <span className="meta" style={{ marginLeft: 4, color: "var(--tx-faint)", fontSize: "var(--fs-11)" }}><Icon name="edit" size={11} style={{ verticalAlign: "-1px" }} /> 셀을 클릭해 수정 · 헤더 ⋯ 로 열 편집</span>}
             <div className="spacer" style={{ flex: 1 }} />
             {selRows.size > 0 && (
               <React.Fragment>

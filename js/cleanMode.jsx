@@ -109,7 +109,7 @@
 
         <DataGrid columns={columns} rows={rows} pageSize={100}
           selCol={selCol} onSelectCol={(k) => actions.setUI({ selCol: k })}
-          editable={true} edit={editHandlers} />
+          editable={true} cellEditable={false} edit={editHandlers} />
       </React.Fragment>
     );
   }
