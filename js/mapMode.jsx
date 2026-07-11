@@ -681,16 +681,14 @@
     else                  { center = <WorldMapCenter />; right = <WorldPanel />; rtitle = "Countries"; }
 
     const tabBar = (
-      <div style={{ background: "var(--bg-1)", borderBottom: "1px solid var(--line)",
-        display: "flex", gap: 0, padding: "0 10px", flexShrink: 0 }}>
-        {MAP_TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ padding: "7px 14px", fontSize: 12, fontWeight: 600, background: "none", border: "none",
-              borderBottom: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent",
-              color: tab === t.id ? "var(--accent)" : "var(--tx-lo)", cursor: "pointer", transition: "all .12s" }}>
-            {t.label}
-          </button>
-        ))}
+      <div className="phead" style={{ height: "var(--tab-h)", paddingLeft: 10, flexShrink: 0 }}>
+        <div className="tabs">
+          {MAP_TABS.map((t) => (
+            <button key={t.id} className={"tab" + (tab === t.id ? " on" : "")} onClick={() => setTab(t.id)}>
+              <Icon name="map" size={13} /> {t.label}
+            </button>
+          ))}
+        </div>
       </div>
     );
 
