@@ -59,3 +59,11 @@
   border-radius: var(--r-sm);
   overflow: hidden;
 }
+
+/* Auto chart recommendation banner (Show Me) */
+.viz-rec { display: flex; align-items: flex-start; gap: 7px; width: calc(100% - 24px); margin: 10px 12px 4px; padding: 8px 10px;
+  border: 1px solid var(--accent-line, var(--accent)); border-radius: var(--r-md); background: var(--accent-soft);
+  color: var(--tx-hi); font-size: var(--fs-11); text-align: left; cursor: pointer; line-height: 1.4; transition: .12s; }
+.viz-rec:hover { background: color-mix(in oklch, var(--accent), transparent 78%); }
+.viz-rec svg { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+.viz-rec b { color: var(--accent-hi, var(--accent)); text-transform: capitalize; }

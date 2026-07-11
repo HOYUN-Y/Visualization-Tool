@@ -651,9 +651,14 @@
   function VizPanel() {
     const viz = useStore((s) => s.viz);
     const activeId = useStore((s) => s.activeId);
-    const { columns } = derive.getActiveData(activeId);
+    const { columns, rows } = derive.getActiveData(activeId);
     const nDim = viz.cols.length, nMeas = viz.rows.length;
     const hasOHLC = ["open", "high", "low", "close"].every((k) => columns.some((c) => c.key === k));
+
+    const rec = window.ChartAdvisor ? window.ChartAdvisor.recommend(
+      viz.cols.map((c) => ({ key: c.key, type: c.type, cardinality: (c.type === "category" || c.type === "string") ? new Set(rows.map((r) => r[c.key])).size : null })),
+      viz.rows, { hasOHLC }
+    ) : null;
 
     const valid = (need) => {
       if (need === "fin")    return hasOHLC;
@@ -666,6 +671,11 @@
 
     return (
       <div className="vizpanel">
+        {rec && rec.type && rec.type !== viz.type && (
+          <button className="viz-rec" onClick={() => actions.setViz({ type: rec.type })} title={rec.reason}>
+            <Icon name="bolt" size={13} /><span><b>Show Me:</b> {rec.type} — {rec.reason}</span>
+          </button>
+        )}
         {CHART_GROUPS.map((group) => (
           <div key={group.label} className="cp-block">
             <div className="cp-blocktitle">{group.label}</div>

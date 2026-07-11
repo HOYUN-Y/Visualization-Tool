@@ -22,6 +22,7 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
 <script src="../js/distributionFit.js"></script>
 <script src="../js/spc.js"></script>
 <script src="../js/clustering.js"></script>
+<script src="../js/chartAdvisor.js"></script>
 <script>
 (async function(){
   const results=[];
@@ -120,6 +121,12 @@ body{margin:0;padding:32px;background:#17191c;color:#dfe2e6;font:14px system-ui,
     const rows=[{x:0,y:0},{x:.5,y:0},{x:0,y:.5},{x:10,y:10},{x:10.5,y:10},{x:10,y:10.5}];
     const r=Clustering.dbscan(rows,["x","y"],{eps:1.5,minPts:2,standardize:false});
     if(r.clusters!==2)throw new Error("clusters "+r.clusters);
+  });
+
+  await check("ChartAdvisor recommends sensible chart types",async()=>{
+    equal(ChartAdvisor.recommend([{key:"m",type:"datetime"}],[{key:"v"}]).type,"line");
+    equal(ChartAdvisor.recommend([],[{key:"a"},{key:"b"}]).type,"scatter");
+    equal(ChartAdvisor.recommend([{key:"a",type:"category"},{key:"b",type:"category"}],[{key:"v"}]).type,"heatmap");
   });
 
   const passed=results.filter(r=>r.ok).length;
