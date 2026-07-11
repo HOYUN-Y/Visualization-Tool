@@ -33,6 +33,7 @@
   let _worldGeoState  = "idle";
 
   function MapCenter() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko"; const T = (k) => window.I18N.t(lang, k);
     const theme = useStore((s) => s.theme);
     const sel = useStore((s) => s.dash.cross); // reuse cross as map selection
     const [metric, setMetric] = React.useState("avg_price_per_m2");
@@ -95,19 +96,19 @@
       <React.Fragment>
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
-            <Icon name="map" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />Geo Map · Seoul
+            <Icon name="map" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("mapGeoMapSeoul")}
           </span>
           <div className="seg" style={{ marginLeft: 6 }}>
             {METRICS.map((x) => <button key={x.k} className={metric === x.k ? "on" : ""} onClick={() => setMetric(x.k)}>{x.label}</button>)}
           </div>
           <div className="spacer" />
           <div className="seg">
-            <button className={view === "choropleth" ? "on" : ""} disabled={geo !== "ok"} onClick={() => setView("choropleth")}>Choropleth</button>
-            <button className={view === "bubble" ? "on" : ""} onClick={() => setView("bubble")}>Bubble</button>
+            <button className={view === "choropleth" ? "on" : ""} disabled={geo !== "ok"} onClick={() => setView("choropleth")}>{T("mapChoropleth")}</button>
+            <button className={view === "bubble" ? "on" : ""} onClick={() => setView("bubble")}>{T("mapBubble")}</button>
           </div>
         </div>
-        {geo === "fail" && <div className="map-note"><Icon name="info" size={12} /> District boundaries unavailable offline — showing bubble map from lat/lon coordinates.</div>}
-        {geo === "idle" && <div className="map-note"><Icon name="info" size={12} /> Loading Seoul district boundaries…</div>}
+        {geo === "fail" && <div className="map-note"><Icon name="info" size={12} /> {T("mapDistrictBoundariesOffline")}</div>}
+        {geo === "idle" && <div className="map-note"><Icon name="info" size={12} /> {T("mapLoadingSeoulBoundaries")}</div>}
         <div className="vizcanvas" style={{ padding: 0 }}>
           <EChart option={option} theme={theme + view + geo} onEvents={onEvents} style={{ height: "100%" }} />
         </div>
@@ -116,6 +117,7 @@
   }
 
   function MapPanel() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko"; const T = (k) => window.I18N.t(lang, k);
     const sel = useStore((s) => s.dash.cross);
     const [metric] = [useStore((s) => s.ui.mapMetric) || "avg_price_per_m2"];
     const ds = NODE.datasets.find((d) => d.id === "district_stats");
@@ -127,7 +129,7 @@
     return (
       <div className="mappanel">
         <div className="cp-block">
-          <div className="cp-blocktitle">District leaderboard · ₩/m²</div>
+          <div className="cp-blocktitle">{T("mapDistrictLeaderboard")}</div>
           <div className="maprank">
             {rank.map((r, i) => (
               <div key={r.d} className={"mr-row" + (selD === r.d ? " sel" : "")} onClick={() => actions.setCross({ key: "district", value: r.d, source: "map" })}>
@@ -145,15 +147,15 @@
           return (
             <div className="cp-block">
               <div className="cp-blocktitle">{selD}</div>
-              <div className="kv"><span className="k">Avg ₩/m²</span><span className="v mono">{NODE.fmtNum(r.avg_price_per_m2, 0)}만</span></div>
-              <div className="kv"><span className="k">Avg price</span><span className="v mono">{NODE.fmtWon(r.avg_price_manwon)}</span></div>
-              <div className="kv"><span className="k">Transactions</span><span className="v mono">{r.txn_count}</span></div>
-              <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => actions.setCross(null)}><Icon name="x" /> Clear selection</button>
+              <div className="kv"><span className="k">{T("mapAvgPricePerM2")}</span><span className="v mono">{NODE.fmtNum(r.avg_price_per_m2, 0)}만</span></div>
+              <div className="kv"><span className="k">{T("mapAvgPrice")}</span><span className="v mono">{NODE.fmtWon(r.avg_price_manwon)}</span></div>
+              <div className="kv"><span className="k">{T("mapTransactions")}</span><span className="v mono">{r.txn_count}</span></div>
+              <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => actions.setCross(null)}><Icon name="x" /> {T("mapClearSelection")}</button>
             </div>
           );
         })()}
         <div className="cp-block">
-          <div className="cf-info"><Icon name="bolt" size={14} /><div>Click any district on the map or list to select it. Choropleth shades by the chosen metric; switch to Bubble for a coordinate view.</div></div>
+          <div className="cf-info"><Icon name="bolt" size={14} /><div>{T("mapSeoulInfo")}</div></div>
         </div>
       </div>
     );
@@ -560,6 +562,7 @@
 
   // ── World Map ────────────────────────────────────────────────────
   function WorldMapCenter() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko"; const T = (k) => window.I18N.t(lang, k);
     const theme = useStore((s) => s.theme);
     const [metric, setMetric] = React.useState("gdp_bn");
     const [geoW, setGeoW] = React.useState(_worldGeoState);
@@ -616,14 +619,14 @@
       <React.Fragment>
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
-            <Icon name="map" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />World Map · GDP 2023
+            <Icon name="map" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("mapWorldMapTitle")}
           </span>
           <div className="seg" style={{ marginLeft: 6 }}>
             {WORLD_METRICS.map((x) => <button key={x.k} className={metric === x.k ? "on" : ""} onClick={() => setMetric(x.k)}>{x.label}</button>)}
           </div>
         </div>
         {geoW === "fail" && <div className="map-note"><Icon name="info" size={12} /> 세계 지도 GeoJSON 로드 실패 (인터넷 연결 확인)</div>}
-        {geoW === "idle" && <div className="map-note"><Icon name="info" size={12} /> Loading world boundaries…</div>}
+        {geoW === "idle" && <div className="map-note"><Icon name="info" size={12} /> {T("mapLoadingWorldBoundaries")}</div>}
         <div className="vizcanvas" style={{ padding: 0 }}>
           {geoW === "ok"
             ? <EChart option={option} theme={theme + metric + geoW} style={{ height: "100%" }} />
@@ -636,6 +639,7 @@
   }
 
   function WorldPanel() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko"; const T = (k) => window.I18N.t(lang, k);
     const ds = NODE.datasets.find((d) => d.id === "world_gdp");
     const rows = ds ? [...ds.rows].sort((a, b) => b.gdp_bn - a.gdp_bn) : [];
     const maxGDP = rows.length ? Math.max(...rows.map((r) => r.gdp_bn), 1) : 1;
@@ -643,7 +647,7 @@
     return (
       <div className="mappanel">
         <div className="cp-block">
-          <div className="cp-blocktitle">GDP Ranking · 2023</div>
+          <div className="cp-blocktitle">{T("mapGdpRanking")}</div>
           <div className="maprank">
             {rows.map((r, i) => (
               <div key={r.country} className="mr-row">
@@ -656,7 +660,7 @@
           </div>
         </div>
         <div className="cp-block">
-          <div className="cp-blocktitle">Regions</div>
+          <div className="cp-blocktitle">{T("mapRegions")}</div>
           {regions.map((reg) => {
             const rRows = rows.filter((r) => r.region === reg);
             const total = rRows.reduce((s, r) => s + r.gdp_bn, 0);
@@ -817,25 +821,26 @@
   // Rendered as <MapModeRoot /> by window.MapMode so hooks work correctly
   const MAP_TABS = [
     { id: "mydata", label: "내 데이터" },
-    { id: "seoul", label: "Seoul · 구" },
-    { id: "korea", label: "Korea · 행정구역" },
-    { id: "world", label: "World · GDP" },
+    { id: "seoul", labelKey: "mapTabSeoul" },
+    { id: "korea", labelKey: "mapTabKorea" },
+    { id: "world", labelKey: "mapTabWorld" },
   ];
 
   function MapModeRoot() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko"; const T = (k) => window.I18N.t(lang, k);
     const [tab, setTab] = React.useState("mydata");
     let center, right, rtitle;
     if (tab === "mydata") { center = <MyDataMapCenter />; right = <MyDataMapPanel />; rtitle = "내 데이터"; }
-    else if (tab === "seoul")  { center = <MapCenter />;      right = <MapPanel />;   rtitle = "Districts"; }
-    else if (tab === "korea") { center = <KoreaMapCenter />; right = <KoreaPanel />; rtitle = "Korea"; }
-    else                  { center = <WorldMapCenter />; right = <WorldPanel />; rtitle = "Countries"; }
+    else if (tab === "seoul")  { center = <MapCenter />;      right = <MapPanel />;   rtitle = T("mapRightDistricts"); }
+    else if (tab === "korea") { center = <KoreaMapCenter />; right = <KoreaPanel />; rtitle = T("mapRightKorea"); }
+    else                  { center = <WorldMapCenter />; right = <WorldPanel />; rtitle = T("mapRightCountries"); }
 
     const tabBar = (
       <div className="phead" style={{ height: "var(--tab-h)", paddingLeft: 10, flexShrink: 0 }}>
         <div className="tabs">
           {MAP_TABS.map((t) => (
             <button key={t.id} className={"tab" + (tab === t.id ? " on" : "")} onClick={() => setTab(t.id)}>
-              <Icon name="map" size={13} /> {t.label}
+              <Icon name="map" size={13} /> {t.labelKey ? T(t.labelKey) : t.label}
             </button>
           ))}
         </div>
@@ -845,7 +850,7 @@
     return (
       <div style={{ display: "grid", gridTemplateRows: "auto 1fr", minHeight: 0, overflow: "hidden" }}>
         {tabBar}
-        <window.Workspace key={tab} left={<window.DatasetTree />} leftTitle="Data Explorer"
+        <window.Workspace key={tab} left={<window.DatasetTree />} leftTitle={T("dashDataExplorer")}
           center={center} right={right} rightTitle={rtitle} />
       </div>
     );
