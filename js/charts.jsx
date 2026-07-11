@@ -91,18 +91,45 @@
   }
 
   // ── Export helpers ───────────────────────────────────────────────
-  function downloadPNG(filename) {
+  function downloadPNG(filename, background) {
     const inst = Charts.lastInst;
     if (!inst) return false;
     try {
       const opt = inst.getOption ? inst.getOption() : null;
-      const bg = (opt && opt.backgroundColor) || resolveVar("--bg-1");
+      const bg = background !== undefined ? background : ((opt && opt.backgroundColor) || resolveVar("--bg-1"));
       const url = inst.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: bg });
       const a = document.createElement("a");
       a.href = url; a.download = (filename || "chart") + ".png";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       return true;
     } catch (e) { window.LOG && window.LOG.error && window.LOG.error("export", "PNG failed: " + e.message); return false; }
+  }
+
+  // Vector SVG export — re-render the current option with the SVG renderer offscreen.
+  function downloadSVG(filename, background) {
+    const inst = Charts.lastInst;
+    if (!inst || typeof echarts === "undefined") return false;
+    let svgInst = null, div = null;
+    try {
+      const opt = inst.getOption();
+      const w = inst.getWidth() || 800, h = inst.getHeight() || 500;
+      div = document.createElement("div");
+      div.style.cssText = "position:absolute;left:-99999px;top:0;width:" + w + "px;height:" + h + "px;";
+      document.body.appendChild(div);
+      svgInst = echarts.init(div, null, { renderer: "svg" });
+      const bg = background !== undefined ? background : ((opt && opt.backgroundColor) || "transparent");
+      svgInst.setOption({ ...opt, backgroundColor: bg });
+      let svg = svgInst.renderToSVGString ? svgInst.renderToSVGString() : null;
+      if (!svg) { const u = svgInst.getDataURL({ type: "svg" }); svg = decodeURIComponent((u.split(",")[1] || "").replace(/^base64,/, "")); }
+      const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = (filename || "chart") + ".svg";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
+    } catch (e) { window.LOG && window.LOG.error && window.LOG.error("export", "SVG failed: " + e.message); return false; }
+    finally { if (svgInst) svgInst.dispose(); if (div && div.parentNode) div.parentNode.removeChild(div); }
   }
 
   function downloadCSV(rows, columns, filename) {
@@ -122,5 +149,5 @@
     return true;
   }
 
-  window.Charts = { resolveVar, palette, themeColors, baseGrid, EChart, downloadPNG, downloadCSV, lastInst: null };
+  window.Charts = { resolveVar, palette, themeColors, baseGrid, EChart, downloadPNG, downloadSVG, downloadCSV, lastInst: null };
 })();

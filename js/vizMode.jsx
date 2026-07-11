@@ -793,11 +793,16 @@
       ? `${measures.map((m) => `${m.agg.toUpperCase()}(${m.label})`).join(", ")} by ${viz.cols.map((c) => c.label).join(", ")}`
       : "Untitled visualization";
 
-    const exportPNG = () => {
-      const ok = window.Charts.downloadPNG("insight-" + (viz.type || "chart"));
+    const [expOpen, setExpOpen] = React.useState(false);
+    const doExport = (kind, bg) => {
+      const name = "insight-" + (viz.type || "chart");
+      const bgVal = bg === "current" ? undefined : (bg === "white" ? "#ffffff" : "transparent");
+      const ok = kind === "svg" ? window.Charts.downloadSVG(name, bgVal) : window.Charts.downloadPNG(name, bgVal);
       if (!ok) alert("차트를 먼저 그려주세요. / Draw a chart first.");
-      else window.LOG && window.LOG.info("export", "Chart PNG exported");
+      else window.LOG && window.LOG.info("export", kind.toUpperCase() + " exported · " + bg);
+      setExpOpen(false);
     };
+    const piStyle = { width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8, padding: "7px 14px" };
     const saveToDash = () => {
       if (!measures.length) { alert("측정값을 먼저 올려주세요. / Add a measure first."); return; }
       const st = window.Store.getState();
@@ -868,7 +873,24 @@
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>{title}</span>
           <div className="spacer" />
-          <button className="btn ghost sm" onClick={exportPNG}><Icon name="download" /> PNG</button>
+          <div style={{ position: "relative" }}>
+            <button className="btn ghost sm" onClick={() => setExpOpen((v) => !v)}><Icon name="download" /> Export</button>
+            {expOpen && (
+              <React.Fragment>
+                <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setExpOpen(false)} />
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 8001, background: "var(--bg-2)", border: "1px solid var(--line-strong)", borderRadius: "var(--r-md)", boxShadow: "var(--shadow-pop)", minWidth: 176, overflow: "hidden", padding: "6px 0" }}>
+                  <div className="ph" style={{ padding: "3px 12px" }}>PNG 이미지</div>
+                  <button className="pi" style={piStyle} onClick={() => doExport("png", "current")}><Icon name="image" size={13} /> 현재 배경</button>
+                  <button className="pi" style={piStyle} onClick={() => doExport("png", "white")}><Icon name="image" size={13} /> 흰색 배경</button>
+                  <button className="pi" style={piStyle} onClick={() => doExport("png", "transparent")}><Icon name="image" size={13} /> 투명 배경</button>
+                  <div className="sep" />
+                  <div className="ph" style={{ padding: "3px 12px" }}>SVG · 벡터</div>
+                  <button className="pi" style={piStyle} onClick={() => doExport("svg", "current")}><Icon name="visualize" size={13} /> 현재 배경</button>
+                  <button className="pi" style={piStyle} onClick={() => doExport("svg", "transparent")}><Icon name="visualize" size={13} /> 투명 배경</button>
+                </div>
+              </React.Fragment>
+            )}
+          </div>
           <button className="btn sm" onClick={saveToDash}><Icon name="save" /> Save to dashboard</button>
         </div>
         <div className="shelfbar">
