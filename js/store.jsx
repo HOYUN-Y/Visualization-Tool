@@ -401,6 +401,8 @@
       return { ...s, viz };
     }),
     setRowAgg: (key, agg) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, agg, id: r.key + "_" + agg } : r) } })),
+    setRowMark: (key, mark) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, mark } : r) } })),
+    setRowAxis: (key, axis) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, axis } : r) } })),
 
     // dashboard
     setDash: (patch) => setState((s) => ({ ...s, dash: { ...s.dash, ...patch } })),

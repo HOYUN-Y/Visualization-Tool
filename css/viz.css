@@ -67,3 +67,9 @@
 .viz-rec:hover { background: color-mix(in oklch, var(--accent), transparent 78%); }
 .viz-rec svg { color: var(--accent); flex-shrink: 0; margin-top: 1px; }
 .viz-rec b { color: var(--accent-hi, var(--accent)); text-transform: capitalize; }
+
+/* Combo measure-chip mark/axis badge */
+.chip.meas .mk { display: inline-flex; align-items: center; gap: 1px; margin: 0 3px; padding: 0 3px; height: 15px;
+  border-radius: 3px; background: var(--accent-soft); color: var(--accent-hi, var(--accent));
+  font-size: 8px; font-weight: 700; cursor: pointer; }
+.chip.meas .mk svg { display: block; }

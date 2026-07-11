@@ -16,6 +16,7 @@
         { id: "hbar",     label: "H-Bar",     icon: "bar",       need: "1d+1m" },
         { id: "line",     label: "Line",      icon: "line",      need: "1d+1m" },
         { id: "area",     label: "Area",      icon: "area",      need: "1d+1m" },
+        { id: "combo",    label: "Combo",     icon: "trend",     need: "1d+1m" },
         { id: "pie",      label: "Pie",       icon: "pie",       need: "1d+1m" },
         { id: "scatter",  label: "Scatter",   icon: "scatter",   need: "2m"    },
         { id: "treemap",  label: "Treemap",   icon: "treemap",   need: "1d+1m" },
@@ -86,20 +87,42 @@
     );
   }
 
-  function MeasureChip({ chip }) {
+  const MARKS = [["bar", "Bar"], ["line", "Line"], ["area", "Area"]];
+  function MeasureChip({ chip, combo }) {
     const [menu, setMenu] = React.useState(null);
+    const markIcon = combo ? { bar: "bar", line: "line", area: "area" }[chip.mark || "bar"] : null;
     return (
       <span className="chip meas">
         <span className="agg" onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}>{chip.agg.toUpperCase()}</span>
+        {combo && <span className="mk" title={"mark: " + (chip.mark || "bar") + (chip.axis ? " · right axis" : "")} onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}><Icon name={markIcon} size={11} />{chip.axis ? "R" : ""}</span>}
         {chip.label}
         <span className="x" onClick={() => actions.removeFromShelf("rows", chip.key)}><Icon name="x" size={12} /></span>
         {menu && (
           <Popover anchor={menu} onClose={() => setMenu(null)}>
+            <div className="ph">Aggregation</div>
             {AGGS.map((a) => (
               <div key={a} className="pi" onClick={() => { actions.setRowAgg(chip.key, a); setMenu(null); }}>
                 {chip.agg === a && <Icon name="check" size={13} />}<span style={{ marginLeft: chip.agg === a ? 0 : 21 }}>{a.toUpperCase()}</span>
               </div>
             ))}
+            {combo && (
+              <React.Fragment>
+                <div className="sep" />
+                <div className="ph">Mark</div>
+                {MARKS.map(([mk, lbl]) => (
+                  <div key={mk} className="pi" onClick={() => { actions.setRowMark(chip.key, mk); }}>
+                    {(chip.mark || "bar") === mk && <Icon name="check" size={13} />}<span style={{ marginLeft: (chip.mark || "bar") === mk ? 0 : 21 }}>{lbl}</span>
+                  </div>
+                ))}
+                <div className="sep" />
+                <div className="ph">Axis</div>
+                {[[0, "Left (primary)"], [1, "Right (secondary)"]].map(([ax, lbl]) => (
+                  <div key={ax} className="pi" onClick={() => { actions.setRowAxis(chip.key, ax); }}>
+                    {(chip.axis || 0) === ax && <Icon name="check" size={13} />}<span style={{ marginLeft: (chip.axis || 0) === ax ? 0 : 21 }}>{lbl}</span>
+                  </div>
+                ))}
+              </React.Fragment>
+            )}
           </Popover>
         )}
       </span>
@@ -188,15 +211,22 @@
         };
       }
 
-      // plain candlestick
+      // plain candlestick + moving-average line overlay (candle + line)
+      const closeArr = sorted.map((r) => r.close);
+      const movAvg = (n) => closeArr.map((_, i) => i < n - 1 ? null : NODE.round(closeArr.slice(i - n + 1, i + 1).reduce((a, b) => a + b, 0) / n, 2));
       return {
         animation: false, backgroundColor: "transparent",
-        grid: { ...base.grid, top: 16, bottom: 40, left: 55 },
+        legend: { top: 0, textStyle: { color: c.text, fontSize: 10 }, data: ["MA5", "MA20"] },
+        grid: { ...base.grid, top: 26, bottom: 40, left: 55 },
         xAxis: { type: "category", data: dates, ...axisCommon, axisLabel: { ...axisCommon.axisLabel, rotate: 35, interval: Math.max(1, Math.floor(dates.length / 8)) } },
         yAxis: { type: "value", scale: true, ...axisCommon, axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal } },
         tooltip: { trigger: "axis", axisPointer: { type: "cross" }, backgroundColor: c.bg2, borderColor: c.line, textStyle: { color: c.text, fontSize: 11 } },
         dataZoom: [{ type: "inside", start: Math.max(0, 100 - Math.round(6000 / dates.length)), end: 100 }],
-        series: [{ type: "candlestick", data: ohlcData, itemStyle: { color: upColor, color0: downColor, borderColor: upColor, borderColor0: downColor } }],
+        series: [
+          { name: "Price", type: "candlestick", data: ohlcData, itemStyle: { color: upColor, color0: downColor, borderColor: upColor, borderColor0: downColor } },
+          { name: "MA5", type: "line", data: movAvg(5), showSymbol: false, smooth: true, lineStyle: { color: pal[4], width: 1.2 }, itemStyle: { color: pal[4] } },
+          { name: "MA20", type: "line", data: movAvg(20), showSymbol: false, smooth: true, lineStyle: { color: pal[2], width: 1.2 }, itemStyle: { color: pal[2] } },
+        ],
       };
     }
 
@@ -529,6 +559,42 @@
       };
     }
 
+    // ── Combo (mixed marks + dual axis, Excel-style secondary axis) ──────────
+    if (type === "combo") {
+      let order = [...new Set(agg.map((r) => r[xKey]))].map((cat) => { const f = agg.find((r) => r[xKey] === cat); return { cat, v: f ? (f[m0.id] || 0) : 0 }; });
+      order.sort((a, b) => sortDesc ? b.v - a.v : a.v - b.v);
+      if (topN) order = order.slice(0, topN);
+      const sortedCats = order.map((o) => o.cat);
+      const hasRight = measures.some((m) => (m.axis || 0) === 1);
+      const series = measures.map((m, i) => {
+        const mark = m.mark || (i === 0 ? "bar" : "line"); // sensible default: first bar, rest line
+        return {
+          name: m.label + " · " + (m.agg || "sum").toUpperCase(),
+          type: mark === "area" ? "line" : mark,
+          yAxisIndex: m.axis || 0,
+          areaStyle: mark === "area" ? { opacity: 0.2 } : undefined,
+          smooth: (mark === "line" || mark === "area") ? 0.2 : false,
+          symbol: "none",
+          z: mark === "bar" ? 1 : 2,
+          itemStyle: { color: pal[i % 8], borderRadius: mark === "bar" ? [3, 3, 0, 0] : 0 },
+          lineStyle: mark !== "bar" ? { color: pal[i % 8], width: 2 } : undefined,
+          data: sortedCats.map((cat) => { const f = agg.find((r) => r[xKey] === cat); return f ? f[m.id] : 0; }),
+        };
+      });
+      return {
+        ...base,
+        grid: { ...base.grid, top: 30, right: hasRight ? 46 : 14, bottom: sortedCats.length > 7 ? 40 : 8 },
+        legend: { top: 0, type: "scroll", textStyle: { color: c.text, fontSize: 11 }, icon: "roundRect" },
+        tooltip: { ...base.tooltip, trigger: "axis", axisPointer: { type: "cross" }, valueFormatter: fmtVal },
+        xAxis: { type: "category", data: sortedCats, ...axisCommon, axisLabel: { ...axisCommon.axisLabel, rotate: sortedCats.length > 7 ? 32 : 0, interval: 0 } },
+        yAxis: [
+          { type: "value", ...axisCommon, axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal } },
+          { type: "value", ...axisCommon, position: "right", axisLabel: { ...axisCommon.axisLabel, formatter: fmtVal }, splitLine: { show: false } },
+        ],
+        series,
+      };
+    }
+
     // ── Bar / Line / Area ────────────────────────────────────────────────────
     const horiz = type === "hbar";
     const cats = [...new Set(agg.map((r) => r[xKey]))];
@@ -611,7 +677,7 @@
         <span className="x" onClick={() => actions.removeFromShelf("cols", c.key)}><Icon name="x" size={12} /></span>
       </span>
     ));
-    const rowChips = measures.map((c) => <MeasureChip key={c.key} chip={c} />);
+    const rowChips = measures.map((c) => <MeasureChip key={c.key} chip={c} combo={viz.type === "combo"} />);
 
     const option = React.useMemo(() => {
       if (viz.type === "facet") return null;
