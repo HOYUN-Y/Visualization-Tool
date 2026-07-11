@@ -806,6 +806,17 @@
       window.Charts.copyPNG(undefined).then((ok) => alert(ok ? "클립보드에 복사됨 · 파워포인트에서 Ctrl+V로 붙여넣기" : "복사를 지원하지 않는 브라우저입니다. PNG 다운로드를 사용하세요."));
       setExpOpen(false);
     };
+    const doPPTX = () => {
+      const opt = window.Charts.lastInst ? window.Charts.lastInst.getOption() : null;
+      const r = window.PptxExport ? window.PptxExport.exportChart(viz, opt, "insight-" + (viz.type || "chart"), (viz.format && viz.format.title && viz.format.title.text) || "") : { ok: false, reason: "no-lib" };
+      if (!r.ok) {
+        if (r.reason === "no-lib") alert("PowerPoint 내보내기 라이브러리(PptxGenJS)가 아직 설치되지 않았습니다.\nvendor/pptxgenjs/pptxgen.bundle.js 를 추가하세요 (vendor/pptxgenjs/README.md 참고).");
+        else if (r.reason === "unsupported") alert("이 차트 종류는 PPT 네이티브 차트(데이터 편집)로는 지원되지 않습니다.\n막대·라인·영역·파이만 가능 — 나머지는 이미지/SVG로 내보내세요.");
+        else if (r.reason === "no-chart") alert("차트를 먼저 그려주세요.");
+        else alert("PPTX 내보내기 실패: " + r.reason);
+      } else window.LOG && window.LOG.info("export", "PPTX exported");
+      setExpOpen(false);
+    };
     const piStyle = { width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8, padding: "7px 14px" };
     const saveToDash = () => {
       if (!measures.length) { alert("측정값을 먼저 올려주세요. / Add a measure first."); return; }
@@ -893,6 +904,9 @@
                   <div className="ph" style={{ padding: "3px 12px" }}>SVG · 벡터</div>
                   <button className="pi" style={piStyle} onClick={() => doExport("svg", "current")}><Icon name="visualize" size={13} /> 현재 배경</button>
                   <button className="pi" style={piStyle} onClick={() => doExport("svg", "transparent")}><Icon name="visualize" size={13} /> 투명 배경</button>
+                  <div className="sep" />
+                  <div className="ph" style={{ padding: "3px 12px" }}>PowerPoint</div>
+                  <button className="pi" style={piStyle} onClick={doPPTX}><Icon name="dashboard" size={13} /> .pptx (데이터 편집 가능)</button>
                 </div>
               </React.Fragment>
             )}
