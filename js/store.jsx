@@ -28,13 +28,13 @@
     datasets.forEach((ds) => { ds.__rid_tagged = false; ensureRids(ds); });
   }
 
-  const initial = {
-    theme: "dark",
-    mode: "data",
-    activeId: "seoul_txns",
-    ui: { leftW: 230, rightW: 268, dataTab: "preview", selCol: null, aiOpen: false },
-    clean: {},          // { datasetId: { steps:[], cursor:0 } }
-    viz: {
+  // ---------- viz sheets (multiple visualization tabs) ----------
+  // Each tab ("sheet") is a full, independent viz spec + its own bound dataset
+  // (datasetId; null = follow the global active dataset). Tableau-worksheet style.
+  let _sheetSeq = 1;
+  function mkSheetId() { return "sheet-" + (Date.now().toString(36)) + "-" + (_sheetSeq++); }
+  function vizSheetSpec() {
+    return {
       type: "bar",
       cols: [],         // dimension chips on Columns shelf {key,label,role}
       rows: [],         // measure chips on Rows shelf {key,label,agg}
@@ -62,7 +62,34 @@
         pie: {},         // { inner } pie/doughnut inner radius
         explode: {},     // { sliceName: true } pie slice pull-out
       },
-    },
+    };
+  }
+  function mkVizSheet(name, datasetId, id) {
+    return Object.assign({ id: id || mkSheetId(), name: name || "시트 1", datasetId: datasetId || null }, vizSheetSpec());
+  }
+  // Return the active sheet (or the first as a safe fallback).
+  function curSheet(s) {
+    const sheets = s.vizSheets || [];
+    return sheets.find((x) => x.id === s.vizActive) || sheets[0];
+  }
+  // Immutably replace the active sheet with fn(sheet).
+  function updateSheet(s, fn) {
+    const sheets = (s.vizSheets || []).slice();
+    let i = sheets.findIndex((x) => x.id === s.vizActive);
+    if (i < 0) i = 0;
+    if (!sheets[i]) return s;
+    sheets[i] = fn(sheets[i]);
+    return { ...s, vizSheets: sheets };
+  }
+
+  const initial = {
+    theme: "dark",
+    mode: "data",
+    activeId: "seoul_txns",
+    ui: { leftW: 230, rightW: 268, dataTab: "preview", selCol: null, aiOpen: false },
+    clean: {},          // { datasetId: { steps:[], cursor:0 } }
+    vizSheets: [mkVizSheet("시트 1", null, "sheet-1")],   // visualization tabs
+    vizActive: "sheet-1",
     pivot: {},
     dash: { widgets: null, cross: null, edit: false },
     tweaks: { layout: "classic", sidebar: "rail", tone: "cool", density: "compact" },
@@ -343,6 +370,17 @@
       const next = deepMerge(JSON.parse(JSON.stringify(initial)), saved);
       next.ui = { ...initial.ui, ...(saved.ui || {}), aiOpen: false };
       if (!D.some((ds) => ds.id === next.activeId)) next.activeId = D[0].id;
+      // Migrate legacy single-viz projects → one sheet; ensure sheets are valid.
+      if (saved.viz && !(saved.vizSheets && saved.vizSheets.length)) {
+        const merged = Object.assign(vizSheetSpec(), saved.viz);
+        next.vizSheets = [Object.assign({ id: "sheet-1", name: "시트 1", datasetId: null }, merged)];
+        next.vizActive = "sheet-1";
+      }
+      delete next.viz;
+      if (!Array.isArray(next.vizSheets) || !next.vizSheets.length) {
+        next.vizSheets = [mkVizSheet("시트 1", null, "sheet-1")];
+      }
+      if (!next.vizSheets.some((x) => x.id === next.vizActive)) next.vizActive = next.vizSheets[0].id;
       state = next;
 
       const analysis = bundle.analysis || {};
@@ -403,25 +441,25 @@
     addColumn: (def) => actions.addStep({ op: "add_col", params: def || {} }),
     reorderCols: (order) => actions.addStep({ op: "reorder_cols", params: { order } }),
 
-    // viz
-    setViz: (patch) => setState((s) => ({ ...s, viz: { ...s.viz, ...patch } })),
-    addToShelf: (shelf, field) => setState((s) => {
-      const viz = { ...s.viz };
+    // viz (all operate on the active sheet)
+    setViz: (patch) => setState((s) => updateSheet(s, (viz) => ({ ...viz, ...patch }))),
+    addToShelf: (shelf, field) => setState((s) => updateSheet(s, (v) => {
+      const viz = { ...v };
       if (shelf === "cols") { if (!viz.cols.find((c) => c.key === field.key)) viz.cols = [...viz.cols, field]; }
       else if (shelf === "rows") { if (!viz.rows.find((c) => c.key === field.key)) viz.rows = [...viz.rows, { ...field, agg: field.agg || "sum", id: field.key + "_" + (field.agg || "sum") }]; }
       else if (shelf === "color") viz.color = field;
-      return { ...s, viz };
-    }),
-    removeFromShelf: (shelf, key) => setState((s) => {
-      const viz = { ...s.viz };
+      return viz;
+    })),
+    removeFromShelf: (shelf, key) => setState((s) => updateSheet(s, (v) => {
+      const viz = { ...v };
       if (shelf === "cols") viz.cols = viz.cols.filter((c) => c.key !== key);
       else if (shelf === "rows") viz.rows = viz.rows.filter((c) => c.key !== key);
       else if (shelf === "color") viz.color = null;
-      return { ...s, viz };
-    }),
-    setRowAgg: (key, agg) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, agg, id: r.key + "_" + agg } : r) } })),
-    setFormat: (patch) => setState((s) => {
-      const f = s.viz.format || {};
+      return viz;
+    })),
+    setRowAgg: (key, agg) => setState((s) => updateSheet(s, (v) => ({ ...v, rows: v.rows.map((r) => r.key === key ? { ...r, agg, id: r.key + "_" + agg } : r) }))),
+    setFormat: (patch) => setState((s) => updateSheet(s, (v) => {
+      const f = v.format || {};
       const next = { ...f, ...patch };
       if (patch.title) next.title = { ...f.title, ...patch.title };
       if (patch.legend) next.legend = { ...f.legend, ...patch.legend };
@@ -436,10 +474,48 @@
       if (patch.pie) next.pie = { ...f.pie, ...patch.pie };
       if (patch.explode) next.explode = { ...f.explode, ...patch.explode };
       if (patch.seriesOpts) { next.seriesOpts = { ...f.seriesOpts }; for (const k in patch.seriesOpts) next.seriesOpts[k] = { ...(f.seriesOpts && f.seriesOpts[k]), ...patch.seriesOpts[k] }; }
-      return { ...s, viz: { ...s.viz, format: next } };
+      return { ...v, format: next };
+    })),
+    setRowMark: (key, mark) => setState((s) => updateSheet(s, (v) => ({ ...v, rows: v.rows.map((r) => r.key === key ? { ...r, mark } : r) }))),
+    setRowAxis: (key, axis) => setState((s) => updateSheet(s, (v) => ({ ...v, rows: v.rows.map((r) => r.key === key ? { ...r, axis } : r) }))),
+
+    // viz sheets (tabs)
+    addVizSheet: () => setState((s) => {
+      const n = (s.vizSheets || []).length + 1;
+      const sh = mkVizSheet("시트 " + n, s.activeId, undefined);
+      return { ...s, vizSheets: [...(s.vizSheets || []), sh], vizActive: sh.id };
     }),
-    setRowMark: (key, mark) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, mark } : r) } })),
-    setRowAxis: (key, axis) => setState((s) => ({ ...s, viz: { ...s.viz, rows: s.viz.rows.map((r) => r.key === key ? { ...r, axis } : r) } })),
+    setVizActive: (id) => setState((s) => {
+      const sh = (s.vizSheets || []).find((x) => x.id === id);
+      if (!sh) return s;
+      return { ...s, vizActive: id, activeId: sh.datasetId || s.activeId, ui: { ...s.ui, selCol: null } };
+    }),
+    renameVizSheet: (id, name) => setState((s) => ({ ...s, vizSheets: (s.vizSheets || []).map((x) => x.id === id ? { ...x, name: name || x.name } : x) })),
+    removeVizSheet: (id) => setState((s) => {
+      const sheets = (s.vizSheets || []);
+      if (sheets.length <= 1) return s;                       // keep at least one tab
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.filter((x) => x.id !== id);
+      let active = s.vizActive;
+      if (s.vizActive === id) { const fall = next[Math.max(0, idx - 1)] || next[0]; active = fall.id; }
+      const target = next.find((x) => x.id === active);
+      return { ...s, vizSheets: next, vizActive: active, activeId: (target && target.datasetId) || s.activeId };
+    }),
+    duplicateVizSheet: (id) => setState((s) => {
+      const sheets = (s.vizSheets || []);
+      const src = sheets.find((x) => x.id === id) || curSheet(s);
+      if (!src) return s;
+      const copy = Object.assign(JSON.parse(JSON.stringify(src)), { id: mkSheetId(), name: src.name + " 복사" });
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.slice(); next.splice(idx < 0 ? sheets.length : idx + 1, 0, copy);
+      return { ...s, vizSheets: next, vizActive: copy.id };
+    }),
+    setSheetDataset: (id, datasetId) => setState((s) => ({
+      ...s,
+      vizSheets: (s.vizSheets || []).map((x) => x.id === id ? { ...x, datasetId } : x),
+      activeId: id === s.vizActive ? (datasetId || s.activeId) : s.activeId,
+      ui: id === s.vizActive ? { ...s.ui, selCol: null } : s.ui,
+    })),
 
     // dashboard
     setDash: (patch) => setState((s) => ({ ...s, dash: { ...s.dash, ...patch } })),

@@ -807,10 +807,66 @@
     return o;
   }
 
+  // ─── Sheet tab bar (multiple visualizations) ─────────────────────────────
+  function VizTabs() {
+    const sheets = useStore((s) => s.vizSheets);
+    const active = useStore((s) => s.vizActive);
+    const globalActive = useStore((s) => s.activeId);
+    const [editId, setEditId] = React.useState(null);
+    const [draft, setDraft] = React.useState("");
+    const commit = () => { if (editId) actions.renameVizSheet(editId, draft.trim()); setEditId(null); };
+    const activeSheet = sheets.find((x) => x.id === active) || sheets[0];
+    const datasets = window.NODE.datasets;
+    return (
+      <div className="viz-tabs">
+        <div className="viz-tabs-scroll">
+          {sheets.map((sh) => (
+            <div key={sh.id} className={"viz-tab" + (sh.id === active ? " on" : "")}
+              onClick={() => sh.id !== active && actions.setVizActive(sh.id)}
+              onDoubleClick={() => { setEditId(sh.id); setDraft(sh.name); }}
+              title="더블클릭해서 이름 변경">
+              <Icon name="visualize" size={12} style={{ opacity: 0.6 }} />
+              {editId === sh.id
+                ? <input autoFocus className="viz-tab-edit" value={draft}
+                    onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+                    onKeyDown={(e) => { if (e.key === "Enter") commit(); else if (e.key === "Escape") setEditId(null); }}
+                    onClick={(e) => e.stopPropagation()} />
+                : <span className="viz-tab-nm">{sh.name}</span>}
+              {sh.id === active && (
+                <span className="viz-tab-dup" title="탭 복제"
+                  onClick={(e) => { e.stopPropagation(); actions.duplicateVizSheet(sh.id); }}><Icon name="duplicate" size={11} /></span>
+              )}
+              {sheets.length > 1 && (
+                <span className="viz-tab-x" title="탭 닫기"
+                  onClick={(e) => { e.stopPropagation(); actions.removeVizSheet(sh.id); }}><Icon name="x" size={11} /></span>
+              )}
+            </div>
+          ))}
+          <button className="viz-tab-add" title="새 시각화 탭" onClick={() => actions.addVizSheet()}><Icon name="plus" size={13} /></button>
+        </div>
+        <div className="spacer" />
+        <div className="viz-tab-ds" title="이 탭의 데이터셋">
+          <Icon name="layers" size={12} style={{ opacity: 0.6 }} />
+          <select className="sel" value={activeSheet.datasetId || globalActive}
+            onChange={(e) => actions.setSheetDataset(activeSheet.id, e.target.value)}>
+            {datasets.map((d) => <option key={d.id} value={d.id}>{d.short}</option>)}
+          </select>
+        </div>
+      </div>
+    );
+  }
+
   // ─── Center panel ─────────────────────────────────────────────────────────
   function VizCenter() {
     const activeId = useStore((s) => s.activeId);
-    const viz = useStore((s) => s.viz);
+    const vizSheets = useStore((s) => s.vizSheets);
+    const vizActive = useStore((s) => s.vizActive);
+    const viz = vizSheets.find((x) => x.id === vizActive) || vizSheets[0];
+    // Keep this tab's remembered dataset in sync with the active dataset, so the
+    // shelves always match the rendered data (switching datasets can't mismatch).
+    React.useEffect(() => {
+      if (viz && viz.datasetId !== activeId) actions.setSheetDataset(viz.id, activeId);
+    }, [activeId, viz && viz.id]);
     const theme = useStore((s) => s.theme);
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
@@ -940,6 +996,7 @@
 
     return (
       <React.Fragment>
+        <VizTabs />
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>{title}</span>
           <div className="spacer" />
@@ -1228,8 +1285,10 @@
 
   // ─── Right panel: Show Me + Marks ─────────────────────────────────────────
   function VizPanel() {
-    const viz = useStore((s) => s.viz);
+    const vizSheets = useStore((s) => s.vizSheets);
+    const vizActive = useStore((s) => s.vizActive);
     const activeId = useStore((s) => s.activeId);
+    const viz = vizSheets.find((x) => x.id === vizActive) || vizSheets[0];
     const { columns, rows } = derive.getActiveData(activeId);
     const nDim = viz.cols.length, nMeas = viz.rows.length;
     const hasOHLC = ["open", "high", "low", "close"].every((k) => columns.some((c) => c.key === k));

@@ -116,3 +116,28 @@
 .fmt-seriesitem.on { background: var(--accent-soft); color: var(--tx-hi); }
 .fmt-seriesitem .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(0,0,0,.15); }
 .fmt-seriesitem .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ─── Multiple visualization tabs (sheets) ─────────────────────────────── */
+.viz-tabs { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px;
+  border-bottom: 1px solid var(--line); background: var(--bg-1); flex-shrink: 0; }
+.viz-tabs-scroll { display: flex; align-items: center; gap: 4px; overflow-x: auto; overflow-y: hidden;
+  flex: 1 1 auto; min-width: 0; scrollbar-width: thin; }
+.viz-tab { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px;
+  border: 1px solid var(--line-strong); border-bottom: none; border-radius: var(--r-sm) var(--r-sm) 0 0;
+  background: var(--bg-0); color: var(--tx-mid); font-size: var(--fs-11); font-weight: 600;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: .12s; }
+.viz-tab:hover { color: var(--tx-hi); background: var(--bg-2); }
+.viz-tab.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-hi, var(--accent)); }
+.viz-tab .viz-tab-nm { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.viz-tab .viz-tab-edit { width: 100px; height: 18px; padding: 0 4px; font-size: var(--fs-11); font-weight: 600;
+  border: 1px solid var(--accent); border-radius: 3px; background: var(--bg-0); color: var(--tx-hi); }
+.viz-tab .viz-tab-x, .viz-tab .viz-tab-dup { display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 3px; opacity: .5; transition: .12s; }
+.viz-tab .viz-tab-x:hover { opacity: 1; background: color-mix(in oklch, var(--danger, #e5484d), transparent 78%); color: var(--danger, #e5484d); }
+.viz-tab .viz-tab-dup:hover { opacity: 1; background: var(--bg-2); color: var(--tx-hi); }
+.viz-tab-add { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border: 1px dashed var(--line-strong); border-radius: var(--r-sm); background: none; color: var(--tx-mid);
+  cursor: pointer; flex-shrink: 0; transition: .12s; }
+.viz-tab-add:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.viz-tab-ds { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.viz-tab-ds .sel { height: 26px; max-width: 180px; font-size: var(--fs-11); font-weight: 600; }
