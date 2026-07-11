@@ -63,6 +63,9 @@ All notable changes to insight Analytics Workbench are documented here.
 ### Changed
 - Rail에 **Pivot** 모드 추가(Chart 다음). Dashboard 위젯의 Chart Top N·Table 행 제한을 Inspector에서 조절 가능
 
+### Fixed
+- **차트 전체가 빈 화면으로 렌더되던 문제 수정** — `charts.jsx`의 `resolveVar`가 `oklch()` 색을 canvas로만 변환하던 탓에, canvas가 oklch를 지원하지 않는 브라우저에서 모든 색이 검정(rgb(0,0,0))으로 폴백 → 다크 배경에서 차트가 보이지 않음. oklch→sRGB 변환을 JS(Ottosson 행렬)로 직접 수행하도록 개선하여 canvas 색공간 지원과 무관하게 정상 색 반환. Chart/Dashboard/Map/Stats 등 ECharts 전반에 적용.
+
 ### Security
 - Dashboard Text 위젯의 임의 HTML 주입 경로(`dangerouslySetInnerHTML`) 제거
 

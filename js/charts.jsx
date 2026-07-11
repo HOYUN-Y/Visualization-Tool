@@ -1,17 +1,47 @@
 /* NØDE — ECharts wrapper + theme color resolution */
 (function () {
-  // resolve a CSS custom property (possibly oklch) to an rgb string via canvas
+  // resolve a CSS custom property (possibly oklch) to an rgb/rgba string.
+  // ECharts renders to <canvas>; if the browser's canvas can't parse oklch()
+  // every colour would fall back to black and the whole chart goes invisible on
+  // dark backgrounds. So convert oklch → sRGB in JS (Björn Ottosson's matrices),
+  // independent of canvas colour-space support; other formats go through canvas.
   const _cache = {};
+  function oklchToRgb(L, C, H, A) {
+    const hr = (H * Math.PI) / 180;
+    const a = C * Math.cos(hr), b = C * Math.sin(hr);
+    const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+    const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    const lin = [
+      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+    ];
+    const g = (x) => { const v = x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055; return Math.round(Math.min(1, Math.max(0, v)) * 255); };
+    const [r, gg, bb] = lin.map(g);
+    return A != null && A < 1 ? `rgba(${r},${gg},${bb},${A})` : `rgb(${r},${gg},${bb})`;
+  }
   function resolveVar(name) {
     const key = name + "|" + document.documentElement.getAttribute("data-theme");
     if (_cache[key]) return _cache[key];
     const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    let out = raw;
-    try {
-      const c = document.createElement("canvas"); c.width = c.height = 1;
-      const ctx = c.getContext("2d"); ctx.fillStyle = "#000"; ctx.fillStyle = raw; ctx.fillRect(0, 0, 1, 1);
-      const d = ctx.getImageData(0, 0, 1, 1).data; out = `rgb(${d[0]},${d[1]},${d[2]})`;
-    } catch (e) {}
+    let out = raw || "#888888";
+    const ok = raw.match(/oklch\(\s*([\d.]+%?)\s+([\d.]+%?)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)/i);
+    if (ok) {
+      const pct = (v) => v.endsWith("%") ? parseFloat(v) / 100 : parseFloat(v);
+      const L = pct(ok[1]);
+      const C = ok[2].endsWith("%") ? parseFloat(ok[2]) / 100 * 0.4 : parseFloat(ok[2]);
+      const H = parseFloat(ok[3]);
+      const A = ok[4] != null ? pct(ok[4]) : 1;
+      try { out = oklchToRgb(L, C, H, A); } catch (e) {}
+    } else if (raw) {
+      try {
+        const c = document.createElement("canvas"); c.width = c.height = 1;
+        const ctx = c.getContext("2d"); ctx.fillStyle = "#000"; ctx.fillStyle = raw; ctx.fillRect(0, 0, 1, 1);
+        const d = ctx.getImageData(0, 0, 1, 1).data; out = `rgb(${d[0]},${d[1]},${d[2]})`;
+      } catch (e) {}
+    }
     _cache[key] = out; return out;
   }
   function palette() { return Array.from({ length: 8 }, (_, i) => resolveVar(`--cat-${i + 1}`)); }
