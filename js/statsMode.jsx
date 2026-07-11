@@ -436,7 +436,9 @@
     if (series.filter((v) => v != null).length < 3) return <React.Fragment><StatsHead title={"Time Series · " + (col.label || colKey)} /><div className="empty"><Icon name="trend" /><div className="t">Not enough data</div></div></React.Fragment>;
     const ma = window.TimeSeries.movingAverage(series, win);
     const ema = window.TimeSeries.exponentialSmoothing(series.map((v) => v == null ? 0 : v), alpha);
-    const acf = window.TimeSeries.acf(series, Math.min(20, Math.floor(series.length / 3)));
+    const maxLag = Math.min(20, Math.floor(series.length / 3));
+    const acf = window.TimeSeries.acf(series, maxLag);
+    const pacf = window.TimeSeries.pacf(series, maxLag);
     const base = Charts.baseGrid(c);
     const lineOpt = { ...base, grid: { left: 8, right: 14, top: 24, bottom: 40, containLabel: true },
       legend: { top: 0, textStyle: { color: c.text, fontSize: 10 } },
@@ -448,11 +450,13 @@
         { name: `MA(${win})`, type: "line", data: ma, showSymbol: false, smooth: true, lineStyle: { color: pal[0], width: 2 }, itemStyle: { color: pal[0] } },
         { name: `EMA(α=${alpha})`, type: "line", data: ema, showSymbol: false, smooth: true, lineStyle: { color: pal[2], width: 1.5 }, itemStyle: { color: pal[2] } },
       ] };
-    const acfOpt = { ...base, grid: { left: 8, right: 14, top: 10, bottom: 24, containLabel: true },
+    const corrOpt = (data, color) => ({ ...base, grid: { left: 8, right: 14, top: 10, bottom: 24, containLabel: true },
       tooltip: { ...base.tooltip, trigger: "axis" },
-      xAxis: { type: "category", data: acf.map((_, i) => i), name: "lag", axisLabel: { color: c.text, fontSize: 9 }, axisLine: { lineStyle: { color: c.axis } } },
+      xAxis: { type: "category", data: data.map((_, i) => i), name: "lag", axisLabel: { color: c.text, fontSize: 9 }, axisLine: { lineStyle: { color: c.axis } } },
       yAxis: { type: "value", min: -1, max: 1, axisLabel: { color: c.text, fontSize: 10 }, splitLine: { lineStyle: { color: c.split } } },
-      series: [{ type: "bar", data: acf, itemStyle: { color: pal[3] }, barWidth: "50%" }] };
+      series: [{ type: "bar", data: data.map((v) => NODE.round(v, 3)), itemStyle: { color }, barWidth: "50%" }] });
+    const acfOpt = corrOpt(acf, pal[3]);
+    const pacfOpt = corrOpt(pacf, pal[4]);
     return (
       <React.Fragment>
         <StatsHead title={"Time Series · " + (col.label || colKey)} />
@@ -461,7 +465,9 @@
           <div className="ml-charttitle">Series · moving average · exponential smoothing</div>
           <div style={{ height: 300, margin: "2px 0 12px" }}><EChart option={lineOpt} theme={theme} style={{ height: "100%" }} /></div>
           <div className="ml-charttitle">Autocorrelation (ACF)</div>
-          <div style={{ height: 160, margin: "2px 0 8px" }}><EChart option={acfOpt} theme={theme} style={{ height: "100%" }} /></div>
+          <div style={{ height: 150, margin: "2px 0 8px" }}><EChart option={acfOpt} theme={theme} style={{ height: "100%" }} /></div>
+          <div className="ml-charttitle">Partial autocorrelation (PACF)</div>
+          <div style={{ height: 150, margin: "2px 0 8px" }}><EChart option={pacfOpt} theme={theme} style={{ height: "100%" }} /></div>
         </div>
       </React.Fragment>
     );
@@ -480,6 +486,10 @@
     const r = window.SPC.iMR(vals);
     const ind = r.individuals;
     const viol = window.SPC.violations(ind.points, ind.center, ind.ucl, ind.lcl);
+    const hasSpec = cfg.lsl != null || cfg.usl != null;
+    const cap = hasSpec ? window.SPC.capability(vals, cfg.lsl, cfg.usl) : null;
+    const capBadge = (v) => v == null ? "—" : v.toFixed(2);
+    const capColor = (v) => v == null ? "var(--tx-faint)" : v >= 1.33 ? "var(--pos)" : v >= 1.0 ? "var(--warn)" : "var(--neg)";
     const violSet = new Set(viol);
     const base = Charts.baseGrid(c);
     const mkLine = (y, color, name, type) => ({ name, type: "line", data: ind.points.map(() => y), showSymbol: false, silent: true, lineStyle: { color, type: type || "solid", width: 1 } });
@@ -503,6 +513,17 @@
         <div className="pbody statsbody">
           <Cards items={[["Center", NODE.fmtCompact(ind.center)], ["UCL", NODE.fmtCompact(ind.ucl)], ["LCL", NODE.fmtCompact(ind.lcl)], ["Out of control", viol.length]]} />
           <div style={{ height: 360, margin: "6px 0 10px" }}><EChart option={option} theme={theme} style={{ height: "100%" }} /></div>
+          {cap && (
+            <React.Fragment>
+              <div className="ml-charttitle">Process capability {cfg.lsl != null ? `· LSL ${cfg.lsl}` : ""}{cfg.usl != null ? ` · USL ${cfg.usl}` : ""}</div>
+              <div className="stat-cards">
+                {[["Cp", cap.cp], ["Cpk", cap.cpk], ["Pp", cap.pp], ["Ppk", cap.ppk]].map(([k, v]) => (
+                  <div className="stat-card" key={k}><div className="sc-val mono" style={{ color: capColor(v) }}>{capBadge(v)}</div><div className="sc-lbl">{k}</div></div>
+                ))}
+              </div>
+              <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "4px 0 8px" }}>Cpk ≥ 1.33 양호 · 1.0~1.33 주의 · &lt;1.0 부적합. Cp/Cpk는 단기(군내) σ, Pp/Ppk는 전체 σ 기준.</div>
+            </React.Fragment>
+          )}
           <Verdict p={viol.length ? 0.01 : 0.5} msg={viol.length ? `${viol.length} point${viol.length > 1 ? "s" : ""} fall outside the 3σ control limits — the process shows special-cause variation.` : `All points lie within the 3σ control limits — the process appears in statistical control.`} />
         </div>
       </React.Fragment>
@@ -719,8 +740,19 @@
         {cfg.test === "distribution" && (
           <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
         )}
-        {(cfg.test === "qq" || cfg.test === "spc") && (
+        {cfg.test === "qq" && (
           <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+        )}
+        {cfg.test === "spc" && (
+          <React.Fragment>
+            <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+            <div className="cp-block"><div className="cp-blocktitle">Spec limits (optional · for Cp/Cpk)</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input className="inp" type="number" placeholder="LSL" value={cfg.lsl == null ? "" : cfg.lsl} onChange={(e) => set({ lsl: e.target.value === "" ? null : +e.target.value })} />
+                <input className="inp" type="number" placeholder="USL" value={cfg.usl == null ? "" : cfg.usl} onChange={(e) => set({ usl: e.target.value === "" ? null : +e.target.value })} />
+              </div>
+            </div>
+          </React.Fragment>
         )}
         {cfg.test === "timeseries" && (
           <React.Fragment>

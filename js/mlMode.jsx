@@ -114,10 +114,11 @@
     const scores = te.map((r) => window.Logistic.predictProba(model, r));
     const yt = te.map((r) => String(r[target]) === String(pos) ? 1 : 0);
     const roc = window.Logistic.roc(yt, scores);
+    const pr = window.Logistic.prCurve ? window.Logistic.prCurve(yt, scores) : null;
     const preds = scores.map((s) => s >= 0.5 ? 1 : 0);
     const m = window.Logistic.metrics(yt, preds);
     const coefs = feats.map((f, i) => ({ f, w: model.weights[i] })).sort((a, b) => Math.abs(b.w) - Math.abs(a.w));
-    return { kind: "logit", classes: model.classes, roc, coefs, feats, target, acc: m.accuracy, auc: roc.auc, f1: m.f1, prec: m.precision, rec: m.recall, nTrain: tr.length, nTest: te.length };
+    return { kind: "logit", classes: model.classes, roc, pr, coefs, feats, target, acc: m.accuracy, auc: roc.auc, ap: pr ? pr.ap : null, f1: m.f1, prec: m.precision, rec: m.recall, nTrain: tr.length, nTest: te.length };
   }
 
   // ---- PCA (window.PCA) ----
@@ -314,6 +315,19 @@
           <div className="ml-importance">
             <div className="ml-charttitle">Feature importance (standardized coefficient)</div>
             {res.importance.map((f) => <div className="imp-row" key={f.f}><span className="imp-name">{f.f}</span><span className="imp-bar"><span style={{ width: (f.imp / res.importance[0].imp * 100) + "%" }} /></span><span className="imp-v mono">{f.imp.toFixed(2)}</span></div>)}
+          </div>
+        )}
+
+        {/* Logistic PR curve */}
+        {res.kind === "logit" && res.pr && (
+          <div className="ml-chartwrap">
+            <div className="ml-charttitle">Precision-Recall curve · AP = {res.ap != null ? res.ap.toFixed(3) : "—"}</div>
+            <div style={{ flex: 1, minHeight: 180 }}><EChart theme={theme + "logitpr"} style={{ height: "100%" }}
+              option={{ ...Charts.baseGrid(c), grid: { left: 8, right: 16, top: 14, bottom: 34, containLabel: true },
+                tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item", formatter: (p) => `recall ${(+p.value[0]).toFixed(2)}<br/>precision ${(+p.value[1]).toFixed(2)}` },
+                xAxis: { type: "value", name: "Recall", min: 0, max: 1, axisLabel: { color: c.text, fontSize: 10 }, splitLine: { lineStyle: { color: c.split } } },
+                yAxis: { type: "value", name: "Precision", min: 0, max: 1, axisLabel: { color: c.text, fontSize: 10 }, splitLine: { lineStyle: { color: c.split } } },
+                series: [{ type: "line", data: res.pr.points.map((p) => [p.recall, p.precision]), showSymbol: false, lineStyle: { color: pal[2], width: 2 }, areaStyle: { color: pal[2], opacity: 0.1 } }] }} /></div>
           </div>
         )}
 
