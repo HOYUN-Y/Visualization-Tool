@@ -87,7 +87,17 @@
     const startCell = (rid, key, cur) => { setCellEdit({ rid, key }); setCellVal(cur == null ? "" : String(cur)); };
     const commitCell = () => { if (cellEdit) { edit.onCell(cellEdit.rid, cellEdit.key, cellVal); setCellEdit(null); } };
     const startHead = (key, cur) => { setHeadEdit(key); setHeadVal(cur); setMenu(null); };
-    const commitHead = () => { if (headEdit) { const t = headVal.trim(); if (t && t !== headEdit) edit.onRename(headEdit, t); setHeadEdit(null); } };
+    const commitHead = () => {
+      if (!headEdit) return;
+      const t = headVal.trim();
+      // Reject renaming onto another existing column key — that would silently overwrite its data.
+      if (t && columns.some((c) => c.key === t && c.key !== headEdit)) {
+        alert(`"${t}" 컬럼이 이미 있습니다. 다른 이름을 쓰세요.`);
+        return; // keep the editor open so the user can fix it
+      }
+      if (t && t !== headEdit) edit.onRename(headEdit, t);
+      setHeadEdit(null);
+    };
     // reorder: move fromKey before toKey within full column order
     const doReorder = (fromKey, toKey) => {
       if (!fromKey || fromKey === toKey) return;
@@ -226,7 +236,7 @@
                         <div className="th-inner" style={{ cursor: "text" }}>
                           <input className="th-rename" autoFocus value={headVal}
                             onChange={(e) => setHeadVal(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") commitHead(); else if (e.key === "Escape") setHeadEdit(null); }}
+                            onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) commitHead(); else if (e.key === "Escape") setHeadEdit(null); }}
                             onBlur={commitHead} />
                         </div>
                       ) : (
@@ -268,10 +278,14 @@
                     const style = fr ? { left: 46 } : undefined;
                     const editingCell = editable && cellEdit && cellEdit.rid === rid && cellEdit.key === c.key;
                     if (editingCell) {
+                      // Flag input that won't survive as typed in a numeric column (stored as null).
+                      const numCol = c.type === "integer" || c.type === "float";
+                      const cellInvalid = numCol && cellVal.trim() !== "" && isNaN(Number(cellVal));
                       return <td key={c.key} className={"editing" + (fr ? " frozen" : "")} style={style}>
-                        <input className="cell-input" autoFocus value={cellVal}
+                        <input className={"cell-input" + (cellInvalid ? " invalid" : "")} autoFocus value={cellVal}
+                          title={cellInvalid ? "숫자 열입니다 — 숫자가 아니면 빈 값으로 저장됩니다." : undefined}
                           onChange={(e) => setCellVal(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter") commitCell(); else if (e.key === "Escape") setCellEdit(null); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) commitCell(); else if (e.key === "Escape") setCellEdit(null); }}
                           onBlur={commitCell} />
                       </td>;
                     }

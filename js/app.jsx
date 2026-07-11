@@ -12,7 +12,7 @@
         </div>
         <div className="t" style={{ fontSize: 15, color: "var(--tx-hi)", fontWeight: 600 }}>{title}</div>
         <div className="s">{desc}</div>
-        <span className="badge" style={{ marginTop: 4 }}><span className="dot" style={{ background: "var(--warn)" }} /> In this build iteration</span>
+        <button className="btn ghost sm" style={{ marginTop: 6 }} onClick={() => actions.setMode("data")}><Icon name="table" size={12} /> 데이터 화면으로</button>
       </div>
     );
   }
@@ -76,8 +76,8 @@
       content = window.StatsMode();
     } else {
       const meta = {
-        stats: ["stats", "Statistical Analysis", "Loading…"],
-      }[mode] || ["data", "Module", ""];
+        stats: ["stats", "통계 분석", "모듈을 불러오는 중입니다…"],
+      }[mode] || ["data", "모듈을 불러오는 중", "잠시 후에도 이 화면이 보이면 데이터 화면으로 이동해 주세요."];
       content = <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
         center={<ModePlaceholder icon={meta[0]} title={meta[1]} desc={meta[2]} />} />;
     }

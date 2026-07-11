@@ -213,7 +213,12 @@
         case "fill_mode": { const m = stat.mode(rows.map((r) => r[s.col])); rows.forEach((r) => { if (r[s.col] == null || r[s.col] === "") r[s.col] = m; }); break; }
         case "drop_duplicates": { const seen = new Set(); rows = rows.filter((r) => { const { __rid, ...rest } = r; const k = JSON.stringify(rest); if (seen.has(k)) return false; seen.add(k); return true; }); break; }
         case "remove_outliers": { const cs = colStats(rows, s.col); const iqr = cs.q3 - cs.q1; const lo = cs.q1 - 1.5 * iqr, hi = cs.q3 + 1.5 * iqr; rows = rows.filter((r) => { const v = r[s.col]; return v == null || (v >= lo && v <= hi); }); break; }
-        case "rename": { rows.forEach((r) => { r[s.params.to] = r[s.col]; if (s.params.to !== s.col) delete r[s.col]; }); columns = columns.map((c) => c.key === s.col ? { ...c, key: s.params.to, label: s.params.to } : c); break; }
+        case "rename": {
+          // Guard: never rename onto an existing different column key (would overwrite its data).
+          if (s.params.to !== s.col && columns.some((c) => c.key === s.params.to)) break;
+          rows.forEach((r) => { r[s.params.to] = r[s.col]; if (s.params.to !== s.col) delete r[s.col]; });
+          columns = columns.map((c) => c.key === s.col ? { ...c, key: s.params.to, label: s.params.to } : c); break;
+        }
         case "replace": { rows.forEach((r) => { if (r[s.col] != null && String(r[s.col]) === s.params.from) r[s.col] = s.params.to; }); break; }
         case "change_type": { columns = columns.map((c) => c.key === s.col ? { ...c, type: s.params.to, role: (s.params.to === "integer" || s.params.to === "float") ? "measure" : "dimension" } : c); break; }
         // ---- Phase 2: Encoding ----
@@ -304,7 +309,7 @@
           let v = s.params.value;
           if (col && (col.type === "integer" || col.type === "float")) {
             if (v === "" || v == null) v = null;
-            else { const n = Number(v); if (!Number.isNaN(n)) v = col.type === "integer" ? Math.round(n) : n; }
+            else { const n = Number(v); v = Number.isNaN(n) ? null : (col.type === "integer" ? Math.round(n) : n); } // invalid → null, never pollute a numeric column
           }
           const r = rows.find((row) => row.__rid === s.rid);
           if (r) r[s.col] = v;
