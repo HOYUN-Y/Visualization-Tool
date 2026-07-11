@@ -234,12 +234,15 @@
       if (measures.length < 2) return noData("Scatter needs 2 measures on Rows");
       const mx = measures[0], my = measures[1];
       let series;
+      // Big datasets: enable ECharts' high-performance point renderer so a scatter
+      // over tens of thousands of raw rows stays responsive (no browser freeze).
+      const bigScatter = { large: true, largeThreshold: 2000, progressive: 4000, progressiveThreshold: 4000 };
       if (colorKey) {
         const groups = new Map();
         for (const r of rows) { const g = r[colorKey]; if (!groups.has(g)) groups.set(g, []); groups.get(g).push([r[mx.key], r[my.key]]); }
-        series = [...groups.entries()].slice(0, 12).map(([g, data], i) => ({ name: String(g), type: "scatter", symbolSize: 7, itemStyle: { color: pal[i % 8], opacity: 0.75 }, data }));
+        series = [...groups.entries()].slice(0, 12).map(([g, data], i) => ({ name: String(g), type: "scatter", symbolSize: 7, itemStyle: { color: pal[i % 8], opacity: 0.75 }, data, ...bigScatter }));
       } else {
-        series = [{ type: "scatter", symbolSize: 7, itemStyle: { color: pal[0], opacity: 0.7 }, data: rows.map((r) => [r[mx.key], r[my.key]]) }];
+        series = [{ type: "scatter", symbolSize: 7, itemStyle: { color: pal[0], opacity: 0.7 }, data: rows.map((r) => [r[mx.key], r[my.key]]), ...bigScatter }];
       }
       return {
         ...base, legend: color ? { top: 0, textStyle: { color: c.text }, type: "scroll" } : undefined,
