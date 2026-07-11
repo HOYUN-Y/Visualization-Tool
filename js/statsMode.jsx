@@ -138,23 +138,27 @@
     ))}</div>;
   }
   function InterpretationPanel({ text, icon }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     if (!text) return null;
     const parts = text.split("**");
     return (
       <div className="interpretation-panel">
-        <div className="ip-head"><Icon name={icon || "bolt"} size={13} /> Interpretation</div>
+        <div className="ip-head"><Icon name={icon || "bolt"} size={13} /> {T("statInterpretation")}</div>
         <div className="ip-body">{parts.map((p, i) => i % 2 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>)}</div>
       </div>
     );
   }
   function NextStepPanel({ context }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     if (!IE || !context) return null;
     const ns = IE.recommendNextStep(context);
     if (!ns) return null;
     const parts = ns.text.split("**");
     return (
       <div className="nextstep-panel">
-        <div className="ns-head"><Icon name={ns.icon} size={13} /> Recommended Next Step</div>
+        <div className="ns-head"><Icon name={ns.icon} size={13} /> {T("statRecommendedNextStep")}</div>
         <div className="ns-body">{parts.map((p, i) => i % 2 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>)}</div>
       </div>
     );
@@ -172,10 +176,12 @@
 
   // ---------- Distribution tab ----------
   function DistributionCenter({ rows, columns, cfg, theme }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
     const colKey = cfg.distCol || (numCols[0] && numCols[0].key);
     const col = columns.find((c) => c.key === colKey);
-    if (!col || !numCols.length) return <div className="empty"><div className="t">No numeric columns</div></div>;
+    if (!col || !numCols.length) return <div className="empty"><div className="t">{T("statNoNumericColumns")}</div></div>;
 
     const ds = distStats(rows, colKey);
     const c = Charts.themeColors(), pal = Charts.palette();
@@ -216,7 +222,9 @@
     const skDesc = sk == null ? "—" : Math.abs(sk) < 0.5 ? "approx. symmetric" : (sk > 0 ? "right-skewed" : "left-skewed") + ` (${sk.toFixed(2)})`;
     const kuDesc = ku == null ? "—" : ku > 1 ? `leptokurtic (${ku.toFixed(2)})` : ku < -1 ? `platykurtic (${ku.toFixed(2)})` : `normal-like (${ku.toFixed(2)})`;
 
-    const interpText = `**${col.label}** distribution: ${skDesc}${ku != null ? ", " + kuDesc : ""}. ${ds.outliers > 0 ? `**${ds.outliers}** outlier(s) detected by IQR method.` : "No outliers detected."}`;
+    const interpText = lang === "ko"
+      ? `**${col.label}** 분포: ${skDesc}${ku != null ? ", " + kuDesc : ""}. ${ds.outliers > 0 ? `IQR 방법으로 이상치 **${ds.outliers}**개가 감지되었습니다.` : "이상치가 감지되지 않았습니다."}`
+      : `**${col.label}** distribution: ${skDesc}${ku != null ? ", " + kuDesc : ""}. ${ds.outliers > 0 ? `**${ds.outliers}** outlier(s) detected by IQR method.` : "No outliers detected."}`;
 
     return (
       <React.Fragment>
@@ -229,7 +237,7 @@
         </div>
         <div className="pbody statsbody">
           <Cards items={[
-            ["n (valid)", ds.n], ["Missing", ds.missing],
+            [T("statNValid"), ds.n], [T("statMissing"), ds.missing],
             ["Skewness", sk != null ? sk.toFixed(3) : "—", sk != null && Math.abs(sk) > 1.5 ? "!" : ""],
             ["Kurtosis (excess)", ku != null ? ku.toFixed(3) : "—"],
           ]} />
@@ -285,6 +293,8 @@
   }
 
   function AnalysisBuilderCenter({ rows, columns, cfg, theme }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const result = cfg.builder && cfg.builder.result;
     const c = Charts.themeColors(), pal = Charts.palette();
 
@@ -293,13 +303,13 @@
         <React.Fragment>
           <div className="phead">
             <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
-              <Icon name="bolt" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />Analysis Builder
+              <Icon name="bolt" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("statAnalysisBuilder")}
             </span>
           </div>
           <div className="empty">
             <Icon name="bolt" />
-            <div className="t">Automated Analysis</div>
-            <div className="s">Pick a <b>Target (Y)</b> and one or more <b>Input (X)</b> variables on the right, then click <b>Run Analysis</b>. The engine will select the appropriate statistical method and interpret the results.</div>
+            <div className="t">{T("statAutomatedAnalysis")}</div>
+            <div className="s">{T("statAutomatedAnalysisDesc").split("**").map((p, i) => i % 2 ? <b key={i}>{p}</b> : <span key={i}>{p}</span>)}</div>
           </div>
         </React.Fragment>
       );
@@ -351,7 +361,7 @@
       <React.Fragment>
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
-            <Icon name="bolt" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />Analysis Builder · {type === "regression" ? "OLS Regression" : type === "anova" ? "One-Way ANOVA" : type === "chisq" ? "Chi-Square" : "Result"}
+            <Icon name="bolt" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("statAnalysisBuilder")} · {type === "regression" ? "OLS Regression" : type === "anova" ? "One-Way ANOVA" : type === "chisq" ? "Chi-Square" : T("statResult")}
           </span>
           {data && data.r2 != null && <span className="badge mono">R² = {data.r2.toFixed(3)}</span>}
           {data && data.F != null && !data.r2 && <span className="badge mono">F = {data.F.toFixed(2)}</span>}
@@ -363,14 +373,14 @@
 
           <div className="analysis-builder">
             <div className="ab-section">
-              <div className="rs-label">Summary</div>
+              <div className="rs-label">{T("statSummary")}</div>
               <div className="ab-summary">{fmtSummary}</div>
             </div>
-            {visual && <div className="ab-section"><div className="rs-label">Visual · Predicted vs Actual</div>{visual}</div>}
-            {statTable && <div className="ab-section"><div className="rs-label">Statistical Results</div>{statTable}</div>}
+            {visual && <div className="ab-section"><div className="rs-label">{T("statVisualPredVsActual")}</div>{visual}</div>}
+            {statTable && <div className="ab-section"><div className="rs-label">{T("statStatisticalResults")}</div>{statTable}</div>}
             {nextStep && (
               <div className="ab-section">
-                <div className="rs-label">Recommended Next Step</div>
+                <div className="rs-label">{T("statRecommendedNextStep")}</div>
                 <NextStepPanel context={{ lastTest: "builder" }} />
               </div>
             )}
@@ -393,12 +403,14 @@
   }
 
   function QQCenter({ rows, columns, cfg, theme }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
     const colKey = cfg.distCol || (numCols[0] && numCols[0].key);
     const col = columns.find((c) => c.key === colKey) || {};
     const vals = num(rows.map((r) => r[colKey]));
     const c = Charts.themeColors(), pal = Charts.palette();
-    if (vals.length < 4) return <React.Fragment><StatsHead title={"Normal Q-Q · " + (col.label || colKey)} /><div className="empty"><Icon name="scatter" /><div className="t">Not enough data</div><div className="s">Select a numeric column with at least 4 values.</div></div></React.Fragment>;
+    if (vals.length < 4) return <React.Fragment><StatsHead title={"Normal Q-Q · " + (col.label || colKey)} /><div className="empty"><Icon name="scatter" /><div className="t">{T("statNotEnoughData")}</div><div className="s">{T("statSelectNumeric4")}</div></div></React.Fragment>;
     const qq = window.DistFit.qqNormal(vals);
     const jb = window.DistFit.jarqueBera(vals);
     const pts = qq.points.map((p) => [p.theoretical, p.sample]);
@@ -420,7 +432,9 @@
         <div className="pbody statsbody">
           <Cards items={[["n", vals.length], ["Skewness", jb.skewness.toFixed(2)], ["Excess kurtosis", excessK.toFixed(2)], ["Jarque-Bera", jb.statistic.toFixed(1)]]} />
           <div style={{ height: 340, margin: "6px 0 10px" }}><EChart option={option} theme={theme} style={{ height: "100%" }} /></div>
-          <Verdict p={normal ? 0.5 : 0.01} msg={`Points ${normal ? "closely follow" : "deviate from"} the reference line — the distribution of ${col.label || colKey} is ${normal ? "approximately normal" : "not normal"} (skewness ${jb.skewness.toFixed(2)}, excess kurtosis ${excessK.toFixed(2)}).`} />
+          <Verdict p={normal ? 0.5 : 0.01} msg={lang === "ko"
+            ? `점들이 기준선을 ${normal ? "가깝게 따릅니다" : "벗어납니다"} — ${col.label || colKey}의 분포는 ${normal ? "근사적으로 정규분포입니다" : "정규분포가 아닙니다"} (skewness ${jb.skewness.toFixed(2)}, excess kurtosis ${excessK.toFixed(2)}).`
+            : `Points ${normal ? "closely follow" : "deviate from"} the reference line — the distribution of ${col.label || colKey} is ${normal ? "approximately normal" : "not normal"} (skewness ${jb.skewness.toFixed(2)}, excess kurtosis ${excessK.toFixed(2)}).`} />
         </div>
       </React.Fragment>
     );
@@ -428,6 +442,8 @@
 
   // ---------- Time Series (window.TimeSeries) ----------
   function TimeSeriesCenter({ rows, columns, cfg, theme }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
     const colKey = cfg.distCol || (numCols[0] && numCols[0].key);
     const col = columns.find((c) => c.key === colKey) || {};
@@ -437,7 +453,7 @@
     const ordered = dateCol ? [...rows].sort((a, b) => String(a[dateCol.key]).localeCompare(String(b[dateCol.key]))) : rows;
     const series = ordered.map((r) => { const v = r[colKey]; return v == null || v === "" || isNaN(v) ? null : +v; });
     const labels = dateCol ? ordered.map((r) => r[dateCol.key]) : ordered.map((_, i) => i + 1);
-    if (series.filter((v) => v != null).length < 3) return <React.Fragment><StatsHead title={"Time Series · " + (col.label || colKey)} /><div className="empty"><Icon name="trend" /><div className="t">Not enough data</div></div></React.Fragment>;
+    if (series.filter((v) => v != null).length < 3) return <React.Fragment><StatsHead title={"Time Series · " + (col.label || colKey)} /><div className="empty"><Icon name="trend" /><div className="t">{T("statNotEnoughData")}</div></div></React.Fragment>;
     const ma = window.TimeSeries.movingAverage(series, win);
     const ema = window.TimeSeries.exponentialSmoothing(series.map((v) => v == null ? 0 : v), alpha);
     const maxLag = Math.min(20, Math.floor(series.length / 3));
@@ -465,7 +481,7 @@
       <React.Fragment>
         <StatsHead title={"Time Series · " + (col.label || colKey)} />
         <div className="pbody statsbody">
-          <Cards items={[["Points", series.filter((v) => v != null).length], ["MA window", win], ["EMA α", alpha], ["Ordered by", dateCol ? dateCol.label : "row"]]} />
+          <Cards items={[[T("statPoints"), series.filter((v) => v != null).length], ["MA window", win], ["EMA α", alpha], [T("statOrderedBy"), dateCol ? dateCol.label : (lang === "ko" ? "행" : "row")]]} />
           <div className="ml-charttitle">Series · moving average · exponential smoothing</div>
           <div style={{ height: 300, margin: "2px 0 12px" }}><EChart option={lineOpt} theme={theme} style={{ height: "100%" }} /></div>
           <div className="ml-charttitle">Autocorrelation (ACF)</div>
@@ -479,6 +495,8 @@
 
   // ---------- SPC control chart (window.SPC) ----------
   function SPCCenter({ rows, columns, cfg, theme }) {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const numCols = columns.filter((c) => c.type === "integer" || c.type === "float");
     const colKey = cfg.distCol || (numCols[0] && numCols[0].key);
     const col = columns.find((c) => c.key === colKey) || {};
@@ -486,7 +504,7 @@
     const ordered = dateCol ? [...rows].sort((a, b) => String(a[dateCol.key]).localeCompare(String(b[dateCol.key]))) : rows;
     const vals = num(ordered.map((r) => r[colKey]));
     const c = Charts.themeColors(), pal = Charts.palette();
-    if (vals.length < 2) return <React.Fragment><StatsHead title={"SPC · " + (col.label || colKey)} /><div className="empty"><Icon name="boxplot" /><div className="t">Not enough data</div></div></React.Fragment>;
+    if (vals.length < 2) return <React.Fragment><StatsHead title={"SPC · " + (col.label || colKey)} /><div className="empty"><Icon name="boxplot" /><div className="t">{T("statNotEnoughData")}</div></div></React.Fragment>;
     const r = window.SPC.iMR(vals);
     const ind = r.individuals;
     const viol = window.SPC.violations(ind.points, ind.center, ind.ucl, ind.lcl);
@@ -528,7 +546,9 @@
               <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "4px 0 8px" }}>Cpk ≥ 1.33 양호 · 1.0~1.33 주의 · &lt;1.0 부적합. Cp/Cpk는 단기(군내) σ, Pp/Ppk는 전체 σ 기준.</div>
             </React.Fragment>
           )}
-          <Verdict p={viol.length ? 0.01 : 0.5} msg={viol.length ? `${viol.length} point${viol.length > 1 ? "s" : ""} fall outside the 3σ control limits — the process shows special-cause variation.` : `All points lie within the 3σ control limits — the process appears in statistical control.`} />
+          <Verdict p={viol.length ? 0.01 : 0.5} msg={lang === "ko"
+            ? (viol.length ? `${viol.length}개 점이 3σ 관리 한계를 벗어났습니다 — 공정에 이상 원인 변동이 있습니다.` : `모든 점이 3σ 관리 한계 이내에 있습니다 — 공정이 통계적 관리 상태로 보입니다.`)
+            : (viol.length ? `${viol.length} point${viol.length > 1 ? "s" : ""} fall outside the 3σ control limits — the process shows special-cause variation.` : `All points lie within the 3σ control limits — the process appears in statistical control.`)} />
         </div>
       </React.Fragment>
     );
@@ -536,6 +556,7 @@
 
   function StatsCenter() {
     const activeId = useStore((s) => s.activeId);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
     const theme = useStore((s) => s.theme);
     const cfgS = useStore((s) => s.ui.stats);
     const { rows, columns } = derive.getActiveData(activeId);
@@ -588,7 +609,9 @@
           <MeansBar means={{ [r.l1]: { mean: r.ma }, [r.l2]: { mean: r.mb } }} theme={theme} />
           <div className="grp-row"><span className="chip dim">{r.l1}</span> μ={NODE.fmtNum(r.ma, 1)} · σ={NODE.fmtNum(r.sa, 1)} · n={r.na}</div>
           <div className="grp-row"><span className="chip dim">{r.l2}</span> μ={NODE.fmtNum(r.mb, 1)} · σ={NODE.fmtNum(r.sb, 1)} · n={r.nb}</div>
-          <Verdict p={r.p} msg={`The mean ${cfg.measure} of ${r.l1} (${NODE.fmtNum(r.ma, 0)}) ${r.p < 0.05 ? "differs significantly from" : "is not significantly different from"} that of ${r.l2} (${NODE.fmtNum(r.mb, 0)}). Effect size (Cohen's d) = ${r.d.toFixed(2)} — ${Math.abs(r.d) > 0.8 ? "large" : Math.abs(r.d) > 0.5 ? "medium" : Math.abs(r.d) > 0.2 ? "small" : "negligible"}.`} />
+          <Verdict p={r.p} msg={lang === "ko"
+            ? `${r.l1}(${NODE.fmtNum(r.ma, 0)})의 평균 ${cfg.measure}은(는) ${r.l2}(${NODE.fmtNum(r.mb, 0)})와(과) ${r.p < 0.05 ? "유의하게 다릅니다" : "유의하게 다르지 않습니다"}. 효과 크기(Cohen's d) = ${r.d.toFixed(2)} — ${Math.abs(r.d) > 0.8 ? "큼" : Math.abs(r.d) > 0.5 ? "중간" : Math.abs(r.d) > 0.2 ? "작음" : "미미함"}.`
+            : `The mean ${cfg.measure} of ${r.l1} (${NODE.fmtNum(r.ma, 0)}) ${r.p < 0.05 ? "differs significantly from" : "is not significantly different from"} that of ${r.l2} (${NODE.fmtNum(r.mb, 0)}). Effect size (Cohen's d) = ${r.d.toFixed(2)} — ${Math.abs(r.d) > 0.8 ? "large" : Math.abs(r.d) > 0.5 ? "medium" : Math.abs(r.d) > 0.2 ? "small" : "negligible"}.`} />
           <NextStepPanel context={{ lastTest: "ttest" }} />
         </React.Fragment>
       );
@@ -607,7 +630,9 @@
         <React.Fragment>
           <Cards items={[["F", r.F.toFixed(2), sigStars(r.p)], ["df", `${r.df1}, ${r.df2}`], ["p-value", fmtP(r.p)], ["η²", r.eta2.toFixed(3)]]} />
           <MeansBar means={r.means} theme={theme} />
-          <Verdict p={r.p} msg={`Mean ${cfg.measure} ${r.p < 0.05 ? "varies significantly" : "does not vary significantly"} across the ${r.k} ${cfg.group} groups (F=${r.F.toFixed(2)}). ${(r.eta2 * 100).toFixed(0)}% of variance explained by group (η²). Highest: ${top[0][0]} (${NODE.fmtNum(top[0][1].mean, 0)}), lowest: ${top[top.length - 1][0]} (${NODE.fmtNum(top[top.length - 1][1].mean, 0)}).`} />
+          <Verdict p={r.p} msg={lang === "ko"
+            ? `평균 ${cfg.measure}은(는) ${r.k}개의 ${cfg.group} 그룹 간에 ${r.p < 0.05 ? "유의하게 다릅니다" : "유의하게 다르지 않습니다"} (F=${r.F.toFixed(2)}). 분산의 ${(r.eta2 * 100).toFixed(0)}%가 그룹으로 설명됩니다 (η²). 최고: ${top[0][0]} (${NODE.fmtNum(top[0][1].mean, 0)}), 최저: ${top[top.length - 1][0]} (${NODE.fmtNum(top[top.length - 1][1].mean, 0)}).`
+            : `Mean ${cfg.measure} ${r.p < 0.05 ? "varies significantly" : "does not vary significantly"} across the ${r.k} ${cfg.group} groups (F=${r.F.toFixed(2)}). ${(r.eta2 * 100).toFixed(0)}% of variance explained by group (η²). Highest: ${top[0][0]} (${NODE.fmtNum(top[0][1].mean, 0)}), lowest: ${top[top.length - 1][0]} (${NODE.fmtNum(top[top.length - 1][1].mean, 0)}).`} />
           <NextStepPanel context={{ lastTest: "anova" }} />
         </React.Fragment>
       );
@@ -625,7 +650,9 @@
         <React.Fragment>
           <Cards items={[["χ²", r.chi.toFixed(2), sigStars(r.p)], ["df", r.df], ["p-value", fmtP(r.p)], ["Cramér's V", r.V.toFixed(3)]]} />
           <Contingency r={r} theme={theme} />
-          <Verdict p={r.p} msg={`${cfg.a} and ${cfg.b} are ${r.p < 0.05 ? "significantly associated" : "statistically independent"} (χ²=${r.chi.toFixed(1)}, df=${r.df}). Association strength (Cramér's V) = ${r.V.toFixed(2)} — ${r.V > 0.3 ? "strong" : r.V > 0.1 ? "moderate" : "weak"}.`} />
+          <Verdict p={r.p} msg={lang === "ko"
+            ? `${cfg.a}와(과) ${cfg.b}은(는) ${r.p < 0.05 ? "유의하게 연관되어 있습니다" : "통계적으로 독립입니다"} (χ²=${r.chi.toFixed(1)}, df=${r.df}). 연관 강도(Cramér's V) = ${r.V.toFixed(2)} — ${r.V > 0.3 ? "강함" : r.V > 0.1 ? "보통" : "약함"}.`
+            : `${cfg.a} and ${cfg.b} are ${r.p < 0.05 ? "significantly associated" : "statistically independent"} (χ²=${r.chi.toFixed(1)}, df=${r.df}). Association strength (Cramér's V) = ${r.V.toFixed(2)} — ${r.V > 0.3 ? "strong" : r.V > 0.1 ? "moderate" : "weak"}.`} />
           <NextStepPanel context={{ lastTest: "chisq" }} />
         </React.Fragment>
       );
@@ -649,7 +676,9 @@
             ))}</tbody>
           </table>
           <InterpretationPanel text={summary} icon="scatter" />
-          <Verdict p={r.pF} msg={`The model explains ${(r.r2 * 100).toFixed(1)}% of variance in ${cfg.target} (adj. R²=${r.adj.toFixed(2)}). Significant predictors (p<0.05): ${r.terms.filter((t) => t.name !== "(Intercept)" && t.p < 0.05).map((t) => t.name).join(", ") || "none"}.`} />
+          <Verdict p={r.pF} msg={lang === "ko"
+            ? `이 모델은 ${cfg.target} 분산의 ${(r.r2 * 100).toFixed(1)}%를 설명합니다 (adj. R²=${r.adj.toFixed(2)}). 유의한 예측변수 (p<0.05): ${r.terms.filter((t) => t.name !== "(Intercept)" && t.p < 0.05).map((t) => t.name).join(", ") || "없음"}.`
+            : `The model explains ${(r.r2 * 100).toFixed(1)}% of variance in ${cfg.target} (adj. R²=${r.adj.toFixed(2)}). Significant predictors (p<0.05): ${r.terms.filter((t) => t.name !== "(Intercept)" && t.p < 0.05).map((t) => t.name).join(", ") || "none"}.`} />
           <NextStepPanel context={{ lastTest: "reg", lastResult: r }} />
         </React.Fragment>
       );
@@ -746,6 +775,8 @@
 
   function StatsPanel() {
     const activeId = useStore((s) => s.activeId);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const cfgS = useStore((s) => s.ui.stats);
     const { columns, rows } = derive.getActiveData(activeId);
     const cfg = resolveCfg(cfgS, columns, rows);
@@ -765,26 +796,26 @@
     return (
       <div className="statspanel">
         <div className="cp-block">
-          <div className="cp-blocktitle">Analysis</div>
+          <div className="cp-blocktitle">{T("statAnalysis")}</div>
           <div className="test-list">
             {TESTS.map((t) => (
               <button key={t.k} className={"test-item" + (cfg.test === t.k ? " on" : "")} onClick={() => set({ test: t.k })}>
-                <Icon name={t.icon} size={14} /><span>{t.label}</span>
+                <Icon name={t.icon} size={14} /><span>{t.k === "builder" ? T("statAnalysisBuilder") : t.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {cfg.test === "distribution" && (
-          <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+          <Picker label={T("statColumn")} value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
         )}
         {cfg.test === "qq" && (
-          <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+          <Picker label={T("statColumn")} value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
         )}
         {cfg.test === "spc" && (
           <React.Fragment>
-            <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
-            <div className="cp-block"><div className="cp-blocktitle">Spec limits (optional · for Cp/Cpk)</div>
+            <Picker label={T("statColumn")} value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+            <div className="cp-block"><div className="cp-blocktitle">{T("statSpecLimits")}</div>
               <div style={{ display: "flex", gap: 6 }}>
                 <input className="inp" type="number" placeholder="LSL" value={cfg.lsl == null ? "" : cfg.lsl} onChange={(e) => set({ lsl: e.target.value === "" ? null : +e.target.value })} />
                 <input className="inp" type="number" placeholder="USL" value={cfg.usl == null ? "" : cfg.usl} onChange={(e) => set({ usl: e.target.value === "" ? null : +e.target.value })} />
@@ -794,7 +825,7 @@
         )}
         {cfg.test === "timeseries" && (
           <React.Fragment>
-            <Picker label="Column" value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
+            <Picker label={T("statColumn")} value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
             <div className="cp-block"><div className="cp-blocktitle">MA window</div>
               <div className="seg" style={{ width: "100%" }}>{[3, 5, 7, 12].map((w) => <button key={w} className={(cfg.tsWindow || 5) === w ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsWindow: w })}>{w}</button>)}</div></div>
             <div className="cp-block"><div className="cp-blocktitle">EMA α</div>
@@ -802,31 +833,31 @@
           </React.Fragment>
         )}
         {cfg.test === "corr" && (
-          <div className="cp-block"><div className="cp-blocktitle">Method</div>
+          <div className="cp-block"><div className="cp-blocktitle">{T("statMethod")}</div>
             <div className="seg" style={{ width: "100%" }}>{["pearson", "spearman"].map((mth) => <button key={mth} className={cfg.method === mth ? "on" : ""} style={{ flex: 1, textTransform: "capitalize" }} onClick={() => set({ method: mth })}>{mth}</button>)}</div></div>
         )}
         {(cfg.test === "ttest" || cfg.test === "anova") && (
           <React.Fragment>
-            <Picker label="Measure" value={cfg.measure} opts={numCols} onChange={(v) => set({ measure: v })} />
-            <Picker label="Group by" value={cfg.group} opts={catCols} onChange={(v) => set({ group: v })} />
+            <Picker label={T("statMeasure")} value={cfg.measure} opts={numCols} onChange={(v) => set({ measure: v })} />
+            <Picker label={T("statGroupBy")} value={cfg.group} opts={catCols} onChange={(v) => set({ group: v })} />
           </React.Fragment>
         )}
         {cfg.test === "ttest" && (
-          <div className="cp-block"><div className="cp-blocktitle">Compare groups</div>
+          <div className="cp-block"><div className="cp-blocktitle">{T("statCompareGroups")}</div>
             <select className="sel" style={{ width: "100%", marginBottom: 6 }} value={cfg.l1} onChange={(e) => set({ l1: e.target.value })}>{levels(cfg.group).map((l) => <option key={l}>{l}</option>)}</select>
             <select className="sel" style={{ width: "100%" }} value={cfg.l2} onChange={(e) => set({ l2: e.target.value })}>{levels(cfg.group).map((l) => <option key={l}>{l}</option>)}</select>
           </div>
         )}
         {cfg.test === "chisq" && (
           <React.Fragment>
-            <Picker label="Variable A" value={cfg.a} opts={catCols} onChange={(v) => set({ a: v })} />
-            <Picker label="Variable B" value={cfg.b} opts={catCols} onChange={(v) => set({ b: v })} />
+            <Picker label={T("statVariableA")} value={cfg.a} opts={catCols} onChange={(v) => set({ a: v })} />
+            <Picker label={T("statVariableB")} value={cfg.b} opts={catCols} onChange={(v) => set({ b: v })} />
           </React.Fragment>
         )}
         {cfg.test === "reg" && (
           <React.Fragment>
-            <Picker label="Dependent (Y)" value={cfg.target} opts={numCols} onChange={(v) => set({ target: v })} />
-            <div className="cp-block"><div className="cp-blocktitle">Predictors (X)</div>
+            <Picker label={T("statDependentY")} value={cfg.target} opts={numCols} onChange={(v) => set({ target: v })} />
+            <div className="cp-block"><div className="cp-blocktitle">{T("statPredictorsX")}</div>
               <div className="ml-feats">{numCols.filter((c) => c.key !== cfg.target).map((c) => { const on = cfg.preds.includes(c.key); return (
                 <div key={c.key} className="ml-feat" onClick={() => set({ preds: on ? cfg.preds.filter((f) => f !== c.key) : [...cfg.preds, c.key] })}>
                   <span className={"checkbox" + (on ? " on" : "")}>{on && <Icon name="check" size={11} />}</span>{c.label}
@@ -836,8 +867,8 @@
         )}
         {cfg.test === "builder" && (
           <React.Fragment>
-            <Picker label="Target Y" value={bld.target} opts={columns.filter((c) => c.type !== "datetime")} onChange={(v) => setBld({ target: v })} />
-            <div className="cp-block"><div className="cp-blocktitle">Input X (multi-select)</div>
+            <Picker label={T("statTargetY")} value={bld.target} opts={columns.filter((c) => c.type !== "datetime")} onChange={(v) => setBld({ target: v })} />
+            <div className="cp-block"><div className="cp-blocktitle">{T("statInputX")}</div>
               <div className="ml-feats">{columns.filter((c) => c.key !== bld.target && c.type !== "datetime" && c.type !== "string").map((c) => {
                 const on = bld.inputs.includes(c.key);
                 return (
@@ -848,12 +879,12 @@
                 );
               })}</div></div>
             <button className="btn primary" style={{ width: "100%", height: 32 }} onClick={runBuilder2} disabled={!bld.inputs.length}>
-              <Icon name="play" size={13} /> Run Analysis
+              <Icon name="play" size={13} /> {T("statRunAnalysis")}
             </button>
           </React.Fragment>
         )}
 
-        <div className="cf-info"><Icon name="bolt" size={14} /><div>Exact p-values (incomplete beta/gamma). Auto-interpretation via Insight Engine at α = 0.05.</div></div>
+        <div className="cf-info"><Icon name="bolt" size={14} /><div>{T("statFooterInfo")}</div></div>
       </div>
     );
   }
@@ -864,7 +895,9 @@
   }
 
   window.StatsMode = function () {
-    return <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
-      center={<StatsCenter />} right={<StatsPanel />} rightTitle="Test Setup" />;
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
+    return <window.Workspace left={<window.DatasetTree />} leftTitle={T("dashDataExplorer")}
+      center={<StatsCenter />} right={<StatsPanel />} rightTitle={T("statTestSetup")} />;
   };
 })();
