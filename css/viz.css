@@ -103,3 +103,8 @@
 .rh-left, .rh-right { top: 50%; transform: translateY(-50%); width: 12px; height: 60px; cursor: ew-resize; }
 .rh-left::after, .rh-right::after { width: 4px; height: 46px; }
 .rh-left { left: 0; } .rh-right { right: 0; }
+
+/* Format panel — category dropdown (PowerPoint-style) */
+.fmt-panel .fmt-sel { width: 100%; height: 32px; margin-bottom: 10px; font-weight: 600; font-size: var(--fs-12); }
+.fmt-panel .ctl-row { margin-bottom: 6px; }
+.fmt-panel .ctl-row .fieldlabel { min-width: 56px; }

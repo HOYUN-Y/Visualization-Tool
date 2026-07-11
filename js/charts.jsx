@@ -95,7 +95,9 @@
     const inst = Charts.lastInst;
     if (!inst) return false;
     try {
-      const url = inst.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: resolveVar("--bg-1") });
+      const opt = inst.getOption ? inst.getOption() : null;
+      const bg = (opt && opt.backgroundColor) || resolveVar("--bg-1");
+      const url = inst.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: bg });
       const a = document.createElement("a");
       a.href = url; a.download = (filename || "chart") + ".png";
       document.body.appendChild(a); a.click(); document.body.removeChild(a);

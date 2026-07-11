@@ -707,11 +707,56 @@
     if (fmt.seriesNames && Object.keys(fmt.seriesNames).length) {
       o.series = o.series.map((s) => { const nm = fmt.seriesNames[s.name]; return (nm && nm.trim()) ? { ...s, name: nm } : s; });
     }
-    // Grid lines
-    if (fmt.gridlines === false) {
-      const hide = (ax) => !ax ? ax : Array.isArray(ax) ? ax.map((a) => ({ ...a, splitLine: { show: false } })) : { ...ax, splitLine: { show: false } };
-      o.xAxis = hide(o.xAxis); o.yAxis = hide(o.yAxis);
+    const mapAx = (ax, fn) => ax == null ? ax : (Array.isArray(ax) ? ax.map(fn) : fn(ax));
+    // Grid / split lines (on-off · width · colour · frequency)
+    {
+      const g = fmt.grid || {};
+      const off = fmt.gridlines === false;
+      if (off || g.width != null || g.color || g.splitNumber != null) {
+        o.xAxis = mapAx(o.xAxis, styleGridAxis); o.yAxis = mapAx(o.yAxis, styleGridAxis);
+      }
+      function styleGridAxis(ax) {
+        if (!ax) return ax; const a = { ...ax };
+        if (off) a.splitLine = { ...(a.splitLine || {}), show: false };
+        else if (g.width != null || g.color) a.splitLine = { ...(a.splitLine || {}), show: true, lineStyle: { ...((a.splitLine && a.splitLine.lineStyle) || {}), ...(g.width != null ? { width: g.width } : {}), ...(g.color ? { color: g.color } : {}) } };
+        if (!off && g.splitNumber != null) a.splitNumber = g.splitNumber;
+        return a;
+      }
     }
+    // Axis scale (min/max on value axes) + label rotation
+    {
+      const ax = fmt.axis || {}; const has = (v) => v != null && v !== "";
+      if (has(ax.xMin) || has(ax.xMax) || ax.xLabelRotate != null) o.xAxis = mapAx(o.xAxis, (a) => {
+        if (!a) return a; const n = { ...a };
+        if (a.type === "value") { if (has(ax.xMin)) n.min = +ax.xMin; if (has(ax.xMax)) n.max = +ax.xMax; }
+        if (ax.xLabelRotate != null) n.axisLabel = { ...(a.axisLabel || {}), rotate: ax.xLabelRotate };
+        return n;
+      });
+      if (has(ax.yMin) || has(ax.yMax) || ax.yLabelRotate != null) o.yAxis = mapAx(o.yAxis, (a) => {
+        if (!a) return a; const n = { ...a };
+        if (a.type === "value") { if (has(ax.yMin)) n.min = +ax.yMin; if (has(ax.yMax)) n.max = +ax.yMax; }
+        if (ax.yLabelRotate != null) n.axisLabel = { ...(a.axisLabel || {}), rotate: ax.yLabelRotate };
+        return n;
+      });
+    }
+    // Text styling — colour / size / bold / italic across labels, legend, title, axis names
+    {
+      const t = fmt.text || {};
+      if (t.color || t.size || t.bold || t.italic) {
+        const tl = {};
+        if (t.color) tl.color = t.color;
+        if (t.size) tl.fontSize = t.size;
+        if (t.bold) tl.fontWeight = "bold";
+        if (t.italic) tl.fontStyle = "italic";
+        const styleAxisText = (a) => a ? { ...a, axisLabel: { ...(a.axisLabel || {}), ...tl }, nameTextStyle: { ...(a.nameTextStyle || {}), ...(t.color ? { color: t.color } : {}) } } : a;
+        o.xAxis = mapAx(o.xAxis, styleAxisText); o.yAxis = mapAx(o.yAxis, styleAxisText);
+        if (o.legend) o.legend = { ...o.legend, textStyle: { ...(o.legend.textStyle || {}), ...tl } };
+        if (o.title) o.title = { ...o.title, textStyle: { ...(o.title.textStyle || {}), ...(t.color ? { color: t.color } : {}), ...(t.bold ? { fontWeight: "bold" } : {}), ...(t.italic ? { fontStyle: "italic" } : {}) } };
+        o.series = o.series.map((s) => (s.label && s.label.show) ? { ...s, label: { ...s.label, ...tl } } : s);
+      }
+    }
+    // Background colour (also used by PNG export)
+    if (fmt.background) o.backgroundColor = fmt.background;
     // Smooth override for line series
     if (fmt.smooth != null) {
       o.series = o.series.map((s) => s.type === "line" ? { ...s, smooth: fmt.smooth ? 0.3 : false } : s);
@@ -861,6 +906,157 @@
     );
   }
 
+  // ─── Format panel (PowerPoint-style: pick a category from a dropdown) ──────
+  const FMT_SECTIONS = [
+    ["title", "제목 · Title"], ["legend", "범례 · Legend"], ["labels", "값 레이블 · Data labels"],
+    ["axis", "축 · Axis (스케일·방향)"], ["grid", "격자·보조선 · Grid lines"], ["bg", "배경 · Background"],
+    ["text", "텍스트 · Text"], ["series", "계열 · Series (색·이름)"], ["size", "크기 · Size"],
+  ];
+  const CIN = { width: 26, height: 22, padding: 0, border: "1px solid var(--line)", borderRadius: 4, background: "none", cursor: "pointer", flexShrink: 0 };
+  const rotBtns = (cur, onPick) => [["auto", "자동"], [0, "가로"], [45, "45°"], [90, "세로"]].map(([v, s]) =>
+    <button key={String(v)} className={((v === "auto" && cur == null) || cur === v) ? "on" : ""} onClick={() => onPick(v === "auto" ? null : v)}>{s}</button>);
+
+  function FormatPanel({ viz }) {
+    const fmt = viz.format || {};
+    const setF = actions.setFormat;
+    const [sec, setSec] = React.useState("title");
+    const t = fmt.title || {}, lg = fmt.legend || {}, lb = fmt.labels || {}, ax = fmt.axis || {}, g = fmt.grid || {}, tx = fmt.text || {};
+    const legendOn = lg.show !== false, labelsOn = !!lb.show, isLine = viz.type === "line" || viz.type === "area";
+    const num = (v) => v == null || v === "" ? "" : v;
+    return (
+      <div className="cp-block fmt-panel">
+        <select className="sel fmt-sel" value={sec} onChange={(e) => setSec(e.target.value)}>
+          {FMT_SECTIONS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+
+        {sec === "title" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>텍스트</span>
+              <input className="inp" placeholder="차트 제목 입력" value={t.text || ""} onChange={(e) => setF({ title: { text: e.target.value } })} style={{ flex: 1, minWidth: 0 }} /></div>
+            {t.text && (
+              <React.Fragment>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>세로</span>
+                  <div className="seg">{[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!t.free && (t.v || "top") === p) ? "on" : ""} onClick={() => setF({ title: { v: p, free: false } })}>{s}</button>)}
+                    <button className={t.free ? "on" : ""} onClick={() => { setF({ title: { free: true } }); window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "title" } })); }}>자유</button></div></div>
+                {!t.free && <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로</span>
+                  <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(t.h || "center") === p ? "on" : ""} onClick={() => setF({ title: { h: p } })}>{s}</button>)}</div></div>}
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        {sec === "legend" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>표시</span>
+              <div className="seg"><button className={legendOn ? "on" : ""} onClick={() => setF({ legend: { show: true } })}>On</button><button className={!legendOn ? "on" : ""} onClick={() => setF({ legend: { show: false } })}>Off</button></div></div>
+            {legendOn && (
+              <React.Fragment>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>세로</span>
+                  <div className="seg">{[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!lg.free && (lg.v || "top") === p) ? "on" : ""} onClick={() => setF({ legend: { v: p, free: false } })}>{s}</button>)}
+                    <button className={lg.free ? "on" : ""} onClick={() => { setF({ legend: { free: true } }); window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "legend" } })); }}>자유</button></div></div>
+                {!lg.free && <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로</span>
+                  <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(lg.h || "center") === p ? "on" : ""} onClick={() => setF({ legend: { h: p } })}>{s}</button>)}</div></div>}
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        {sec === "labels" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>표시</span>
+              <div className="seg"><button className={labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: true } })}>On</button><button className={!labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: false } })}>Off</button></div></div>
+            {labelsOn && (
+              <React.Fragment>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>형식</span>
+                  <div className="seg"><button className={(lb.fmt || "full") === "full" ? "on" : ""} onClick={() => setF({ labels: { fmt: "full" } })}>Full</button><button className={lb.fmt === "compact" ? "on" : ""} onClick={() => setF({ labels: { fmt: "compact" } })}>Compact</button></div></div>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>위치</span>
+                  <div className="seg">{[["top", "위"], ["inside", "안쪽"]].map(([p, s]) => <button key={p} className={(lb.pos || "top") === p ? "on" : ""} onClick={() => setF({ labels: { pos: p } })}>{s}</button>)}</div></div>
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        {sec === "axis" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Y 범위</span>
+              <input className="inp" type="number" placeholder="min" value={num(ax.yMin)} onChange={(e) => setF({ axis: { yMin: e.target.value === "" ? null : +e.target.value } })} style={{ width: 62 }} />
+              <input className="inp" type="number" placeholder="max" value={num(ax.yMax)} onChange={(e) => setF({ axis: { yMax: e.target.value === "" ? null : +e.target.value } })} style={{ width: 62 }} /></div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>X 범위</span>
+              <input className="inp" type="number" placeholder="min" value={num(ax.xMin)} onChange={(e) => setF({ axis: { xMin: e.target.value === "" ? null : +e.target.value } })} style={{ width: 62 }} />
+              <input className="inp" type="number" placeholder="max" value={num(ax.xMax)} onChange={(e) => setF({ axis: { xMax: e.target.value === "" ? null : +e.target.value } })} style={{ width: 62 }} /></div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 6px" }}>값(숫자) 축에만 적용 · 비우면 자동. 범위를 좁히면 차이가 극적으로 보입니다.</div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Y 레이블</span><div className="seg">{rotBtns(ax.yLabelRotate, (v) => setF({ axis: { yLabelRotate: v } }))}</div></div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>X 레이블</span><div className="seg">{rotBtns(ax.xLabelRotate, (v) => setF({ axis: { xLabelRotate: v } }))}</div></div>
+          </React.Fragment>
+        )}
+
+        {sec === "grid" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>표시</span>
+              <div className="seg"><button className={fmt.gridlines !== false ? "on" : ""} onClick={() => setF({ gridlines: true })}>On</button><button className={fmt.gridlines === false ? "on" : ""} onClick={() => setF({ gridlines: false })}>Off(투명)</button></div></div>
+            {fmt.gridlines !== false && (
+              <React.Fragment>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>굵기</span>
+                  <div className="seg">{[1, 2, 3].map((w) => <button key={w} className={(g.width || 1) === w ? "on" : ""} onClick={() => setF({ grid: { width: w } })}>{w}</button>)}</div></div>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>색상</span>
+                  <input type="color" value={g.color || rgbToHex(Charts.themeColors().split)} onChange={(e) => setF({ grid: { color: e.target.value } })} style={CIN} />
+                  {g.color && <button className="iconbtn" style={{ width: 20, height: 20 }} onClick={() => setF({ grid: { color: null } })}><Icon name="undo" size={11} /></button>}</div>
+                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>빈도</span>
+                  <div className="seg">{[["auto", "자동"], [3, "3"], [5, "5"], [8, "8"], [10, "10"]].map(([v, s]) => <button key={String(v)} className={((v === "auto" && g.splitNumber == null) || g.splitNumber === v) ? "on" : ""} onClick={() => setF({ grid: { splitNumber: v === "auto" ? null : v } })}>{s}</button>)}</div></div>
+              </React.Fragment>
+            )}
+          </React.Fragment>
+        )}
+
+        {sec === "bg" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>배경색</span>
+              <input type="color" value={fmt.background || "#ffffff"} onChange={(e) => setF({ background: e.target.value })} style={CIN} />
+              <div className="seg" style={{ marginLeft: 6 }}><button onClick={() => setF({ background: "#ffffff" })}>흰색</button><button className={!fmt.background ? "on" : ""} onClick={() => setF({ background: null })}>기본/투명</button></div></div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>PNG로 내보낼 때 이 배경으로 저장됩니다 — 다른 자료 배경에 맞추세요.</div>
+          </React.Fragment>
+        )}
+
+        {sec === "text" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>글자색</span>
+              <input type="color" value={tx.color || rgbToHex(Charts.themeColors().text)} onChange={(e) => setF({ text: { color: e.target.value } })} style={CIN} />
+              {tx.color && <button className="iconbtn" style={{ width: 20, height: 20 }} onClick={() => setF({ text: { color: null } })}><Icon name="undo" size={11} /></button>}</div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>크기</span>
+              <div className="seg">{[["auto", "자동"], [10, "10"], [12, "12"], [14, "14"], [16, "16"]].map(([v, s]) => <button key={String(v)} className={((v === "auto" && !tx.size) || tx.size === v) ? "on" : ""} onClick={() => setF({ text: { size: v === "auto" ? null : v } })}>{s}</button>)}</div></div>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>스타일</span>
+              <div className="seg"><button className={tx.bold ? "on" : ""} style={{ fontWeight: 700 }} onClick={() => setF({ text: { bold: !tx.bold } })}>B</button><button className={tx.italic ? "on" : ""} style={{ fontStyle: "italic" }} onClick={() => setF({ text: { italic: !tx.italic } })}>I</button></div></div>
+          </React.Fragment>
+        )}
+
+        {sec === "series" && (
+          viz.rows.length > 0 && !viz.color
+            ? viz.rows.map((m, i) => {
+              const overridden = fmt.colors && fmt.colors[m.label];
+              const cur = overridden || rgbToHex(Charts.palette()[i % 8]);
+              const nm = (fmt.seriesNames && fmt.seriesNames[m.label]) || "";
+              return (
+                <div key={m.key} className="ctl-row" style={{ gap: 6, marginTop: 4 }}>
+                  <input type="color" title="색상" value={cur} onChange={(e) => setF({ colors: { [m.label]: e.target.value } })} style={CIN} />
+                  <input className="inp" title="범례 이름 (비우면 원래 필드명)" placeholder={m.label} value={nm} onChange={(e) => setF({ seriesNames: { [m.label]: e.target.value } })} style={{ flex: 1, minWidth: 0 }} />
+                  {(overridden || nm) && <button className="iconbtn" style={{ width: 20, height: 20, flexShrink: 0 }} title="초기화" onClick={() => setF({ colors: { [m.label]: null }, seriesNames: { [m.label]: "" } })}><Icon name="undo" size={11} /></button>}
+                </div>
+              );
+            })
+            : <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>측정값을 올리고 색상(Color) 차원이 없을 때 계열별 색·이름을 지정할 수 있습니다.</div>
+        )}
+
+        {sec === "size" && (
+          <React.Fragment>
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>프리셋</span>
+              <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(!fmt.width && (fmt.height || null) === h) ? "on" : ""} onClick={() => setF(h === null ? { height: null, width: null, offsetTop: 0, offsetLeft: 0 } : { height: h, offsetTop: 0 })}>{s}</button>)}</div></div>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)" }}>차트 모서리(상·하·좌·우)를 드래그해 크기 조절 · Auto로 초기화</div>
+          </React.Fragment>
+        )}
+      </div>
+    );
+  }
+
   // ─── Right panel: Show Me + Marks ─────────────────────────────────────────
   function VizPanel() {
     const viz = useStore((s) => s.viz);
@@ -960,89 +1156,7 @@
         </React.Fragment>
         )}
 
-        {ptab === "format" && (() => {
-          const fmt = viz.format || {};
-          const setF = actions.setFormat;
-          const legendOn = fmt.legend ? fmt.legend.show !== false : true;
-          const labelsOn = fmt.labels && fmt.labels.show;
-          const isLine = viz.type === "line" || viz.type === "area";
-          return (
-            <div className="cp-block">
-              <div className="cp-blocktitle">Format · 서식</div>
-              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Title · 제목</span>
-                <input className="inp" placeholder="차트 제목 입력" value={(fmt.title && fmt.title.text) || ""} onChange={(e) => setF({ title: { text: e.target.value } })} style={{ flex: 1, minWidth: 0 }} /></div>
-              {fmt.title && fmt.title.text && (
-                <React.Fragment>
-                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>제목 세로</span>
-                    <div className="seg">
-                      {[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!(fmt.title && fmt.title.free) && (fmt.title && fmt.title.v || "top") === p) ? "on" : ""} onClick={() => setF({ title: { v: p, free: false } })}>{s}</button>)}
-                      <button className={fmt.title && fmt.title.free ? "on" : ""} onClick={() => { setF({ title: { free: true } }); window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "title" } })); }}>자유</button>
-                    </div></div>
-                  {!(fmt.title && fmt.title.free) && (
-                    <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>제목 가로</span>
-                      <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(fmt.title && fmt.title.h || "center") === p ? "on" : ""} onClick={() => setF({ title: { h: p } })}>{s}</button>)}</div></div>
-                  )}
-                </React.Fragment>
-              )}
-              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Legend</span>
-                <div className="seg"><button className={legendOn ? "on" : ""} onClick={() => setF({ legend: { show: true } })}>On</button><button className={!legendOn ? "on" : ""} onClick={() => setF({ legend: { show: false } })}>Off</button></div></div>
-              {legendOn && (
-                <React.Fragment>
-                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>세로 / Vert.</span>
-                    <div className="seg">
-                      {[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(!(fmt.legend && fmt.legend.free) && (fmt.legend && fmt.legend.v || "top") === p) ? "on" : ""} onClick={() => setF({ legend: { v: p, free: false } })}>{s}</button>)}
-                      <button className={fmt.legend && fmt.legend.free ? "on" : ""} onClick={() => { setF({ legend: { free: true } }); window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "legend" } })); }}>자유</button>
-                    </div></div>
-                  {fmt.legend && fmt.legend.free ? (
-                    <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 8px", lineHeight: 1.5 }}>
-                      차트에서 범례 핸들을 드래그해 위치를 정하고 <b style={{ color: "var(--tx-hi)" }}>이동 완료</b>를 누르세요.
-                      <span style={{ color: "var(--accent)", cursor: "pointer", marginLeft: 4 }} onClick={() => window.dispatchEvent(new CustomEvent("viz-pose", { detail: { target: "legend" } }))}>다시 이동</span>
-                    </div>
-                  ) : (
-                    <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로 / Horiz.</span>
-                      <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(fmt.legend && fmt.legend.h || "center") === p ? "on" : ""} onClick={() => setF({ legend: { h: p } })}>{s}</button>)}</div></div>
-                  )}
-                </React.Fragment>
-              )}
-              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Value labels</span>
-                <div className="seg"><button className={labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: true } })}>On</button><button className={!labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: false } })}>Off</button></div></div>
-              {labelsOn && (
-                <React.Fragment>
-                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Label format</span>
-                    <div className="seg"><button className={(fmt.labels && fmt.labels.fmt || "full") === "full" ? "on" : ""} onClick={() => setF({ labels: { fmt: "full" } })}>Full</button><button className={fmt.labels && fmt.labels.fmt === "compact" ? "on" : ""} onClick={() => setF({ labels: { fmt: "compact" } })}>Compact</button></div></div>
-                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Label position</span>
-                    <div className="seg">{[["top", "Top"], ["inside", "In"]].map(([p, s]) => <button key={p} className={(fmt.labels && fmt.labels.pos || "top") === p ? "on" : ""} onClick={() => setF({ labels: { pos: p } })}>{s}</button>)}</div></div>
-                </React.Fragment>
-              )}
-              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Grid lines</span>
-                <div className="seg"><button className={fmt.gridlines !== false ? "on" : ""} onClick={() => setF({ gridlines: true })}>On</button><button className={fmt.gridlines === false ? "on" : ""} onClick={() => setF({ gridlines: false })}>Off</button></div></div>
-              <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>크기 / Size</span>
-                <div className="seg">{[["Auto", null], ["S", 320], ["M", 460], ["L", 640], ["XL", 820]].map(([s, h]) => <button key={s} className={(!fmt.width && (fmt.height || null) === h) ? "on" : ""} onClick={() => setF(h === null ? { height: null, width: null, offsetTop: 0, offsetLeft: 0 } : { height: h, offsetTop: 0 })}>{s}</button>)}</div></div>
-              <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", margin: "-2px 0 8px" }}>차트 모서리(상·하·좌·우)를 드래그해 크기 조절 · Auto로 초기화</div>
-              {isLine && (
-                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Smooth</span>
-                  <div className="seg"><button className={fmt.smooth == null ? "on" : ""} onClick={() => setF({ smooth: null })}>Auto</button><button className={fmt.smooth === true ? "on" : ""} onClick={() => setF({ smooth: true })}>On</button><button className={fmt.smooth === false ? "on" : ""} onClick={() => setF({ smooth: false })}>Off</button></div></div>
-              )}
-              {viz.rows.length > 0 && !viz.color && (
-                <div style={{ marginTop: 8 }}>
-                  <span className="fieldlabel">Series · 계열 (색 · 이름)</span>
-                  {viz.rows.map((m, i) => {
-                    const overridden = fmt.colors && fmt.colors[m.label];
-                    const cur = overridden || rgbToHex(Charts.palette()[i % 8]);
-                    const nm = (fmt.seriesNames && fmt.seriesNames[m.label]) || "";
-                    return (
-                      <div key={m.key} className="ctl-row" style={{ gap: 6, marginTop: 4 }}>
-                        <input type="color" title="색상" value={cur} onChange={(e) => setF({ colors: { [m.label]: e.target.value } })} style={{ width: 24, height: 22, padding: 0, border: "1px solid var(--line)", borderRadius: 4, background: "none", cursor: "pointer", flexShrink: 0 }} />
-                        <input className="inp" title="범례 이름 (비우면 원래 필드명)" placeholder={m.label} value={nm} onChange={(e) => setF({ seriesNames: { [m.label]: e.target.value } })} style={{ flex: 1, minWidth: 0 }} />
-                        {(overridden || nm) && <button className="iconbtn" style={{ width: 20, height: 20, flexShrink: 0 }} title="초기화" onClick={() => setF({ colors: { [m.label]: null }, seriesNames: { [m.label]: "" } })}><Icon name="undo" size={11} /></button>}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+        {ptab === "format" && <FormatPanel viz={viz} />}
       </div>
     );
   }

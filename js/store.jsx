@@ -48,6 +48,10 @@
         legend: { show: true, v: "top", h: "center" },   // v: top|middle|bottom · h: left|center|right
         labels: { show: false, pos: "top", fmt: "full" },
         gridlines: true,
+        grid: {},        // { width, color, splitNumber } grid/split-line styling
+        axis: {},        // { xMin, xMax, yMin, yMax, yLabelRotate, xLabelRotate }
+        text: {},        // { color, size, bold, italic } chart text styling
+        background: null,// chart background colour (for PNG blending); null = theme
         smooth: null,    // null = per chart default; true/false override
         colors: {},      // { seriesName: "#hex" }
         seriesNames: {}, // { originalName: "custom label" }
@@ -416,6 +420,9 @@
       if (patch.title) next.title = { ...f.title, ...patch.title };
       if (patch.legend) next.legend = { ...f.legend, ...patch.legend };
       if (patch.labels) next.labels = { ...f.labels, ...patch.labels };
+      if (patch.grid) next.grid = { ...f.grid, ...patch.grid };
+      if (patch.axis) next.axis = { ...f.axis, ...patch.axis };
+      if (patch.text) next.text = { ...f.text, ...patch.text };
       if (patch.colors) next.colors = { ...f.colors, ...patch.colors };
       if (patch.seriesNames) next.seriesNames = { ...f.seriesNames, ...patch.seriesNames };
       return { ...s, viz: { ...s.viz, format: next } };
