@@ -8,9 +8,14 @@ PptxGenJS browser bundle vendored **here**:
 vendor/pptxgenjs/pptxgen.bundle.js
 ```
 
-It is **not committed** (external code — add it yourself). Until the file is
-present, the PPTX menu item shows an install message; every other export
-(PNG / SVG / clipboard) works without it.
+Now vendored & committed (mirrors the SheetJS pattern):
+
+- Version: `3.12.0`
+- `pptxgen.bundle.js` SHA-256: `cd078ca9e91c6f9e061ee0a3c310d6ff157c3a71b1dea7f40fd53818017266ff`
+- License: MIT · exposes `window.PptxGenJS` (bundles JSZip)
+
+If the file is ever missing, the PPTX menu item shows an install message; every
+other export (PNG / SVG / clipboard) works without it.
 
 ## How to get the file
 
