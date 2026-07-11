@@ -53,6 +53,7 @@
    - C2 다변량 이상치(Outliers) → 시각화
    - D2 geoMatch → MyDataMap choropleth 배선(geojson 로딩·ECharts map 등록)
 3. **main 병합·태그·원격 push**: `feat/analytics` ~88커밋 스택 검토→승인→`--no-ff`. (자율 금지 항목)
+4. **후속작업 제안 검토**: [`docs/FOLLOWUP_PROPOSALS.md`](./docs/FOLLOWUP_PROPOSALS.md) — 실브라우저 클릭 검증(2026-07-12) 결과 기반 P1~P12 우선순위 제안 (미배선 UI·getActiveData 메모·편집 op 견고성 3종·i18n 잔존·E2E 자동화 등). 참고: 위 1번 실브라우저 왕복 중 편집/피벗→차트/Export/SPC/ML은 제어 브라우저로 검증 완료.
 
 ## 세션 기록 — 2026-07-12 (밤샘 자율: Batch E — 견고성 가드 스윕)
 
