@@ -360,12 +360,26 @@
   // active (cleaned) dataset
   function getDataset(id) { return ensureRids(D.find((d) => d.id === (id || state.activeId))); }
   function getClean(id) { id = id || state.activeId; return state.clean[id] || { steps: [], cursor: 0 }; }
+  // Memoize the derived (post-cleaning) view. applySteps clones every row each call, so an
+  // un-memoized getActiveData is O(steps × rows) on EVERY render — costly once XLSX brings tens
+  // of thousands of rows. Cache key = (dataset ref, steps array ref, cursor). All mutations flip
+  // one of these: addStep/clearSteps → new steps ref; undo/redo/gotoStep → cursor; registerDataset
+  // → new id; hydrateProject → D.splice replaces ds objects. Consumers treat the result read-only
+  // (audited: no in-place sort/push/field-assignment on the derived rows/columns), so sharing is safe.
+  const EMPTY_STEPS = [];
+  const _activeCache = new Map(); // id -> { ds, stepsRef, cursor, result }
   function getActiveData(id) {
     id = id || state.activeId;
     const ds = getDataset(id);
-    const cl = getClean(id);
-    const active = cl.steps.slice(0, cl.cursor);
-    return { ds, ...applySteps(ds, active), steps: cl.steps, cursor: cl.cursor };
+    const cl = state.clean[id];
+    const steps = cl ? cl.steps : EMPTY_STEPS; // stable ref when a dataset has no cleaning steps
+    const cursor = cl ? cl.cursor : 0;
+    const cached = _activeCache.get(id);
+    if (cached && cached.ds === ds && cached.stepsRef === steps && cached.cursor === cursor) return cached.result;
+    const active = steps.slice(0, cursor);
+    const result = { ds, ...applySteps(ds, active), steps, cursor };
+    _activeCache.set(id, { ds, stepsRef: steps, cursor, result });
+    return result;
   }
 
   // ---------- aggregation for viz ----------
@@ -473,6 +487,7 @@
       if (index < 0) return false;
       if (D.length === 1) throw new Error("A project must keep at least one dataset");
       D.splice(index, 1);
+      _activeCache.delete(id); // drop the memoized view for the removed dataset
       setState((s) => {
         const clean = { ...s.clean };
         delete clean[id];
