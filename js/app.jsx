@@ -24,6 +24,7 @@
     React.useEffect(() => {
       const r = document.documentElement;
       r.setAttribute("data-theme", theme);
+      r.setAttribute("lang", tw.lang || "ko");
       r.setAttribute("data-tone", tw.tone || "cool");
       r.setAttribute("data-density", tw.density || "compact");
       r.setAttribute("data-sidebar", tw.sidebar || "labeled");

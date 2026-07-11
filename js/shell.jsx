@@ -142,6 +142,7 @@
     const [selected, setSelected] = React.useState({});
     const [activeSheet, setActiveSheet] = React.useState("");
     const [overrides, setOverrides] = React.useState({});
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
     const fileRef = React.useRef(null);
     const TYPES = ["boolean", "integer", "float", "datetime", "category", "string"];
 
@@ -189,7 +190,7 @@
 
     return (
       <div>
-        <button className="btn ghost sm" onClick={() => { setOpen(true); reset(); }}><Icon name="upload" size={13} /> Import</button>
+        <button className="btn ghost sm" onClick={() => { setOpen(true); reset(); }}><Icon name="upload" size={13} /> {window.I18N.t(lang, "import")}</button>
         {open && (
           <div className="import-overlay" onClick={() => { if (!busy) { setOpen(false); reset(); } }}>
             <div className="import-modal" onClick={(event) => event.stopPropagation()}>
@@ -253,6 +254,7 @@
   function ExportBtn() {
     const [open, setOpen] = React.useState(false);
     const activeId = useStore((s) => s.activeId);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
 
     function exportPNG() {
       const ok = window.Charts.downloadPNG("insight-chart");
@@ -269,7 +271,7 @@
 
     return (
       <div style={{ position: "relative" }}>
-        <button className="btn ghost sm" onClick={() => setOpen(!open)}><Icon name="download" size={13} /> Export</button>
+        <button className="btn ghost sm" onClick={() => setOpen(!open)}><Icon name="download" size={13} /> {window.I18N.t(lang, "export")}</button>
         {open && (
           <div style={{ position: "fixed", inset: 0, zIndex: 8000 }} onClick={() => setOpen(false)}>
             <div style={{ position: "absolute", top: 44, right: 140,
@@ -295,6 +297,8 @@
     const theme = useStore((s) => s.theme);
     const tweaks = useStore((s) => s.tweaks);
     const aiOpen = useStore((s) => s.ui.aiOpen);
+    const lang = tweaks.lang || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     return (
       <div className="topbar">
         <div className="brand"><span className="logomark"><Icon name="visualize" size={16} /></span></div>
@@ -308,14 +312,19 @@
         <ExportBtn />
         <div className="topbar-spacer" />
         <button className={"btn sm" + (aiOpen ? " primary" : "")} onClick={() => actions.setUI({ aiOpen: !aiOpen })}>
-          <Icon name="ai" /> Ask Insight
+          <Icon name="ai" /> {T("askInsight")}
         </button>
         <div className="topbar-sep" />
-        <button className="iconbtn" title="Tweaks (layout / tone)"
+        <button className="iconbtn lang-toggle" title={T("langToggle")} aria-label={T("langToggle")}
+          style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.02em" }}
+          onClick={() => actions.setTweak({ lang: lang === "ko" ? "en" : "ko" })}>
+          {lang === "ko" ? "EN" : "한"}
+        </button>
+        <button className="iconbtn" title={T("tweaks")}
           onClick={() => window.dispatchEvent(new CustomEvent("node-tweaks-toggle"))}>
           <Icon name="sliders" />
         </button>
-        <button className="iconbtn" title="Toggle theme" onClick={actions.toggleTheme}>
+        <button className="iconbtn" title={T("themeToggle")} onClick={actions.toggleTheme}>
           <Icon name={theme === "dark" ? "sun" : "moon"} />
         </button>
         <div className="avatar" style={{ width: 26, height: 26, borderRadius: "50%",
@@ -327,17 +336,19 @@
 
   function Rail() {
     const mode = useStore((s) => s.mode);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     return (
       <div className="rail">
         {MODES.map((m) => (
           <button key={m.id} className={"rail-item" + (mode === m.id ? " on" : "")}
-            onClick={() => { actions.setMode(m.id); window.LOG && window.LOG.info('mode', 'Mode switched to ' + m.id); }} title={m.label}>
+            onClick={() => { actions.setMode(m.id); window.LOG && window.LOG.info('mode', 'Mode switched to ' + m.id); }} title={T(m.id)}>
             <Icon name={m.icon} />
-            <span className="lbl">{m.label}</span>
+            <span className="lbl">{T(m.id)}</span>
           </button>
         ))}
         <div className="rail-spacer" />
-        <button className="rail-item" title="Help"><Icon name="book" /><span className="lbl">Docs</span></button>
+        <button className="rail-item" title={T("docs")}><Icon name="book" /><span className="lbl">{T("docs")}</span></button>
       </div>
     );
   }
