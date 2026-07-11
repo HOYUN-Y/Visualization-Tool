@@ -14,14 +14,16 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 밤샘 자율(A~F) + FOLLOWUP 후속(P4·P5·P6·P8·P7 핵심) 완료 |
-| Status | Core v2 M3~M5 + 분석엔진 6종 UI + A~F + P4/P5/P6/P8 + **P7(grid·data·pivot 한/영)** 완료. main 대비 95커밋. |
-| Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
-| Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `13092a3` — i18n grid·data·pivot 커버리지 (P7) |
-| Working tree | 깨끗. P7: i18n.js(ko/en 80키)·grid/dataMode/pivotMode 배선 + tests/i18n.test.js |
-| Last verified | 2026-07-12 — Node 225/225, JSX 구문검사(tsc TS1xxx 0), asset v=255 |
+| Current milestone | **Core v2 → main 병합 완료** (Phase 0). 다음: Phase 1 i18n 커버리지 |
+| Status | feat/analytics(97커밋)를 main에 `--no-ff` 병합 + `checkpoint/core-v2` 태그. 신규 로드맵(병합→i18n→P3→P9→DuckDB) 진행 중. |
+| Branch | **`main`** (병합 완료). Phase 1부터 `feat/i18n` 등 새 브랜치 분기 예정 |
+| Base commit | `65754ab` — merge: Core v2 (feat/analytics 97 commits) |
+| Last checkpoint commit | `checkpoint/core-v2` 태그 @ `65754ab` |
+| Working tree | 깨끗. auto-push.sh 추적해제·`.claude/hooks/` gitignore |
+| Last verified | 2026-07-12 — Node 225/225, asset v=255. **origin 미push(로컬 106커밋 앞섬)** |
 | Updated at | 2026-07-12 |
+
+> 활성 계획: `~/.claude/plans/temporal-juggling-fountain.md` (Phase 0~4 체크리스트). 실브라우저 검증은 Claude Desktop/Fable로 대체.
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
 
@@ -31,6 +33,15 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (Phase 0: main 병합 + 깃 위생)
+
+신규 로드맵 승인(병합→i18n→P3→P9→DuckDB). Phase 0 실행:
+- `65754ab` **`feat/analytics`(97커밋) → main `--no-ff` 병합**. main이 feat/analytics의 조상이라 충돌 0. 병합 후 Node 225/225 재확인.
+- 태그 **`checkpoint/core-v2`** @ 병합 커밋 (v2.0.0은 DuckDB 전환 후 보류).
+- `9b6820d` 무력화된 `auto-push.sh` 훅 추적 해제 + `.claude/hooks/` gitignore → tree clean.
+- **push 없음**(외부전송 별도 승인 — 로컬 main이 origin보다 106커밋 앞섬).
+- **다음**: `feat/i18n` 분기 → Phase 1a(dashMode i18n).
 
 ## 🌙 밤샘 자율 실행 최종 요약 (2026-07-12, Batch A~F)
 
