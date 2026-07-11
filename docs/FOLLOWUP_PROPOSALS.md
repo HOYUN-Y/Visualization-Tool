@@ -66,7 +66,7 @@ Node 테스트까지 통과했지만 어떤 화면에서도 호출되지 않음 
 
 ### ~~P4. getActiveData 메모이제이션~~ ✅ 완료 (`7814f8e`)
 `(ds 참조, steps 배열 참조, cursor)` 키로 캐시, 스텝 불변성 기반 참조 비교. `tests/storeMemo.test.js`(+4)가 **실제 store.jsx를 스텁 window/React로 로드**해 회귀 잠금 — 이 테스트 방식은 P3 배선 시에도 재사용 가치 있음.
-- ⚠️ **유지 규약**: 캐시가 result 객체를 재사용하므로 **소비자는 반환된 `rows`/`columns`를 제자리 변형하면 안 됨**(현 코드베이스는 전부 복사 후 정렬/변형 — 신규 코드도 이 관례 유지). HANDOFF 개발 규칙에 1줄 추가 권장.
+- ✅ **유지 규약 문서화 완료**: 캐시가 result 객체를 재사용하므로 소비자는 반환된 `rows`/`columns`를 제자리 변형하면 안 됨(현 코드베이스는 전부 복사 후 정렬/변형). HANDOFF §Derived helpers + §개발 규칙 2곳에 read-only 경고 1줄씩 추가함.
 
 ### ~~P5. 편집 op 견고성 3종~~ ✅ 완료 (`41d24bd`)
 1. ✅ rename 충돌 — op 레벨 가드(기존 키면 no-op) + UI 레벨 alert·에디터 유지 (이중 방어)

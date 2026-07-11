@@ -180,7 +180,7 @@ actions.setMode("visualize");                 // never setState directly from co
 
 ### Derived helpers (`Store.derive`)
 - `getDataset(id)` → dataset object.
-- `getActiveData(id)` → `{ ds, rows, columns, steps, cursor }` — **rows/columns are the dataset after applying its cleaning pipeline up to `cursor`.** Always read data through this so cleaning steps propagate everywhere (grid, charts, stats, ml…).
+- `getActiveData(id)` → `{ ds, rows, columns, steps, cursor }` — **rows/columns are the dataset after applying its cleaning pipeline up to `cursor`.** Always read data through this so cleaning steps propagate everywhere (grid, charts, stats, ml…). **Memoized** on `(dataset ref, steps ref, cursor)`; repeat calls return the *same* object. ⚠️ **Treat the returned `rows`/`columns` as read-only** — copy before sorting/mutating (`[...rows].sort(…)`), never `rows.sort()`/`row[k]=…` in feature code, or you corrupt the shared cache. Mutations belong in cleaning ops (`applySteps`).
 - `applySteps(dataset, steps)` → `{rows, columns}` (pure).
 - `aggregate(rows, dimKeys[], measures[])` → grouped rows; measures are `{key, agg, id}`.
 - `colStats(rows, key)` → `{mean, median, mode, q1, q3}`.
@@ -329,7 +329,7 @@ These are demo/customization toggles, not persisted.
 - **CSS `.fade` animates transform only, never opacity** — same offscreen-rAF reason; don't gate visibility on animation.
 - **Cross-file scope**: anything used by another file must be on `window`. New module → end with `window.X = …` or `Object.assign(window, {…})`. Don't rely on top-level consts being visible across files.
 - **No `const styles = {…}`** global naming collisions — inline styles or uniquely-named objects only (Babel-per-script scope rule).
-- **Always read data via `Store.derive.getActiveData(activeId)`** so cleaning steps propagate. Don't read `NODE.datasets[i].rows` directly in feature code.
+- **Always read data via `Store.derive.getActiveData(activeId)`** so cleaning steps propagate. Don't read `NODE.datasets[i].rows` directly in feature code. Its result is **memoized & shared** — never mutate the returned `rows`/`columns` in place; copy first (`[...rows]`).
 - **Native `<select>` capture quirk**: screenshots of native selects can show the first option regardless of value — the live value is correct; verify via DOM if unsure.
 - **Project persistence:** `window.ProjectStore` owns IndexedDB and JSON I/O. Do not write project data directly to `localStorage`; session logs intentionally remain separate.
 - Canonical HTML / explicit closing tags are used so the visual editor can direct-edit; keep that style.
