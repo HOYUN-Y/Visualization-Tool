@@ -132,9 +132,23 @@ LIMIT 10`;
     { t: "Mix by building type", q: "SELECT building_type, COUNT(*) AS n, AVG(price_per_m2) AS ppm2\nFROM seoul_txns\nGROUP BY building_type\nORDER BY n DESC" },
   ];
 
+  // Build a sensible starter query from the ACTIVE dataset's real columns.
+  function defaultSql(ds) {
+    if (!ds || !ds.columns || !ds.columns.length) return DEFAULT_SQL;
+    const dim = ds.columns.find((c) => c.role === "dimension");
+    const meas = ds.columns.filter((c) => c.role === "measure").slice(0, 2);
+    if (dim && meas.length) {
+      const aggs = meas.map((m) => `       AVG(${m.key}) AS avg_${m.key}`).join(",\n");
+      return `SELECT ${dim.key},\n${aggs},\n       COUNT(*) AS n\nFROM ${ds.id}\nGROUP BY ${dim.key}\nORDER BY n DESC\nLIMIT 20`;
+    }
+    return `SELECT *\nFROM ${ds.id}\nLIMIT 100`;
+  }
+
   function SQLCenter() {
-    const [sql, setSql] = React.useState(DEFAULT_SQL);
-    const [result, setResult] = React.useState(() => runSQL(DEFAULT_SQL));
+    const activeId = useStore((s) => s.activeId);
+    const initSql = React.useMemo(() => defaultSql(derive.getDataset(activeId)), []);
+    const [sql, setSql] = React.useState(initSql);
+    const [result, setResult] = React.useState(() => runSQL(initSql));
     const taRef = React.useRef(null);
     const run = () => {
       window.LOG && window.LOG.info('sql', 'SQL executed', { sql: sql.trim().slice(0, 300) });
@@ -187,12 +201,14 @@ LIMIT 10`;
 
   function SQLPanel() {
     const activeId = useStore((s) => s.activeId);
+    const ds = derive.getDataset(activeId);
+    const examples = [{ t: "현재 데이터 · " + (ds ? ds.short : "active"), q: defaultSql(ds) }, ...EXAMPLES];
     return (
       <div className="sqlpanel">
         <div className="cp-block">
           <div className="cp-blocktitle">Example queries</div>
           <div className="sql-examples">
-            {EXAMPLES.map((e, i) => (
+            {examples.map((e, i) => (
               <button key={i} className="sql-ex" onClick={() => window.__sqlSet && window.__sqlSet(e.q)}>
                 <Icon name="play" size={11} /><span>{e.t}</span>
               </button>
