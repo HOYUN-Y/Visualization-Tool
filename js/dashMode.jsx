@@ -171,16 +171,56 @@
     return <div className="textwidget" style={{ whiteSpace: "pre-wrap" }}>{text || "Double-click or use the inspector to edit text"}</div>;
   }
 
+  // ---------- Dashboard tab bar (multiple dashboards) ----------
+  function DashTabs() {
+    const dash = useStore((s) => s.dash);
+    const sheets = dash.sheets || [];
+    const active = dash.active;
+    const [editId, setEditId] = React.useState(null);
+    const [draft, setDraft] = React.useState("");
+    const commit = () => { if (editId) actions.renameDashSheet(editId, draft.trim()); setEditId(null); };
+    return (
+      <div className="viz-tabs">
+        <div className="viz-tabs-scroll">
+          {sheets.map((sh) => (
+            <div key={sh.id} className={"viz-tab" + (sh.id === active ? " on" : "")}
+              onClick={() => sh.id !== active && actions.setDashActive(sh.id)}
+              onDoubleClick={() => { setEditId(sh.id); setDraft(sh.name); }} title="더블클릭해서 이름 변경">
+              <Icon name="dashboard" size={12} style={{ opacity: 0.6 }} />
+              {editId === sh.id
+                ? <input autoFocus className="viz-tab-edit" value={draft}
+                    onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+                    onKeyDown={(e) => { if (e.key === "Enter") commit(); else if (e.key === "Escape") setEditId(null); }}
+                    onClick={(e) => e.stopPropagation()} />
+                : <span className="viz-tab-nm">{sh.name}</span>}
+              {sh.id === active && (
+                <span className="viz-tab-dup" title="대시보드 복제"
+                  onClick={(e) => { e.stopPropagation(); actions.duplicateDashSheet(sh.id); }}><Icon name="duplicate" size={11} /></span>
+              )}
+              {sheets.length > 1 && (
+                <span className="viz-tab-x" title="대시보드 닫기"
+                  onClick={(e) => { e.stopPropagation(); actions.removeDashSheet(sh.id); }}><Icon name="x" size={11} /></span>
+              )}
+            </div>
+          ))}
+          <button className="viz-tab-add" title="새 대시보드" onClick={() => actions.addDashSheet()}><Icon name="plus" size={13} /></button>
+        </div>
+      </div>
+    );
+  }
+
   // ---------- Canvas ----------
   function DashCanvas() {
     const activeId = useStore((s) => s.activeId);
     const dash = useStore((s) => s.dash);
     const theme = useStore((s) => s.theme);
     const { rows, columns, ds } = derive.getActiveData(activeId);
-    const widgets = dash.widgets || defaultWidgets(columns);
-    React.useEffect(() => { if (!dash.widgets) actions.setDash({ widgets: defaultWidgets(columns) }); }, []);
+    const sheet = (dash.sheets || []).find((x) => x.id === dash.active) || (dash.sheets || [])[0];
+    const widgets = (sheet && sheet.widgets) || defaultWidgets(columns);
+    // First-ever dashboard (null widgets) auto-fills a starter; new tabs start blank ([]).
+    React.useEffect(() => { if (sheet && sheet.widgets == null) actions.setDashWidgets(defaultWidgets(columns)); }, [sheet && sheet.id]);
     const staleN = widgets.filter((w) => widgetStale(w, columns)).length;
-    const rebuild = () => actions.setDash({ widgets: defaultWidgets(columns), selectedWidgetId: null });
+    const rebuild = () => { actions.setDashWidgets(defaultWidgets(columns)); actions.setDash({ selectedWidgetId: null }); };
     const ref = React.useRef(null);
     const [cw, setCw] = React.useState(1000);
     React.useEffect(() => {
@@ -193,9 +233,9 @@
     const edit = dash.edit;
     const [drag, setDrag] = React.useState(null);
 
-    const update = (id, patch) => actions.setDash({ widgets: widgets.map((w) => w.id === id ? { ...w, ...patch } : w) });
-    const remove = (id) => actions.setDash({ widgets: widgets.filter((w) => w.id !== id) });
-    const dup = (wd) => actions.setDash({ widgets: [...widgets, { ...wd, id: "w" + Date.now(), x: Math.min(wd.x + 1, COLS - wd.w), y: wd.y + 1 }] });
+    const update = (id, patch) => actions.setDashWidgets(widgets.map((w) => w.id === id ? { ...w, ...patch } : w));
+    const remove = (id) => actions.setDashWidgets(widgets.filter((w) => w.id !== id));
+    const dup = (wd) => actions.setDashWidgets([...widgets, { ...wd, id: "w" + Date.now(), x: Math.min(wd.x + 1, COLS - wd.w), y: wd.y + 1 }]);
 
     const onHeadDown = (e, wd) => {
       if (!edit) return; e.preventDefault();
@@ -225,6 +265,7 @@
 
     return (
       <React.Fragment>
+        <DashTabs />
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
             <Icon name="dashboard" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{ds.short} · 대시보드
@@ -376,9 +417,10 @@
     const dash = useStore((s) => s.dash);
     const activeId = useStore((s) => s.activeId);
     const { columns } = derive.getActiveData(activeId);
-    const widgets = dash.widgets || defaultWidgets(columns);
-    const add = (wd) => actions.setDash({ widgets: [...widgets, { ...wd, id: "w" + Date.now(), x: 0, y: 99 }] });
-    const update = (id, patch) => actions.setDash({ widgets: widgets.map((w) => w.id === id ? { ...w, ...patch } : w) });
+    const sheet = (dash.sheets || []).find((x) => x.id === dash.active) || (dash.sheets || [])[0];
+    const widgets = (sheet && sheet.widgets) || defaultWidgets(columns);
+    const add = (wd) => actions.setDashWidgets([...widgets, { ...wd, id: "w" + Date.now(), x: 0, y: 99 }]);
+    const update = (id, patch) => actions.setDashWidgets(widgets.map((w) => w.id === id ? { ...w, ...patch } : w));
     const measures = dashMeasures(columns);
     const dims = dashDims(columns);
     const m0 = measures[0], d0 = dims[0];

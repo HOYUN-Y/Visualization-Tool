@@ -100,6 +100,24 @@
     return { ...s, pivotSheets: sheets };
   }
 
+  // ---------- dashboard sheets (multiple dashboard tabs) ----------
+  // Only `widgets` is per-sheet; cross/edit/selectedWidgetId stay dash-global.
+  function mkDashSheet(name, id, widgets) {
+    return { id: id || mkSheetId(), name: name || "대시보드 1", widgets: widgets === undefined ? null : widgets };
+  }
+  function curDashSheet(s) {
+    const sh = (s.dash && s.dash.sheets) || [];
+    return sh.find((x) => x.id === s.dash.active) || sh[0];
+  }
+  function updateDashSheet(s, fn) {
+    const sheets = ((s.dash && s.dash.sheets) || []).slice();
+    let i = sheets.findIndex((x) => x.id === s.dash.active);
+    if (i < 0) i = 0;
+    if (!sheets[i]) return s;
+    sheets[i] = fn(sheets[i]);
+    return { ...s, dash: { ...s.dash, sheets } };
+  }
+
   const initial = {
     theme: "dark",
     mode: "data",
@@ -110,7 +128,7 @@
     vizActive: "sheet-1",
     pivotSheets: [mkPivotSheet("피벗 1", null, "pivot-1")], // pivot-table tabs
     pivotActive: "pivot-1",
-    dash: { widgets: null, cross: null, edit: false },
+    dash: { sheets: [mkDashSheet("대시보드 1", "dash-1")], active: "dash-1", cross: null, edit: false, selectedWidgetId: null },
     tweaks: { layout: "classic", sidebar: "rail", tone: "cool", density: "compact" },
   };
 
@@ -411,6 +429,16 @@
         next.pivotSheets = [mkPivotSheet("피벗 1", null, "pivot-1")];
       }
       if (!next.pivotSheets.some((x) => x.id === next.pivotActive)) next.pivotActive = next.pivotSheets[0].id;
+      // Migrate legacy single-dashboard projects → one dashboard sheet.
+      if (saved.dash && saved.dash.widgets !== undefined && !(saved.dash.sheets && saved.dash.sheets.length)) {
+        next.dash = { sheets: [{ id: "dash-1", name: "대시보드 1", widgets: saved.dash.widgets }], active: "dash-1",
+          cross: null, edit: !!saved.dash.edit, selectedWidgetId: null };
+      }
+      if (!next.dash || !Array.isArray(next.dash.sheets) || !next.dash.sheets.length) {
+        next.dash = { sheets: [mkDashSheet("대시보드 1", "dash-1")], active: "dash-1", cross: null, edit: false, selectedWidgetId: null };
+      }
+      delete next.dash.widgets;
+      if (!next.dash.sheets.some((x) => x.id === next.dash.active)) next.dash.active = next.dash.sheets[0].id;
       state = next;
 
       const analysis = bundle.analysis || {};
@@ -550,6 +578,36 @@
     // dashboard
     setDash: (patch) => setState((s) => ({ ...s, dash: { ...s.dash, ...patch } })),
     setCross: (c) => setState((s) => ({ ...s, dash: { ...s.dash, cross: c } })),
+    // widgets live on the active dashboard sheet
+    setDashWidgets: (widgets) => setState((s) => updateDashSheet(s, (sh) => ({ ...sh, widgets }))),
+    addDashSheet: () => setState((s) => {
+      const n = ((s.dash.sheets) || []).length + 1;
+      const sh = mkDashSheet("대시보드 " + n, undefined, []);   // new tab starts as a blank canvas
+      return { ...s, dash: { ...s.dash, sheets: [...s.dash.sheets, sh], active: sh.id, cross: null, selectedWidgetId: null } };
+    }),
+    setDashActive: (id) => setState((s) => {
+      if (!(s.dash.sheets || []).some((x) => x.id === id)) return s;
+      return { ...s, dash: { ...s.dash, active: id, cross: null, selectedWidgetId: null } };
+    }),
+    renameDashSheet: (id, name) => setState((s) => ({ ...s, dash: { ...s.dash, sheets: (s.dash.sheets || []).map((x) => x.id === id ? { ...x, name: name || x.name } : x) } })),
+    removeDashSheet: (id) => setState((s) => {
+      const sheets = s.dash.sheets || [];
+      if (sheets.length <= 1) return s;
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.filter((x) => x.id !== id);
+      let active = s.dash.active;
+      if (active === id) { const fall = next[Math.max(0, idx - 1)] || next[0]; active = fall.id; }
+      return { ...s, dash: { ...s.dash, sheets: next, active, cross: null, selectedWidgetId: null } };
+    }),
+    duplicateDashSheet: (id) => setState((s) => {
+      const sheets = s.dash.sheets || [];
+      const src = sheets.find((x) => x.id === id) || curDashSheet(s);
+      if (!src) return s;
+      const copy = { id: mkSheetId(), name: src.name + " 복사", widgets: src.widgets ? JSON.parse(JSON.stringify(src.widgets)) : null };
+      const idx = sheets.findIndex((x) => x.id === id);
+      const next = sheets.slice(); next.splice(idx < 0 ? sheets.length : idx + 1, 0, copy);
+      return { ...s, dash: { ...s.dash, sheets: next, active: copy.id, cross: null, selectedWidgetId: null } };
+    }),
 
     // pivot (operates on the active pivot sheet)
     setPivot: (patch) => setState((s) => updatePivot(s, (p) => ({ ...p, ...patch }))),

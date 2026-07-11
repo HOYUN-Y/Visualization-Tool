@@ -920,12 +920,13 @@
     const saveToDash = () => {
       if (!measures.length) { alert("측정값을 먼저 올려주세요. / Add a measure first."); return; }
       const st = window.Store.getState();
-      const widgets = (st.dash.widgets || []).slice();
+      const sheet = (st.dash.sheets || []).find((x) => x.id === st.dash.active) || (st.dash.sheets || [])[0];
+      const widgets = ((sheet && sheet.widgets) || []).slice();
       widgets.push({ id: "w" + Date.now(), type: "chart", x: 0, y: 99, w: 6, h: 6, title,
         spec: { chartType: viz.type, cols: viz.cols.map((c) => c.key), measures: measures.map((m) => [m.key, m.agg || "sum"]), color: viz.color ? viz.color.key : undefined } });
-      actions.setDash({ widgets });
+      actions.setDashWidgets(widgets);
       window.LOG && window.LOG.info("viz", "Saved chart to dashboard");
-      alert("대시보드에 추가되었습니다. / Added to dashboard.");
+      alert("활성 대시보드에 추가되었습니다. / Added to the active dashboard.");
     };
 
     const chartH = (viz.format && viz.format.height) || null;
