@@ -355,4 +355,4 @@ These are demo/customization toggles, not persisted.
 - Add a **stat test**? → math in `statsMath.js`, test fn + center render + config in `statsMode.jsx`, entry in `TESTS`.
 - Add a **dashboard widget type**? → renderer in `dashMode.jsx` + Add-widget tile.
 - Change **brand/theme**? → `tokens.css` (tokens) + `shell.jsx` TopBar (logomark/name).
-- Add a **mode**? → new `xMode.jsx` exporting `window.XMode`, add to `MODES` (shell), add a route branch in `app.jsx`, add `<script>` + `<link>` in `index.html`.
+- Add a **mode**? → new `xMode.jsx` exporting `window.XMode`, add to `MODES` (shell), add a route branch in `app.jsx`, add `<script>` + `<link>` in `index.html`. **⚠️ Render modes as JSX ELEMENTS (`content = <window.XMode />`), never as function calls (`window.XMode()`)** — calling inline counts the mode's hooks as App's, so a top-level `useStore` in the mode shifts App's hook count on mode-switch → "Rendered more hooks" crash (and ErrorBoundary can't catch it). Elements give each mode its own hook scope and let ErrorBoundary catch mode crashes.
