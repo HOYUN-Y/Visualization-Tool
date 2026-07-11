@@ -593,6 +593,7 @@
       title = `One-way ANOVA · ${cfg.measure || ""} by ${cfg.group || ""}`;
       if (!cfg.measure || !cfg.group) { body = needNote("측정값(숫자)과 그룹(범주) 컬럼을 선택하세요."); }
       else if (groupLevels.length < 2) { body = needNote(`그룹 컬럼 "${cfg.group}"에 2개 이상 수준이 필요합니다.`); }
+      else if (groupLevels.length > 50) { body = needNote(`그룹 "${cfg.group}"의 범주가 ${groupLevels.length}개로 너무 많습니다. ANOVA는 범주 수가 적은 그룹 컬럼이 적합합니다.`); }
       else {
       const r = anova(rows, cfg.measure, cfg.group);
       const top = Object.entries(r.means).sort((a, b) => b[1].mean - a[1].mean);
@@ -610,8 +611,10 @@
       }
     } else if (test === "chisq") {
       title = `Chi-square test · ${cfg.a || ""} × ${cfg.b || ""}`;
+      const la = levelsOf(cfg.a), lb = levelsOf(cfg.b);
       if (!cfg.a || !cfg.b) { body = needNote("연관성을 볼 두 범주 컬럼(A·B)을 선택하세요."); }
       else if (cfg.a === cfg.b) { body = needNote("A와 B는 서로 다른 컬럼이어야 합니다."); }
+      else if (la.length > 50 || lb.length > 50) { body = needNote(`범주가 너무 많습니다 (${cfg.a}: ${la.length}, ${cfg.b}: ${lb.length}). 카이제곱은 범주 수가 적은 두 컬럼이 적합합니다.`); }
       else {
       const r = chisq(rows, cfg.a, cfg.b);
       body = (
