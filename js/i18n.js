@@ -102,6 +102,18 @@
       mlTask: "작업", mlTarget: "목표", mlBinarySuffix: " (이진)", mlFeatures: "특성",
       mlMetric: "지표", mlScore: "점수", mlHash: "#", mlHyperparameters: "하이퍼파라미터",
       mlTrainModel: "모델 학습", mlComputedLocally: "— 로컬에서 계산됨.", mlModelConfig: "모델 설정",
+      // sql mode — workspace chrome (SQL keyword chips & query text kept English)
+      sqlWorkspace: "SQL 워크스페이스", sqlInBrowser: "브라우저 내 SQL",
+      sqlSaveDataset: "데이터셋으로 저장", sqlRun: "실행", sqlFrom: "출처",
+      sqlQueryError: "쿼리 오류", sqlExampleQueries: "예제 쿼리", sqlTables: "테이블",
+      sqlSupported: "지원 기능", sqlSavableNote: "결과는 조회 가능하며 새 데이터셋으로 저장할 수 있습니다.",
+      sqlReference: "참조",
+      sqlExTopDistricts: "가격 상위 자치구", sqlExMonthlyTxns: "월별 거래 건수",
+      sqlExLargePremium: "대형 프리미엄 아파트", sqlExMixByType: "건물 유형별 구성",
+      // ai drawer — chrome headers (insight text & chips kept Korean)
+      aiTitle: "인사이트 질문", aiSubtitle: "AI 분석 어시스턴트 · 로컬",
+      aiDatasetProfile: "데이터셋 프로파일", aiLastAnalysis: "최근 분석 결과",
+      aiAnalysisComplete: "분석 완료", aiInsights: "인사이트", aiConversation: "대화",
     },
     en: {
       data: "Data", clean: "Clean", sql: "SQL", visualize: "Chart", pivot: "Pivot",
@@ -189,6 +201,16 @@
       mlTask: "Task", mlTarget: "Target", mlBinarySuffix: " (binary)", mlFeatures: "Features",
       mlMetric: "Metric", mlScore: "Score", mlHash: "#", mlHyperparameters: "Hyperparameters",
       mlTrainModel: "Train model", mlComputedLocally: "— computed locally.", mlModelConfig: "Model Config",
+      sqlWorkspace: "SQL Workspace", sqlInBrowser: "in-browser SQL",
+      sqlSaveDataset: "Save as dataset", sqlRun: "Run", sqlFrom: "from",
+      sqlQueryError: "Query error", sqlExampleQueries: "Example queries", sqlTables: "Tables",
+      sqlSupported: "Supported", sqlSavableNote: "Results are queryable & savable as new datasets.",
+      sqlReference: "Reference",
+      sqlExTopDistricts: "Top districts by price", sqlExMonthlyTxns: "Monthly transaction counts",
+      sqlExLargePremium: "Large premium apartments", sqlExMixByType: "Mix by building type",
+      aiTitle: "Ask Insight", aiSubtitle: "AI analytics assistant · local",
+      aiDatasetProfile: "Dataset Profile", aiLastAnalysis: "Last Analysis Result",
+      aiAnalysisComplete: "Analysis complete", aiInsights: "Insights", aiConversation: "Conversation",
     },
   };
   function t(lang, key) {

@@ -97,6 +97,8 @@
   }
 
   function AIDrawer() {
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const open = useStore((s) => s.ui.aiOpen);
     const activeId = useStore((s) => s.activeId);
     const { rows, columns, ds } = derive.getActiveData(activeId);
@@ -129,7 +131,7 @@
       <div className="aidrawer fade">
         <div className="ai-head">
           <span className="ai-spark"><Icon name="ai" size={15} /></span>
-          <div><div className="ai-title">Ask Insight</div><div className="ai-sub">AI analytics assistant · local</div></div>
+          <div><div className="ai-title">{T("aiTitle")}</div><div className="ai-sub">{T("aiSubtitle")}</div></div>
           <div style={{ flex: 1 }} />
           <button className="iconbtn" onClick={() => actions.setUI({ aiOpen: false })}><Icon name="x" size={15} /></button>
         </div>
@@ -137,7 +139,7 @@
         <div className="ai-body" ref={bodyRef}>
           {profile.length > 0 && (
             <React.Fragment>
-              <div className="ai-section-h"><Icon name="bolt" size={11} style={{ marginRight: 4 }} />Dataset Profile · {ds ? ds.short : activeId}</div>
+              <div className="ai-section-h"><Icon name="bolt" size={11} style={{ marginRight: 4 }} />{T("aiDatasetProfile")} · {ds ? ds.short : activeId}</div>
               {profile.map((text, i) => (
                 <div className="insight" key={"prof-" + i}>
                   <span className="insight-ic"><Icon name="stats" size={13} /></span>
@@ -149,19 +151,19 @@
 
           {window.NODE && window.NODE.lastAnalysisResult && (
             <React.Fragment>
-              <div className="ai-section-h" style={{ marginTop: 12 }}><Icon name="ml" size={11} style={{ marginRight: 4 }} />Last Analysis Result</div>
+              <div className="ai-section-h" style={{ marginTop: 12 }}><Icon name="ml" size={11} style={{ marginRight: 4 }} />{T("aiLastAnalysis")}</div>
               <div className="insight">
                 <span className="insight-ic"><Icon name="scatter" size={13} /></span>
                 <div className="insight-tx">{fmtMd(
                   window.NODE.lastAnalysisResult.type === "ml"
                     ? `ML · **${window.NODE.lastAnalysisResult.task}** on ${window.NODE.lastAnalysisResult.target || "features"} — score: **${window.NODE.lastAnalysisResult.score}**`
-                    : (window.NODE.lastAnalysisResult.summary || "Analysis complete")
+                    : (window.NODE.lastAnalysisResult.summary || T("aiAnalysisComplete"))
                 )}</div>
               </div>
             </React.Fragment>
           )}
 
-          <div className="ai-section-h" style={{ marginTop: 12 }}>Insights · {rows.length.toLocaleString()} rows</div>
+          <div className="ai-section-h" style={{ marginTop: 12 }}>{T("aiInsights")} · {rows.length.toLocaleString()} {T("rows")}</div>
           {insights.length ? insights.map((ins, i) => (
             <div className="insight" key={i}>
               <span className="insight-ic"><Icon name={ins.icon} size={13} /></span>
@@ -172,7 +174,7 @@
               <div className="insight-tx">이 데이터셋에서 자동 인사이트를 만들 수 없습니다. 측정값·차원 컬럼이 있는지 확인하세요.</div></div>
           )}
 
-          {log.length > 0 && <div className="ai-section-h" style={{ marginTop: 14 }}>Conversation</div>}
+          {log.length > 0 && <div className="ai-section-h" style={{ marginTop: 14 }}>{T("aiConversation")}</div>}
           {log.map((m, i) => (
             <div key={i} className={"ai-msg " + m.role}>
               {m.role === "ai" && <span className="insight-ic"><Icon name="ai" size={12} /></span>}
