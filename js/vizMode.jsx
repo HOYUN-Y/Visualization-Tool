@@ -600,6 +600,8 @@
     const activeId = useStore((s) => s.activeId);
     const viz = useStore((s) => s.viz);
     const theme = useStore((s) => s.theme);
+    const lang = useStore((s) => s.tweaks.lang) || "ko";
+    const T = (k) => window.I18N.t(lang, k);
     const { rows, columns } = derive.getActiveData(activeId);
     const measures = viz.rows;
     const colsChips = viz.cols.map((c) => (
@@ -629,8 +631,8 @@
           <button className="btn sm"><Icon name="save" /> Save to dashboard</button>
         </div>
         <div className="shelfbar">
-          <Shelf label="Columns" kind="cols" chips={colsChips} accept="Drop dimensions (x-axis / groups)" />
-          <Shelf label="Rows" kind="rows" chips={rowChips} accept="Drop measures (y-axis values)" />
+          <Shelf label={T("vizColumns")} kind="cols" chips={colsChips} accept={T("vizColumnsHint")} />
+          <Shelf label={T("vizRows")} kind="rows" chips={rowChips} accept={T("vizRowsHint")} />
         </div>
         <div className="vizcanvas">
           {viz.type === "facet"

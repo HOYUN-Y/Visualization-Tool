@@ -13,6 +13,9 @@
       tweaks: "환경설정", themeToggle: "테마 전환", langToggle: "한국어 / English",
       // statusbar
       workspace: "작업공간", rows: "행", cols: "열",
+      // chart shelves (axis-oriented)
+      vizColumns: "X축 · 차원", vizRows: "Y축 · 측정값",
+      vizColumnsHint: "차원을 놓으세요 (가로축 · 그룹)", vizRowsHint: "측정값을 놓으세요 (세로축 값)",
     },
     en: {
       data: "Data", clean: "Clean", sql: "SQL", visualize: "Chart", pivot: "Pivot",
@@ -20,6 +23,8 @@
       save: "Save", import: "Import", export: "Export", askInsight: "Ask Insight",
       tweaks: "Tweaks", themeToggle: "Toggle theme", langToggle: "한국어 / English",
       workspace: "workspace", rows: "rows", cols: "cols",
+      vizColumns: "X-axis · Dimension", vizRows: "Y-axis · Measure",
+      vizColumnsHint: "Drop dimensions (x-axis / groups)", vizRowsHint: "Drop measures (y-axis values)",
     },
   };
   function t(lang, key) {
