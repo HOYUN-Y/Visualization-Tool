@@ -166,8 +166,8 @@
             </div>
             <div className="op-inline">
               <span className="fieldlabel" style={{ flex: 1 }}>Change type</span>
-              {["string", "integer", "float", "category", "datetime"].map((t) => (
-                <button key={t} className="typebtn" onClick={() => add("change_type", { to: t })}>{t.slice(0, 3)}</button>
+              {[["string"], ["integer"], ["float"], ["category"], ["datetime"], ["boolean", "T/F"]].map(([t, lbl]) => (
+                <button key={t} className="typebtn" onClick={() => add("change_type", { to: t })}>{lbl || t.slice(0, 3)}</button>
               ))}
             </div>
             <div className="opbtns" style={{ marginTop: 6 }}>
