@@ -6,20 +6,44 @@
 
   const COLS = 12, ROWH = 62, GAP = 10;
 
-  function defaultWidgets() {
-    return [
-      { id: "k1", type: "kpi", x: 0, y: 0, w: 3, h: 2, spec: { measure: "id", agg: "count", label: "Transactions", fmt: "num" } },
-      { id: "k2", type: "kpi", x: 3, y: 0, w: 3, h: 2, spec: { measure: "price_manwon", agg: "avg", label: "Avg Price", fmt: "won" } },
-      { id: "k3", type: "kpi", x: 6, y: 0, w: 3, h: 2, spec: { measure: "price_per_m2", agg: "avg", label: "Avg ₩/m²", fmt: "num", unit: "만원" } },
-      { id: "k4", type: "kpi", x: 9, y: 0, w: 3, h: 2, spec: { measure: "complex_name", agg: "countd", label: "Complexes", fmt: "num" } },
-      { id: "c1", type: "chart", x: 0, y: 2, w: 7, h: 6, title: "Avg price by district", spec: { chartType: "bar", cols: ["district"], measures: [["price_manwon", "avg"]] } },
-      { id: "c2", type: "chart", x: 7, y: 2, w: 5, h: 6, title: "Mix by building type", spec: { chartType: "pie", cols: ["building_type"], measures: [["id", "count"]] } },
-      { id: "c3", type: "chart", x: 0, y: 8, w: 7, h: 6, title: "Area vs price", spec: { chartType: "scatter", cols: [], measures: [["area_m2", "avg"], ["price_manwon", "avg"]], color: "building_type" } },
-      { id: "t1", type: "table", x: 7, y: 8, w: 5, h: 6, title: "Top complexes by avg price", spec: { dim: "complex_name", measure: "price_manwon", agg: "avg" } },
-    ];
+  const dashMeasures = (columns) => (columns || []).filter((c) => c.role === "measure");
+  const dashDims = (columns) => (columns || []).filter((c) => c.role === "dimension" && (c.type === "category" || c.type === "string"));
+
+  // Build a starter dashboard from the ACTIVE dataset's real columns (no hardcoded fields).
+  function defaultWidgets(columns) {
+    columns = columns || [];
+    const meas = dashMeasures(columns);
+    const dims = dashDims(columns);
+    const anyKey = (columns[0] || { key: "__rid" }).key;   // count uses row length, any key works
+    if (!meas.length && !dims.length) {
+      return [{ id: "t_note", type: "text", x: 0, y: 0, w: 6, h: 3, title: "Getting started",
+        spec: { text: "이 데이터셋에서 측정값(숫자)·차원을 찾지 못했습니다.\nData/Clean 탭에서 컬럼 타입을 확인한 뒤 대시보드를 다시 여세요." } }];
+    }
+    const out = [];
+    out.push({ id: "k_count", type: "kpi", x: 0, y: 0, w: 3, h: 2, spec: { measure: anyKey, agg: "count", label: "Rows", fmt: "num" } });
+    meas.slice(0, 3).forEach((m, i) => {
+      out.push({ id: "k_" + m.key, type: "kpi", x: (i + 1) * 3, y: 0, w: 3, h: 2, spec: { measure: m.key, agg: "avg", label: "Avg " + m.label, fmt: "num" } });
+    });
+    let y = 2;
+    if (dims[0] && meas[0]) out.push({ id: "c_bar", type: "chart", x: 0, y, w: 7, h: 6, title: `${meas[0].label} by ${dims[0].label}`, spec: { chartType: "bar", cols: [dims[0].key], measures: [[meas[0].key, "avg"]] } });
+    const pieDim = dims[1] || dims[0];
+    if (pieDim) out.push({ id: "c_pie", type: "chart", x: 7, y, w: 5, h: 6, title: `Mix by ${pieDim.label}`, spec: { chartType: "pie", cols: [pieDim.key], measures: [[anyKey, "count"]] } });
+    y += 6;
+    if (meas[1]) out.push({ id: "c_scatter", type: "chart", x: 0, y, w: 7, h: 6, title: `${meas[0].label} vs ${meas[1].label}`, spec: { chartType: "scatter", cols: [], measures: [[meas[0].key, "avg"], [meas[1].key, "avg"]], color: dims[0] ? dims[0].key : undefined } });
+    if (dims[0] && meas[0]) out.push({ id: "t_top", type: "table", x: meas[1] ? 7 : 0, y, w: 5, h: 6, title: `Top ${dims[0].label}`, spec: { dim: dims[0].key, measure: meas[0].key, agg: "avg" } });
+    return out;
   }
 
   const getCol = (columns, key) => columns.find((c) => c.key === key) || { key, label: key, type: "string", role: "dimension" };
+  const colExists = (columns, key) => !!key && columns.some((c) => c.key === key);
+  // Does a widget reference columns that don't exist in the active dataset?
+  function widgetStale(w, columns) {
+    const s = w.spec || {};
+    if (w.type === "kpi")   return !s.formula && s.agg !== "count" && !!s.measure && !colExists(columns, s.measure);
+    if (w.type === "chart") return (s.measures || []).some(([k]) => !colExists(columns, k)) || (s.cols || []).some((k) => !colExists(columns, k));
+    if (w.type === "table") return (!!s.dim && !colExists(columns, s.dim)) || (!!s.measure && !colExists(columns, s.measure));
+    return false;
+  }
 
   function applyCross(rows, cross, widgetId) {
     if (!cross || cross.source === widgetId) return rows;
@@ -31,6 +55,14 @@
     const data = applyCross(rows, cross, w.id);
     const s = w.spec;
     const decimals = s.decimals != null ? s.decimals : 0;
+    const missing = !s.formula && s.agg !== "count" && !colExists(columns, s.measure);
+    if (missing) return (
+      <div className="kpi" title={`컬럼 없음: ${s.measure}`}>
+        <div className="kpi-label">{s.label}</div>
+        <div className="kpi-val mono" style={{ color: "var(--tx-faint)" }}>—</div>
+        <div className="kpi-sub"><span className="mono" style={{ color: "var(--tx-faint)" }}>컬럼 없음 · {s.measure}</span></div>
+      </div>
+    );
     let val = null, err = null, isFormula = !!s.formula;
     if (isFormula) { const r = window.KPIFormula.compute(s.formula, data, columns); val = r.value; err = r.error; }
     else { val = aggFn[s.agg] ? aggFn[s.agg](data.map((r) => r[s.measure])) : 0; }
@@ -52,9 +84,17 @@
   }
 
   // ---------- Chart ----------
+  function MissingNote({ label }) {
+    return <div className="empty" style={{ padding: 12 }}><Icon name="info" /><div className="s">이 위젯은 현재 데이터셋에 없는 컬럼({label})을 참조합니다. 우측 패널의 <b>재생성</b> 또는 인스펙터에서 컬럼을 다시 지정하세요.</div></div>;
+  }
+
   function ChartWidget({ w, rows, columns, cross, theme, edit }) {
     const data = applyCross(rows, cross, w.id);
     const s = w.spec;
+    if (widgetStale(w, columns)) {
+      const bad = [...(s.cols || []), ...((s.measures || []).map(([k]) => k))].filter((k) => !colExists(columns, k));
+      return <MissingNote label={bad.join(", ")} />;
+    }
     const cols = (s.cols || []).map((k) => getCol(columns, k));
     const measures = (s.measures || []).map(([k, agg]) => ({ ...getCol(columns, k), agg, id: k + "_" + agg }));
     const color = s.color ? getCol(columns, s.color) : null;
@@ -78,7 +118,12 @@
   // ---------- Table ----------
   function TableWidget({ w, rows, columns, cross }) {
     const data = applyCross(rows, cross, w.id);
-    const s = w.spec; const dimCol = getCol(columns, s.dim), measCol = getCol(columns, s.measure);
+    const s = w.spec;
+    if (widgetStale(w, columns)) {
+      const bad = [s.dim, s.measure].filter((k) => !colExists(columns, k));
+      return <MissingNote label={bad.join(", ")} />;
+    }
+    const dimCol = getCol(columns, s.dim), measCol = getCol(columns, s.measure);
     const agg = derive.aggregate(data, [s.dim], [{ key: s.measure, agg: s.agg, id: "v" }])
       .sort((a, b) => b.v - a.v).slice(0, s.limit || 30);
     const max = Math.max(...agg.map((r) => r.v), 1);
@@ -116,8 +161,10 @@
     const dash = useStore((s) => s.dash);
     const theme = useStore((s) => s.theme);
     const { rows, columns, ds } = derive.getActiveData(activeId);
-    const widgets = dash.widgets || defaultWidgets();
-    React.useEffect(() => { if (!dash.widgets) actions.setDash({ widgets: defaultWidgets() }); }, []);
+    const widgets = dash.widgets || defaultWidgets(columns);
+    React.useEffect(() => { if (!dash.widgets) actions.setDash({ widgets: defaultWidgets(columns) }); }, []);
+    const staleN = widgets.filter((w) => widgetStale(w, columns)).length;
+    const rebuild = () => actions.setDash({ widgets: defaultWidgets(columns), selectedWidgetId: null });
     const ref = React.useRef(null);
     const [cw, setCw] = React.useState(1000);
     React.useEffect(() => {
@@ -164,12 +211,21 @@
       <React.Fragment>
         <div className="phead">
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
-            <Icon name="dashboard" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />Seoul Market Overview
+            <Icon name="dashboard" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{ds.short} · 대시보드
           </span>
           <div className="spacer" />
           <button className={"btn sm" + (edit ? " primary" : " ghost")} onClick={() => actions.setDash({ edit: !edit })}><Icon name="move" /> {edit ? "Editing" : "Edit layout"}</button>
-          <button className="btn ghost sm" onClick={() => actions.setDash({ widgets: defaultWidgets() })}><Icon name="undo" /> Reset</button>
+          <button className="btn ghost sm" onClick={rebuild} title="현재 데이터셋 기준으로 기본 위젯 재생성"><Icon name="undo" /> 재생성</button>
         </div>
+
+        {staleN > 0 && (
+          <div className="crossbar" style={{ background: "var(--warn-soft, var(--bg-2))" }}>
+            <Icon name="info" size={13} />
+            <span>위젯 <b>{staleN}</b>개가 <b>{ds.short}</b>에 없는 컬럼을 참조합니다 (다른 데이터셋용 대시보드일 수 있음).</span>
+            <div className="spacer" />
+            <button className="btn primary sm" onClick={rebuild}><Icon name="undo" size={12} /> 현재 데이터로 재생성</button>
+          </div>
+        )}
 
         {dash.cross && (
           <div className="crossbar">
@@ -304,11 +360,12 @@
     const dash = useStore((s) => s.dash);
     const activeId = useStore((s) => s.activeId);
     const { columns } = derive.getActiveData(activeId);
-    const widgets = dash.widgets || defaultWidgets();
+    const widgets = dash.widgets || defaultWidgets(columns);
     const add = (wd) => actions.setDash({ widgets: [...widgets, { ...wd, id: "w" + Date.now(), x: 0, y: 99 }] });
     const update = (id, patch) => actions.setDash({ widgets: widgets.map((w) => w.id === id ? { ...w, ...patch } : w) });
-    const measures = columns.filter((c) => c.role === "measure");
-    const dims = columns.filter((c) => c.role === "dimension" && c.type === "category");
+    const measures = dashMeasures(columns);
+    const dims = dashDims(columns);
+    const m0 = measures[0], d0 = dims[0];
 
     const selected = dash.edit && dash.selectedWidgetId ? widgets.find((w) => w.id === dash.selectedWidgetId) : null;
     if (selected) return (
@@ -322,9 +379,9 @@
         <div className="cp-block">
           <div className="cp-blocktitle">Add widget</div>
           <div className="addgrid">
-            <button className="addtile" onClick={() => add({ type: "kpi", w: 3, h: 2, spec: { measure: measures[0].key, agg: "avg", label: measures[0].label, fmt: "num" } })}><Icon name="kpi" size={18} /><span>KPI</span></button>
-            <button className="addtile" onClick={() => add({ type: "chart", w: 6, h: 6, title: "New chart", spec: { chartType: "bar", cols: [dims[0].key], measures: [[measures[0].key, "avg"]] } })}><Icon name="bar" size={18} /><span>Chart</span></button>
-            <button className="addtile" onClick={() => add({ type: "table", w: 5, h: 6, title: "New table", spec: { dim: dims[0].key, measure: measures[0].key, agg: "avg" } })}><Icon name="table" size={18} /><span>Table</span></button>
+            <button className="addtile" disabled={!m0} title={m0 ? "" : "측정값(숫자) 컬럼이 필요합니다"} onClick={() => add({ type: "kpi", w: 3, h: 2, spec: { measure: m0.key, agg: "avg", label: m0.label, fmt: "num" } })}><Icon name="kpi" size={18} /><span>KPI</span></button>
+            <button className="addtile" disabled={!m0 || !d0} title={m0 && d0 ? "" : "차원·측정값 컬럼이 필요합니다"} onClick={() => add({ type: "chart", w: 6, h: 6, title: "New chart", spec: { chartType: "bar", cols: [d0.key], measures: [[m0.key, "avg"]] } })}><Icon name="bar" size={18} /><span>Chart</span></button>
+            <button className="addtile" disabled={!m0 || !d0} title={m0 && d0 ? "" : "차원·측정값 컬럼이 필요합니다"} onClick={() => add({ type: "table", w: 5, h: 6, title: "New table", spec: { dim: d0.key, measure: m0.key, agg: "avg" } })}><Icon name="table" size={18} /><span>Table</span></button>
             <button className="addtile" onClick={() => add({ type: "text", w: 4, h: 2, title: "Note", spec: { text: "Add commentary here." } })}><Icon name="text" size={18} /><span>Text</span></button>
           </div>
         </div>
