@@ -44,7 +44,7 @@
       sortDesc: true,
       topN: 0,
       format: {          // chart formatting overrides (applied post-build)
-        legend: { show: true, pos: "top" },
+        legend: { show: true, v: "top", h: "center" },   // v: top|middle|bottom · h: left|center|right
         labels: { show: false, pos: "top", fmt: "full" },
         gridlines: true,
         smooth: null,    // null = per chart default; true/false override

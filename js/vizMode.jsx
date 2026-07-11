@@ -640,18 +640,33 @@
     if (!opt || !fmt || !opt.series) return opt;
     const c = Charts.themeColors();
     const o = { ...opt };
-    // Legend
+    // Legend — 2-axis placement (vertical × horizontal = 9 anchors)
     if (fmt.legend) {
       if (fmt.legend.show === false) o.legend = undefined;
       else {
-        const pos = fmt.legend.pos || "top";
-        const vertical = pos === "left" || pos === "right";
-        o.legend = { ...(o.legend || {}), type: "scroll", textStyle: { color: c.text, fontSize: 11 },
-          orient: vertical ? "vertical" : "horizontal",
-          top: pos === "bottom" ? "auto" : (vertical ? "middle" : 0),
-          bottom: pos === "bottom" ? 0 : "auto",
-          left: pos === "left" ? 0 : (pos === "right" ? "auto" : "center"),
-          right: pos === "right" ? 0 : "auto" };
+        // migrate legacy { pos } → { v, h }
+        const v = fmt.legend.v || (fmt.legend.pos === "bottom" ? "bottom" : "top");
+        const h = fmt.legend.h || (fmt.legend.pos === "left" ? "left" : fmt.legend.pos === "right" ? "right" : "center");
+        const sideVertical = (h === "left" || h === "right") && v === "middle";
+        const leg = { ...(o.legend || {}), type: "scroll", textStyle: { color: c.text, fontSize: 11 }, orient: sideVertical ? "vertical" : "horizontal" };
+        // vertical anchor
+        if (v === "top") { leg.top = 0; leg.bottom = "auto"; }
+        else if (v === "bottom") { leg.bottom = 0; leg.top = "auto"; }
+        else { leg.top = "middle"; leg.bottom = "auto"; }
+        // horizontal anchor
+        if (h === "left") { leg.left = 0; leg.right = "auto"; }
+        else if (h === "right") { leg.right = 0; leg.left = "auto"; }
+        else { leg.left = "center"; leg.right = "auto"; }
+        o.legend = leg;
+        // make room in the grid so the legend doesn't overlap the plot
+        if (o.grid && !Array.isArray(o.grid)) {
+          const g = { ...o.grid };
+          if (v === "top") g.top = Math.max(typeof g.top === "number" ? g.top : 16, 30);
+          if (v === "bottom") g.bottom = Math.max(typeof g.bottom === "number" ? g.bottom : 8, 38);
+          if (sideVertical && h === "left") g.left = Math.max(typeof g.left === "number" ? g.left : 8, 90);
+          if (sideVertical && h === "right") g.right = Math.max(typeof g.right === "number" ? g.right : 14, 90);
+          o.grid = g;
+        }
       }
     }
     // Value (data) labels
@@ -859,8 +874,12 @@
               <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Legend</span>
                 <div className="seg"><button className={legendOn ? "on" : ""} onClick={() => setF({ legend: { show: true } })}>On</button><button className={!legendOn ? "on" : ""} onClick={() => setF({ legend: { show: false } })}>Off</button></div></div>
               {legendOn && (
-                <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Position</span>
-                  <div className="seg">{[["top", "T"], ["bottom", "B"], ["left", "L"], ["right", "R"]].map(([p, s]) => <button key={p} className={(fmt.legend && fmt.legend.pos || "top") === p ? "on" : ""} onClick={() => setF({ legend: { pos: p } })} title={p}>{s}</button>)}</div></div>
+                <React.Fragment>
+                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>세로 / Vert.</span>
+                    <div className="seg">{[["top", "위"], ["middle", "중간"], ["bottom", "아래"]].map(([p, s]) => <button key={p} className={(fmt.legend && fmt.legend.v || "top") === p ? "on" : ""} onClick={() => setF({ legend: { v: p } })}>{s}</button>)}</div></div>
+                  <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>가로 / Horiz.</span>
+                    <div className="seg">{[["left", "왼쪽"], ["center", "가운데"], ["right", "오른쪽"]].map(([p, s]) => <button key={p} className={(fmt.legend && fmt.legend.h || "center") === p ? "on" : ""} onClick={() => setF({ legend: { h: p } })}>{s}</button>)}</div></div>
+                </React.Fragment>
               )}
               <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Value labels</span>
                 <div className="seg"><button className={labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: true } })}>On</button><button className={!labelsOn ? "on" : ""} onClick={() => setF({ labels: { show: false } })}>Off</button></div></div>
