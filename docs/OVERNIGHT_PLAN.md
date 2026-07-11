@@ -70,7 +70,7 @@ test("...", () => { assert.equal(...); });
 - [x] **★ 배치 A 종료 → WORKLOG.md 갱신** (CURRENT STATE: 커밋수/asset v/Node N/N + 배치 A 요약 항목)  ✅
 - [x] **★ 배치 B 종료 → WORKLOG.md 갱신**  ✅
 - [x] **★ 배치 C 종료 → WORKLOG.md 갱신**  ✅
-- [ ] **★ 배치 D 종료 → WORKLOG.md 갱신**
+- [x] **★ 배치 D 종료 → WORKLOG.md 갱신**  ✅ (D1 완료, D2 아침 게이트)
 - [ ] **★ 배치 E 종료 → WORKLOG.md 갱신**
 - [ ] **★ 이 문서(OVERNIGHT_PLAN.md)도 매 항목마다 체크박스+진행로그 갱신** (커밋에 포함)
 
@@ -130,8 +130,8 @@ test("...", () => { assert.equal(...); });
 
 > 사용자가 지도는 "조금 더 생각해볼게"로 보류했었음 → 이번 "전부" 지시에 포함하되 **엔진(이름매칭)까지 자율, 최종 UI/UX는 아침 확인**.
 
-- [ ] **D1. `js/geoMatch.js` (window.GeoMatch)** — 지역명 정규화·매칭. 세계=국가명(영/한 별칭 맵, mapMode의 KOREA_HC_NAME 참고), 한국=시도/시군구, 서울=구. `normalize(name)`(공백·"구/시/특별시" 접미사 처리), `matchRate(values, geoNames)`. 테스트: 별칭/접미사 정규화, 매칭률 계산.
-- [ ] **D2. MyDataMap 배선** — 활성 데이터셋에 지역명 컬럼 감지 시 choropleth(측정값 채색) 모드 추가, 위경도 포인트와 토글. mapMode.jsx의 MyDataMapCenter 확장. (additive; **시각 검증 아침 게이트**)
+- [x] **D1. `js/geoMatch.js` (window.GeoMatch)** — 지역명 정규화·매칭. 한국 행정접미사(특별시/광역시/도/시/군/구) strip, EN/KO 별칭(17 시도 + 주요국), normalize/buildIndex/match/matchRate/bestColumn(지역 컬럼 자동감지). 8케이스. 커밋 `d8af7bb`. Node 209→217.
+- [ ] **D2. MyDataMap 배선** — **아침 게이트로 보류.** 엔진(geoMatch) 준비 완료. mapMode.jsx choropleth 배선은 geojson 로딩·ECharts map 등록·시각검증 필요 → 작동 중 지도 UI 리스크 + MCP Chrome localhost 미접근으로 자율 검증 불가. 아침에 사용자와 함께 배선·확인.
 
 ## Batch E — 견고성 가드 스윕
 
@@ -179,3 +179,5 @@ test("...", () => { assert.equal(...); });
   - C1 계절분해(TSDecomp) · C2 다변량이상치(Outliers, 자기완결 수학) · C3 분포적합확장(지수/로그정규 MLE+AIC).
   - **아침 게이트:** C1(Stats→Time Series 계절분해 토글) · C2(이상치 시각화) UI 배선은 시각검증 필요.
   - **NEXT: Batch D1 — js/geoMatch.js (지역명 정규화·매칭) 신규 엔진+테스트.**
+- 2026-07-12: **Batch D1 완료** (D2는 아침 게이트). geoMatch 엔진+테스트 8. Node **209→217**, asset v=251, main 대비 **84커밋**. 커밋 `d8af7bb`.
+  - **NEXT: Batch E — 견고성 가드 스윕(E1 unguarded [0]/빈데이터 감사, E2 대용량 raw-point 차트).**

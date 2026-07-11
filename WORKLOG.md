@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A·B·C 완료, Batch D 진행 예정 |
-| Status | Core v2 M3~M5 + 분석엔진 6종 UI + Batch A(테스트잠금) + B(버그4종·회귀+53) + **C(신규 순수엔진 3종)** 완료. main 대비 82커밋. |
+| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A·B·C·D1 완료, Batch E 진행 예정 |
+| Status | Core v2 M3~M5 + 분석엔진 6종 UI + A(테스트잠금)·B(버그4종)·C(엔진3종)·**D1(geoMatch)** 완료. main 대비 84커밋. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `7eb3dfc` — 분포 적합 확장(지수·로그정규·AIC) |
-| Working tree | 깨끗(`.DS_Store` 제외). Batch C: timeSeriesDecomp/outliers 신규 + distributionFit 확장 |
-| Last verified | 2026-07-12 — Node 209/209, JSX 구문검사(tsc TS1xxx 0), asset v=250 |
+| Last checkpoint commit | `d8af7bb` — geoMatch 지역명 매칭 엔진 |
+| Working tree | 깨끗(`.DS_Store` 제외). Batch D1: js/geoMatch.js 신규 (D2 UI는 아침 게이트) |
+| Last verified | 2026-07-12 — Node 217/217, JSX 구문검사(tsc TS1xxx 0), asset v=251 |
 | Updated at | 2026-07-12 |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
@@ -31,6 +31,13 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (밤샘 자율: Batch D1 — 지도 범용화 지역명 매칭 엔진)
+
+지도 범용화 Stage 2의 순수 엔진 부분을 자율 완료. `d8af7bb` **`js/geoMatch.js` (window.GeoMatch)**: 데이터 컬럼의 지저분한 지역 라벨을 정규화해 지도 레이어 지역명과 매칭. 한국 행정접미사(특별시/광역시/특별자치도/도/시/군/구) strip, EN/KO 별칭 테이블(17 시도 영문 지도명↔한글 + 주요국 20+), `normalize/buildIndex/match/matchRate/bestColumn`(지역 컬럼 자동감지). KOREA_HC_NAME과 정합. 회귀 8케이스(접미사·별칭 정규화, 매칭률, 자동 컬럼 감지). Node 209→217.
+
+**D2 (MyDataMap choropleth 배선)은 아침 게이트:** geojson 로딩·ECharts map 등록·시각검증이 필요하고 작동 중 지도 UI 리스크 + MCP Chrome이 localhost 미접근이라 자율 검증 불가. 엔진은 준비됐으니 아침에 함께 배선.
+**NEXT: Batch E(견고성 가드 스윕).**
 
 ## 세션 기록 — 2026-07-12 (밤샘 자율: Batch C — 신규 순수 분석 엔진 3종)
 
