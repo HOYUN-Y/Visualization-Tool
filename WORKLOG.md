@@ -14,16 +14,21 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Phase 2 P3 엔진 배선 완료**(시각검증 대기). 다음: Phase 3 P9 Excel 편집 |
-| Status | 병합→i18n→P3→P9→DuckDB. Phase 0·1·2 완료. `feat/analytics-wiring` 브랜치(main 미병합, 아침 검토용). |
-| Branch | **`feat/analytics-wiring`** (main+Phase1에서 분기). Phase 0·1은 local main에 병합됨(미push). |
+| Current milestone | **Phase 0·1·2·3 완료** (병합·i18n·P3 배선·P9 편집). 남음: **Phase 4 DuckDB(다음 세션)** |
+| Status | 병합→i18n→P3→P9→DuckDB 로드맵. 0~3 완료, 4는 브라우저 반복 필요라 새 세션. |
+| Branch | **`feat/excel-edit`**. 스택: main(=Phase0+1) → feat/analytics-wiring(Phase2) → feat/excel-edit(Phase3). Phase2·3 main 미병합(아침 검토용). |
 | Base commit | `65754ab` — merge: Core v2 (main) |
-| Last checkpoint commit | `80287a0` — P3 엔진 3종 배선 (Phase 2) |
-| Working tree | 깨끗. Phase 2: statsMode/cleanMode/mapMode에 TSDecomp/Outliers/GeoMatch 배선 |
-| Last verified | 2026-07-12 — Node 225/225, tsc TS1xxx 0, asset v=262. **origin 미push** |
+| Last checkpoint commit | `d469d78` — Excel식 편집 (Phase 3b-3e) |
+| Working tree | 깨끗. Phase 3: store set_cells·grid 붙여넣기/이동/undo/범위선택 |
+| Last verified | 2026-07-12 — **Node 237/237**, tsc TS1xxx 0, asset v=264. **origin 미push** |
 | Updated at | 2026-07-12 |
 
-> ☀️ **아침 브라우저 게이트**: Phase 2 P3 3종 렌더 확인 — (1) Stats›Time Series의 View=decomposition 토글→Original/Trend/Seasonal/Residual 4단 차트, (2) Clean 이슈바 "다변량 이상치" 카드→제거, (3) Map›내 데이터 "단계구분도" 모드→지역명 매칭 채색. 문제 없으면 `feat/analytics-wiring`→main 병합.
+> ☀️ **아침 브라우저 게이트(시각·상호작용 확인 후 병합)**
+> - **Phase 2 P3**(`feat/analytics-wiring`): (1) Stats›Time Series View=decomposition→Original/Trend/Seasonal/Residual 4단 차트, (2) Clean 이슈바 "다변량 이상치" 카드→제거, (3) Map›내 데이터 "단계구분도"→지역명 매칭 채색.
+> - **Phase 3 P9**(`feat/excel-edit`): Data 편집모드에서 (a) Excel/시트에서 복사→셀 붙여넣기(1 undo), (b) 편집 중 Enter/↓/↑/Tab 이동, (c) Cmd+Z/Shift+Cmd+Z(셀 편집 밖에서), (d) Shift-클릭 행 범위선택.
+> - 문제 없으면 브랜치 스택을 순서대로 main 병합(feat/analytics-wiring → feat/excel-edit) 후 필요 시 origin push.
+>
+> ⏭️ **NEXT (Phase 4 DuckDB, 새 세션)**: `feat/duckdb` 분기 → **S1 로딩 PoC**(vendor/duckdb/에 glue+worker+wasm 벤더링+SHA256/라이선스, index.html에 첫 `<script type="module">` island로 DuckDB 인스턴스화 → `window.DuckDB.query(sql)` 노출 → 사소 쿼리). **브라우저 로드·쿼리 성공 여부가 make-or-break 게이트** — 성공 시 S2 어댑터(js/sqlEngine.js, rows→테이블 등록)·S3 sqlMode async 교체. 상세: `~/.claude/plans/temporal-juggling-fountain.md`.
 
 > 활성 계획: `~/.claude/plans/temporal-juggling-fountain.md` (Phase 0~4 체크리스트). 실브라우저 검증은 Claude Desktop/Fable로 대체.
 
@@ -35,6 +40,20 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (Phase 3: P9 Excel식 편집)
+
+Data 그리드에 스프레드시트식 편집 추가. store 배치 op가 핵심(원자적 undo). Node 230→237.
+
+- `2aa9faa` **3a `set_cells` 배치 op + `actions.editCells`**: 여러 (rid,col,value)를 한 undo 스텝. 숫자열 coerce(invalid→null) 재사용. `tests/storeEdit.test.js` +5(배치·단일 undo/redo·coerce·안전 skip·빈 리스트) — store.jsx 실코드 스텁 하네스.
+- `d469d78` **3b-3e (grid.jsx + editHandlers)** [상호작용 아침 게이트]:
+  - 3b 붙여넣기: `js/gridPaste.js` `parseClipboardMatrix`(순수·dual-mode, `tests/gridPaste.test.js` +7: CRLF·trailing NL·빈셀·1x1·null). 셀 input `onPaste`가 블록이면 앵커부터 매트릭스 매핑(그리드 경계 clip), `edit.onCells` 1회=1 undo. (초과행 자동추가는 2차)
+  - 3c 셀 이동: 편집 input에서 Enter/↓→아래, ↑→위, Tab/Shift+Tab→좌우(경계서 다음행 wrap), isComposing 가드.
+  - 3d Cmd/Ctrl+Z→undo, Shift+Z·Ctrl+Y→redo. 기존 editable keydown effect에 추가, INPUT/TEXTAREA 포커스 시 네이티브 텍스트 undo 보존.
+  - 3e Shift-클릭: `lastSelRid` 앵커, 행 클릭 시 shiftKey면 pageRows 범위 selRows 추가.
+  - editHandlers(cleanMode·dataMode)에 `onCells`/`onUndo`/`onRedo` 배선.
+
+**NEXT: Phase 4 DuckDB-WASM(새 세션, 브라우저 반복 필요). S1 로딩 PoC부터.**
 
 ## 세션 기록 — 2026-07-12 (Phase 2: P3 미배선 엔진 3종 UI 배선)
 
