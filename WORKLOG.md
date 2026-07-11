@@ -14,14 +14,17 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Phase 0·1·2·3 완료** (병합·i18n·P3 배선·P9 편집). 남음: **Phase 4 DuckDB(다음 세션)** |
-| Status | 병합→i18n→P3→P9→DuckDB 로드맵. 0~3 완료, 4는 브라우저 반복 필요라 새 세션. |
-| Branch | **`feat/excel-edit`**. 스택: main(=Phase0+1) → feat/analytics-wiring(Phase2) → feat/excel-edit(Phase3). Phase2·3 main 미병합(아침 검토용). |
+| Current milestone | **🚨 P0 크래시 수정 완료** (Fable 발견). 다음: 사용자 브라우저 검증(Phase 3.5)→병합→Phase 4 DuckDB |
+| Status | 병합→i18n→P3→P9→DuckDB. Phase 0~3 + **P0 hotfix** 완료. Fable가 3차 검증서 모드전환 크래시(main에 잠복) 발견 → 수정. |
+| Branch | **`fix/mode-render-p0`** (feat/excel-edit 팁 = Phase 1+2+3 전부 + P0). 스택: main(=P0+1) → analytics-wiring(P2) → excel-edit(P3) → fix/mode-render-p0(P0). |
 | Base commit | `65754ab` — merge: Core v2 (main) |
-| Last checkpoint commit | `d469d78` — Excel식 편집 (Phase 3b-3e) |
-| Working tree | 깨끗. Phase 3: store set_cells·grid 붙여넣기/이동/undo/범위선택 |
-| Last verified | 2026-07-12 — **Node 237/237**, tsc TS1xxx 0, asset v=264. **origin 미push** |
+| Last checkpoint commit | `4d402b9` — P0 모드 전환 크래시 수정 |
+| Working tree | 깨끗. P0: app.jsx 모드 8곳 엘리먼트 렌더 + HANDOFF 규칙 |
+| Last verified | 2026-07-12 — **Node 237/237**, tsc TS1xxx 0, asset v=265. **origin 미push** |
 | Updated at | 2026-07-12 |
+
+> ☀️ **아침 브라우저 게이트(`fix/mode-render-p0`에서 검증 후 main 병합)** — 활성 계획 `~/.claude/plans/temporal-juggling-fountain.md` Phase 3.5:
+> ① **8모드 전환 매트릭스**(크래시 0·리로드 후 정상 — P0 수정 확인), ② P3: Stats›Time Series decomposition 4단 차트·Clean "다변량 이상치" 카드·(Map choropleth Fable ✓), ③ P9: 붙여넣기(1 undo)·Enter/Tab·Cmd+Z·Shift-범위, ④ IndexedDB 리로드 복원. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
 
 > ☀️ **아침 브라우저 게이트(시각·상호작용 확인 후 병합)**
 > - **Phase 2 P3**(`feat/analytics-wiring`): (1) Stats›Time Series View=decomposition→Original/Trend/Seasonal/Residual 4단 차트, (2) Clean 이슈바 "다변량 이상치" 카드→제거, (3) Map›내 데이터 "단계구분도"→지역명 매칭 채색.
@@ -40,6 +43,15 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (🚨 P0: 모드 전환 크래시 리그레션 수정)
+
+Fable가 3차 브라우저 검증(`docs/FOLLOWUP_PROPOSALS.md` §0-1)에서 발견: Data→Clean/SQL/Dashboard/ML/Stats 전환 시 앱 블랙스크린, `mode` 영속화로 리로드 후 재크래시(벽돌화). **Node 237/237·tsc 그린이지만 React 렌더 규칙 위반이라 정적검사로 안 잡힘.** 이 버그는 **이미 main에 있었음**(Phase 1 i18n 머지분).
+
+- **근본원인**: `js/app.jsx`가 모드를 함수호출(`content = window.CleanMode()`)로 렌더 → 모드 내부 훅이 App 훅으로 계상. i18n Phase 1이 모드 export 최상위에 `useStore(lang)` 추가 → 모드 전환 시 App 훅 개수 변동 → "Rendered more hooks" 크래시. ErrorBoundary는 content(자식)만 감싸 App 자신 오류 못 잡음 → root unmount.
+- `4d402b9` **수정**: L62~76의 `window.XMode()` 8곳 → `<window.XMode/>` 엘리먼트 렌더. 각 모드가 자기 훅 스코프 확보, **ErrorBoundary가 이제 모드 크래시를 실제로 잡아** 벽돌화 해소("데이터 화면으로" 버튼). HANDOFF에 "모드=엘리먼트 렌더" 규칙 명문화. Node 237/237.
+- **교훈**: 정적검사가 못 잡는 클래스 → **P0.5 Playwright "8모드 전환 스모크" E2E**로 재발 차단(계획에 추가).
+- **NEXT**: 브라우저서 8모드 전환+P3/P9+IndexedDB 검증(Phase 3.5) → `fix/mode-render-p0`→main 병합 → Phase 4 DuckDB.
 
 ## 세션 기록 — 2026-07-12 (Phase 3: P9 Excel식 편집)
 
