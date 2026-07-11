@@ -69,7 +69,7 @@ test("...", () => { assert.equal(...); });
 
 - [x] **★ 배치 A 종료 → WORKLOG.md 갱신** (CURRENT STATE: 커밋수/asset v/Node N/N + 배치 A 요약 항목)  ✅
 - [x] **★ 배치 B 종료 → WORKLOG.md 갱신**  ✅
-- [ ] **★ 배치 C 종료 → WORKLOG.md 갱신**
+- [x] **★ 배치 C 종료 → WORKLOG.md 갱신**  ✅
 - [ ] **★ 배치 D 종료 → WORKLOG.md 갱신**
 - [ ] **★ 배치 E 종료 → WORKLOG.md 갱신**
 - [ ] **★ 이 문서(OVERNIGHT_PLAN.md)도 매 항목마다 체크박스+진행로그 갱신** (커밋에 포함)
@@ -121,9 +121,10 @@ test("...", () => { assert.equal(...); });
 
 ## Batch C — 신규 순수 분석 엔진 (additive · +Node 테스트 · 결정적이면 UI 배선)
 
-- [ ] **C1. `js/timeSeriesDecomp.js` (window.TSDecomp)** — 고전적 계절분해: 중심이동평균 추세 → 계절지수(period별 평균) → 잔차. additive/multiplicative, `period` 인자. 테스트: 알려진 주기 신호(추세+사인) 성분 복원, period=1/데이터부족 degrade. (여유 시 Stats→Time Series에 토글 배선; 결정적이라 함께 가능하나 시각검증은 아침)
-- [ ] **C2. `js/outliers.js` (window.Outliers)** — 다변량 Mahalanobis 거리 이상치. 공분산·역행렬은 `window.SM.matInverse` 재사용(statsMath). 임계값=카이제곱 근사 or 상위 %. 테스트: 명백 이상점 탐지, 상수열/특이공분산 degrade.
-- [ ] **C3. (여유 시) 분포 적합 확장** — distributionFit에 지수/로그정규 적합, Shapiro-Wilk 근사(또는 이미 있는 Jarque-Bera로 충분한지 확인). 테스트.
+- [x] **C1. `js/timeSeriesDecomp.js` (window.TSDecomp)** — 고전적 계절분해(중심MA 추세·짝수주기 2×period 위상정렬 → season지수 → 잔차, add/mult, period 인자). 알려진 신호 복원+degrade 6케이스. UI 배선 **아침 게이트**. 커밋 `b3b2c4f`
+- [x] **C2. `js/outliers.js` (window.Outliers)** — 다변량 Mahalanobis. **statsMath는 browser-only(module.exports 없음)라 Node 테스트 위해 Gauss-Jordan 역행렬+Wilson-Hilferty 카이제곱을 자기완결로 내장.** alpha/topK, 특이공분산·행<차원 degrade. 8케이스. UI 배선 **아침 게이트**. 커밋 `b3b2c4f`
+- [x] **C3. 분포 적합 확장** — distributionFit에 지수/로그정규 MLE + compareFits(AIC 랭킹). 결정적 역CDF 샘플 6케이스. 커밋 `7eb3dfc`. (Jarque-Bera 정규성은 이미 존재 → Shapiro 생략.)
+  - **요약: 신규 순수 엔진 3종(계절분해·다변량이상치·분포적합확장), Node 189→209. 3종 다 엔진+테스트 자율 완료, C1/C2 UI 배선만 아침 게이트.**
 
 ## Batch D — 지도 범용화 Stage 2 (지역명 매칭 단계구분도)
 
@@ -174,3 +175,7 @@ test("...", () => { assert.equal(...); });
   - 🐛 pivotEngine null/빈 차원 그룹 소계 0 정합버그 · clustering labelsAt(k<1) 크래시 · spc(빈서브그룹/크기0/역전스펙 Infinity·NaN·음수) · distFit jarqueBera n<4 거짓정규.
   - 안전 잠금(버그없음): dataOps, kpiFormula, pca, logistic, timeSeries, chartAdvisor.
   - **NEXT: Batch C1 — js/timeSeriesDecomp.js (고전적 계절분해) 신규 엔진+테스트.**
+- 2026-07-12: **Batch C 완료.** 신규 순수 엔진 3종. Node **189→209**, asset v=250, main 대비 **82커밋**. 커밋 `b3b2c4f`(C1·C2), `7eb3dfc`(C3).
+  - C1 계절분해(TSDecomp) · C2 다변량이상치(Outliers, 자기완결 수학) · C3 분포적합확장(지수/로그정규 MLE+AIC).
+  - **아침 게이트:** C1(Stats→Time Series 계절분해 토글) · C2(이상치 시각화) UI 배선은 시각검증 필요.
+  - **NEXT: Batch D1 — js/geoMatch.js (지역명 정규화·매칭) 신규 엔진+테스트.**

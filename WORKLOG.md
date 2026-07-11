@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A·B 완료, Batch C 진행 예정 |
-| Status | Core v2 M3~M5 + 분석엔진 6종 UI + 차트 Format/Export + **Batch A(테스트 잠금 5모듈) + Batch B(엔진 버그 4종 수정·회귀 +53)** 완료. main 대비 78커밋. |
+| Current milestone | 밤샘 자율 실행 (docs/OVERNIGHT_PLAN.md) — Batch A·B·C 완료, Batch D 진행 예정 |
+| Status | Core v2 M3~M5 + 분석엔진 6종 UI + Batch A(테스트잠금) + B(버그4종·회귀+53) + **C(신규 순수엔진 3종)** 완료. main 대비 82커밋. |
 | Branch | `feat/analytics` (feat/dashboard-builder 팁에서 분기) |
 | Base commit | `07dab60` — M5 dashboard docs checkpoint |
-| Last checkpoint commit | `2fe6533` — 엔진 엣지케이스 버그 4종 수정 + 테스트 53 |
-| Working tree | 깨끗(`.DS_Store` 제외). Batch B: pivot/clustering/spc/distFit 수정 + *.edge.test.js |
-| Last verified | 2026-07-12 — Node 189/189, JSX 구문검사(tsc TS1xxx 0), asset v=248 |
+| Last checkpoint commit | `7eb3dfc` — 분포 적합 확장(지수·로그정규·AIC) |
+| Working tree | 깨끗(`.DS_Store` 제외). Batch C: timeSeriesDecomp/outliers 신규 + distributionFit 확장 |
+| Last verified | 2026-07-12 — Node 209/209, JSX 구문검사(tsc TS1xxx 0), asset v=250 |
 | Updated at | 2026-07-12 |
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
@@ -31,6 +31,17 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (밤샘 자율: Batch C — 신규 순수 분석 엔진 3종)
+
+브라우저 단독·결정적·Node 테스트 가능한 신규 분석 엔진 3종 추가(Node 189→209). 엔진+테스트는 자율 완료, C1/C2 UI 배선은 시각검증 필요라 아침 게이트.
+
+- `b3b2c4f` **C1 `js/timeSeriesDecomp.js` (window.TSDecomp)** — 고전적 계절분해. 중심이동평균 추세(짝수 주기는 2×period MA로 위상 정렬) → season position별 평균 지수 → 잔차. additive/multiplicative, period 인자. 알려진 신호(추세+계절) 성분 완전복원 검증(6케이스).
+- `b3b2c4f` **C2 `js/outliers.js` (window.Outliers)** — 다변량 Mahalanobis 거리 이상치. **statsMath.js가 browser-only(window.SM만, module.exports 없음)라 Node 테스트를 위해 Gauss-Jordan 역행렬 + Wilson-Hilferty 카이제곱 컷오프 + Acklam normInv을 자기완결로 내장.** alpha/topK 옵션, 특이공분산(상수·공선성)·행<차원 degrade(8케이스).
+- `7eb3dfc` **C3 distributionFit 확장** — exponentialFit/lognormalFit(엄격 양수 MLE, degrade) + compareFits(normal/exponential/lognormal AIC 랭킹). 결정적 역CDF 샘플로 파라미터 복원·best 선택 검증(6케이스).
+
+**아침 게이트:** C1 Stats→Time Series 계절분해 토글, C2 이상치 시각화 UI 배선(시각검증 필요).
+**NEXT: Batch D(지도 범용화 Stage 2 — 지역명 매칭 단계구분도).**
 
 ## 세션 기록 — 2026-07-12 (밤샘 자율: Batch B — 엔진 엣지케이스 버그 사냥)
 
