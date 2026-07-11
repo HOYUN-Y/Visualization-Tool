@@ -10,7 +10,7 @@
       map: "지도", dashboard: "대시보드", stats: "통계", ml: "ML", docs: "문서",
       // topbar
       save: "저장", import: "가져오기", export: "내보내기", askInsight: "인사이트 질문",
-      tweaks: "환경설정", themeToggle: "테마 전환", langToggle: "한국어 / English",
+      tweaks: "설정", themeToggle: "테마 전환", langToggle: "한국어 / English",
       // statusbar
       workspace: "작업공간", rows: "행", cols: "열",
       // chart shelves (axis-oriented)
@@ -21,7 +21,7 @@
       data: "Data", clean: "Clean", sql: "SQL", visualize: "Chart", pivot: "Pivot",
       map: "Map", dashboard: "Board", stats: "Stats", ml: "ML", docs: "Docs",
       save: "Save", import: "Import", export: "Export", askInsight: "Ask Insight",
-      tweaks: "Tweaks", themeToggle: "Toggle theme", langToggle: "한국어 / English",
+      tweaks: "Setting", themeToggle: "Toggle theme", langToggle: "한국어 / English",
       workspace: "workspace", rows: "rows", cols: "cols",
       vizColumns: "X-axis · Dimension", vizRows: "Y-axis · Measure",
       vizColumnsHint: "Drop dimensions (x-axis / groups)", vizRowsHint: "Drop measures (y-axis values)",
