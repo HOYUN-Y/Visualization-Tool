@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Phase 4 S1 통과 + §0-0b ML 크래시 수정**. 다음: S2(테이블 등록)·S3(sqlMode async) |
-| Status | S1(DuckDB 로드+JOIN 자율검증) 완료. Fable §0-0b(ML 결과렌더 크래시) main hotfix `54b2e18`→feat/duckdb 전파 `acc6290`. |
-| Branch | **`feat/duckdb`** (S1+ML fix). main도 ML fix 반영(`54b2e18`). |
+| Current milestone | **Phase 4 DuckDB 전환 완료 (S1·S2·S3)** — SQL 모드가 DuckDB-WASM. 남음: 사용자 최종확인→v2.0.0 |
+| Status | SQL이 DuckDB(전체 SQL·데이터셋 간 JOIN·window·CTE), CDN 실패 시 JS 폴백. §0-0b ML 크래시 수정도 반영. |
+| Branch | **`feat/duckdb`** (S1~S3 + ML fix). main은 core+P0~P3+ML fix(origin push됨). |
 | Base commit | `3c59918` — merge: P0+P2+P3+P0.5 스택 (main) |
-| Last checkpoint commit | `acc6290` — merge ML §0-0b fix into feat/duckdb |
-| Working tree | 깨끗. S1(duckdbEngine.mjs·duckdbMap.js) + ML fix(mlMode 옵셔널체이닝·ErrorBoundary) |
-| Last verified | 2026-07-12 — **Node 245/245** + **E2E 7 passed(모드전환3·DuckDB2·ML학습2)**, tsc 0, asset v=266. **origin 미push** |
+| Last checkpoint commit | `7b50b94` — S3 폴리시(Reference·StatusBar) |
+| Working tree | 깨끗. Phase 4: duckdbEngine.mjs·duckdbMap.js·sqlMode async·shell 배지 |
+| Last verified | 2026-07-12 — **Node 245/245** + **E2E 13(모드전환3·DuckDB2·테이블3·ML2·SQL3)**, tsc 0, asset v=269. main push됨·feat/duckdb 미push |
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
@@ -45,6 +45,17 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (Phase 4 S2·S3: DuckDB 전환 완료 — SQL 모드 async)
+
+S1 로딩 통과 후 S2(테이블 등록)·S3(sqlMode async 교체)까지 완주. **SQL 모드가 DuckDB-WASM에서 전체 SQL을 실행**. 전 단계 헤드리스 E2E로 자율 검증(전체 스위트 **13 passed**, exit 0).
+
+- `6684c28` **S2**: `window.DuckDB.registerDatasets()` — 각 데이터셋 cleaned view(`__rid` 제외)를 테이블로 등록(테이블명=`sanitizeTableName(ds.id)`, quoted 식별자로 한글/특수문자, 충돌 de-dupe). `tests/e2e/duckdbTables.spec.mjs`(+3): 행수 일치·**데이터셋 간 쿼리 공존**·__rid 제외.
+- `5ad544d` **S3 core**: `sqlMode.jsx` 동기 runSQL→async `runQuery`(ready→registerDatasets→query). useEffect 초기실행+로딩/에러 상태, badge에 엔진. **폴백**: DuckDB 미로드 시 기존 JS 엔진(코드 보존). registerDataset 저장 유지. `tests/e2e/sqlMode.spec.mjs`(+3): 기본쿼리 자동실행·**CTE+window 함수**(구 엔진 불가)·에러 무크래시.
+- `7b50b94` **S3 폴리시**: Reference "지원 기능"을 전체 SQL(JOIN·subquery·CTE·window)로(기존엔 JOIN 안 된다고 오표기), StatusBar "Local engine"을 DuckDB 로드 시 "DuckDB-WASM"으로. i18n `sqlFullSql`.
+- **부수효과 해소**(FOLLOWUP B3): 한글/특수문자 컬럼명이 이제 SQL에서 조회 가능(DuckDB 따옴표 식별자).
+- **알려진 사소 이슈**: Playwright 전체 스위트에서 DuckDB Web Worker가 teardown서 안 죽어 프로세스 force-kill(5min 지연) — 테스트는 통과. db.terminate() teardown 추가 = 후속.
+- **남음**: 사용자 최종 브라우저 확인(SQL에서 실제 JOIN·저장) → **v2.0.0 태그**(사용자 게이트). feat/duckdb→main 병합도 사용자/최종확인 후.
 
 ## 세션 기록 — 2026-07-12 (Phase 4 S1: DuckDB-WASM 로딩 PoC — make-or-break 통과)
 
