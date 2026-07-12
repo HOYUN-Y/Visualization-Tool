@@ -356,6 +356,16 @@
         document.addEventListener("visibilitychange", function () {
           if (document.visibilityState === "hidden" && currentProject && status.state !== "saved") api.saveNow().catch(function () {});
         });
+        // Flush the pending autosave on unload too. The 1s debounce window (scheduleAutosave) means a
+        // hard tab-close / crash can lose the last edit — visibilitychange doesn't fire on every close.
+        // pagehide is the bfcache-friendly signal; beforeunload is the fallback for older paths. The
+        // saveNow write is async (IndexedDB) so completion isn't guaranteed on abrupt exit, but this
+        // fires the pending write immediately instead of waiting out the debounce.
+        var flushOnExit = function () {
+          if (currentProject && status.state !== "saved") api.saveNow().catch(function () {});
+        };
+        window.addEventListener("pagehide", flushOnExit);
+        window.addEventListener("beforeunload", flushOnExit);
         initialized = true;
         setStatus("saved");
         return api.getStatus();
