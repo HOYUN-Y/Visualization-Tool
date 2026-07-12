@@ -10,6 +10,11 @@ Thumbs.db
 # Node (if tooling is ever added; source stays no-build)
 node_modules/
 
+# Playwright E2E artifacts
+test-results/
+playwright-report/
+.playwright/
+
 # Scratch / local
 *.log
 
