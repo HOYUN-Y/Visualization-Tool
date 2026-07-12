@@ -45,7 +45,9 @@
     const nums = mlNums(columns), cats = mlCats(columns);
     const n = rows.length;
     const catInfo = cats.map((c) => ({ key: c.key, label: c.label || c.key, classes: distinctCount(rows, c.key, 200) }));
-    const clfTargets = catInfo.filter((c) => c.classes >= 2 && c.classes <= 20);   // usable categorical targets
+    // Usable categorical targets, LOWEST cardinality first — so the default target is a sensible
+    // few-class column (e.g. building_type 3) not a 12-class one that trains near random accuracy.
+    const clfTargets = catInfo.filter((c) => c.classes >= 2 && c.classes <= 20).sort((a, b) => a.classes - b.classes);
     const binaryTargets = catInfo.filter((c) => c.classes === 2);
     const numTargets = nums.map((c) => ({ key: c.key, label: c.label || c.key }));
     const hasNumFeat = nums.length >= 1;

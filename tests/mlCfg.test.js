@@ -38,6 +38,9 @@ test("mlEligibility: clf needs a 2–20 class categorical target + numeric featu
   // annotated with class counts
   assert.equal(e.clf.validTargets.find((t) => t.key === "type2").classes, 2);
   assert.equal(e.clf.validTargets.find((t) => t.key === "type3").classes, 3);
+  // lowest cardinality first → default target (validTargets[0]) is the fewest-class column
+  // (FOLLOWUP §0-0e ②: a 12-class default trains near random accuracy and looks "broken").
+  assert.deepEqual(keys, ["type2", "type3"]);
   // no categorical → not ok
   assert.equal(mlEligibility([{ key: "a", type: "float", role: "measure" }, { key: "b", type: "float", role: "measure" }], eligRows).clf.ok, false);
 });
