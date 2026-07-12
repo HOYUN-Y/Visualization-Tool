@@ -3,8 +3,10 @@
 // integrated window.DuckDB API with the app's { columns, rows } shape + type mapping.
 // This is the "make-or-break" gate for the DuckDB transition, run headlessly.
 import { test, expect } from '@playwright/test';
+import { teardownDuckDB } from './helpers.mjs';
 
 test.setTimeout(90000); // CDN + wasm download can take several seconds
+test.afterEach(async ({ page }) => teardownDuckDB(page));
 
 test("window.DuckDB loads from CDN and answers a query", async ({ page }) => {
   await page.goto("/index.html", { waitUntil: "load" });

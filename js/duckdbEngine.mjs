@@ -26,6 +26,15 @@ async function instantiate() {
   return db;
 }
 
+// Tear down the DuckDB Web Worker (free its resources). Used by the E2E teardown and the pagehide
+// handler for clean disposal / bfcache hygiene. (The headless-run "worker did not exit" force-kill
+// was ultimately a Chrome GPU/shm helper-process issue, fixed via playwright launchOptions args.)
+async function terminate() {
+  if (!state.db) return;
+  try { await state.db.terminate(); } catch (e) { /* already gone */ }
+  state.db = null; state.status = "terminated";
+}
+
 async function query(sql) {
   await ready; // throws if instantiation failed
   const conn = await state.db.connect();
@@ -82,8 +91,14 @@ window.DuckDB = {
   query,
   registerTables,
   registerDatasets,
+  terminate,
   version: DUCKDB_VERSION,
 };
+
+// Free the worker when the page goes away (bfcache-friendly). E2E also calls terminate() explicitly.
+if (typeof window !== "undefined" && window.addEventListener) {
+  window.addEventListener("pagehide", () => { terminate(); });
+}
 
 instantiate().then((db) => {
   state.db = db; state.status = "ready";

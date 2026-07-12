@@ -1,23 +1,12 @@
 // P10 — new ML tasks (Decision Tree, Naive Bayes) train → result render without crash.
 // Uses the hydration-safe boot (setMode reverts if fired before IndexedDB hydration completes).
 import { test, expect } from '@playwright/test';
+import { bootApp, teardownDuckDB } from './helpers.mjs';
 
 test.setTimeout(60000);
+test.afterEach(async ({ page }) => teardownDuckDB(page));
 
-async function mlReady(page) {
-  await page.goto("/index.html", { waitUntil: "load" });
-  await page.waitForFunction(() => {
-    const l = document.querySelector("#node-loader");
-    return window.Store && window.Store.actions && document.querySelector(".app") &&
-      (!l || l.classList.contains("hiding") || getComputedStyle(l).display === "none");
-  }, { timeout: 30000 });
-  await page.waitForTimeout(1200);
-  page.on("dialog", (d) => d.dismiss().catch(() => {}));
-  await page.evaluate(() => window.Store.actions.setActive("seoul_txns"));
-  await page.evaluate(() => window.Store.actions.setMode("ml"));
-  await page.waitForFunction(() => window.Store.getState().mode === "ml", { timeout: 5000 });
-  await page.waitForTimeout(400);
-}
+const mlReady = (page) => bootApp(page, { activeId: "seoul_txns", mode: "ml" });
 
 async function trainTaskAndAssert(page, taskText) {
   await page.getByRole("button", { name: taskText }).click();

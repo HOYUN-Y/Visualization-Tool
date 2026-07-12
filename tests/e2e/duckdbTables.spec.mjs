@@ -1,14 +1,12 @@
 // DuckDB S2 — registerDatasets(): every dataset's cleaned view becomes a queryable table, and
 // multiple datasets coexist in one DuckDB instance (cross-dataset SQL — the headline of the swap).
 import { test, expect } from '@playwright/test';
+import { bootApp, teardownDuckDB } from './helpers.mjs';
 
 test.setTimeout(60000);
+test.afterEach(async ({ page }) => teardownDuckDB(page));
 
-async function bootReady(page) {
-  await page.goto("/index.html", { waitUntil: "load" });
-  await page.waitForFunction(() => window.Store && document.querySelector(".app"), { timeout: 30000 });
-  await page.waitForFunction(() => window.DuckDB && window.DuckDB.status === "ready", { timeout: 40000 });
-}
+const bootReady = (page) => bootApp(page, { duckdb: true });
 
 test("registerDatasets exposes each dataset as a table with matching row counts", async ({ page }) => {
   await bootReady(page);

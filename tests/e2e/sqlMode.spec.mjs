@@ -2,16 +2,12 @@
 // tables. Verifies: the default query auto-runs via DuckDB, a cross-dataset JOIN works from the UI,
 // and a bad query surfaces a SQL error (not a crash).
 import { test, expect } from '@playwright/test';
+import { bootApp, teardownDuckDB } from './helpers.mjs';
 
 test.setTimeout(60000);
+test.afterEach(async ({ page }) => teardownDuckDB(page));
 
-async function boot(page) {
-  await page.goto("/index.html", { waitUntil: "load" });
-  await page.waitForFunction(() => window.Store && document.querySelector(".app"), { timeout: 30000 });
-  await page.waitForFunction(() => window.DuckDB && window.DuckDB.status === "ready", { timeout: 40000 });
-  await page.evaluate(() => window.Store.actions.setMode("sql"));
-  await page.waitForTimeout(400);
-}
+const boot = (page) => bootApp(page, { mode: "sql", duckdb: true });
 
 test("SQL mode auto-runs the default query via DuckDB and renders results", async ({ page }) => {
   await boot(page);
