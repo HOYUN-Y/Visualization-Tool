@@ -63,7 +63,9 @@ async function registerDatasets() {
   const specs = datasets.map((ds) => {
     const view = S.derive.getActiveData(ds.id); // { rows, columns } after cleaning steps
     const rows = view.rows.map((r) => { const o = Object.assign({}, r); delete o.__rid; return o; });
-    let table = MAP.sanitizeTableName(ds.short || ds.id);
+    // Use the dataset id as the table name — ids are stable, clean identifiers (e.g. "seoul_txns")
+    // that match defaultSql's `FROM <id>` and the Tables reference.
+    let table = MAP.sanitizeTableName(ds.id);
     while (seen[table]) table = table + "_"; // de-dupe collisions
     seen[table] = true;
     return { id: ds.id, tableName: table, rows };
