@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Phase 4 DuckDB 전환 완료 (S1·S2·S3)** — SQL 모드가 DuckDB-WASM. 남음: 사용자 최종확인→v2.0.0 |
-| Status | SQL이 DuckDB(전체 SQL·데이터셋 간 JOIN·window·CTE), CDN 실패 시 JS 폴백. §0-0b ML 크래시 수정도 반영. |
-| Branch | **`feat/duckdb`** (S1~S3 + ML fix). main은 core+P0~P3+ML fix(origin push됨). |
-| Base commit | `3c59918` — merge: P0+P2+P3+P0.5 스택 (main) |
-| Last checkpoint commit | `f7fdb73` — DuckDB 날짜 표시 수정(epoch-ms→문자열) |
-| Working tree | 깨끗. Phase 4 완료+폴리시(날짜 표시). 사용자 라이브 확인: JOIN·window 동작 ✓ |
-| Last verified | 2026-07-12 — **Node 247/247** + **E2E 13**, tsc 0, asset v=270. main push됨·feat/duckdb 미push(S1~S3) |
+| Current milestone | **🎉 v2.0.0 릴리스** (Phase 4 DuckDB ship 완료). 다음: Track B(P13 ML 적격성)→C(P10 DT/NB/CV) |
+| Status | feat/duckdb→main 병합·`v2.0.0` 태그·origin push 전부 완료. 새 로드맵: ML 확장(P13→P10). |
+| Branch | **`main`** (= v2.0.0, origin 동기화 +0). ML 작업은 `feat/ml-expansion` 분기. |
+| Base commit | `3acaf4d` — merge: Phase 4 DuckDB (v2.0.0) |
+| Last checkpoint commit | `v2.0.0` 태그 @ `3acaf4d` |
+| Working tree | 깨끗. main·feat/duckdb·v2.0.0 태그 origin push됨 |
+| Last verified | 2026-07-12 — **Node 247/247** + E2E 13, tsc 0, asset v=270. **origin 동기화 완료** |
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
