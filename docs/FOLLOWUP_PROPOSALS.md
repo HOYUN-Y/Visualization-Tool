@@ -113,6 +113,7 @@
 | P10 | Planned 잔여 (DT/NB/CV·SQL JOIN·공유링크·PPT 매핑) | 기능 | 대 | ★★ | 대기 — Phase 4 DuckDB가 SQL JOIN 결정을 대체 |
 | P11 | Playwright 스모크 E2E | QA | 중 | ★★ | 대기 — P0가 필요성 실증. **"8모드 전환" 시나리오는 §0-0 ①을 그대로 스크립트화하면 됨** |
 | P12 | 캐시버스트 `?v=` 자동화 | DX | 소 | ★ | 대기 |
+| **P13** | **ML 데이터 적격성 검증 (태스크별 실행 가능 여부 + target 필터)** | UX/버그 | 소~중 | ★★★ | 🆕 대기 (사용자 발의 §7) |
 
 ---
 
@@ -264,3 +265,60 @@ P0가 "Node 237/237 그린인데 앱은 벽돌"을 실증. 최소 시나리오: 
 | P4 실측 | 동일 입력 → 동일 참조, editCell 후 무효화 |
 | P5 실측 | rename 충돌 no-op · invalid 숫자→null · isComposing 2곳 |
 | P6·P8 | `.DS_Store` 추적 0 · 경로/플랜헤더 정정 · 카피 교체 |
+
+---
+
+## 7. P13 — ML 데이터 적격성 검증 (사용자 발의, 2026-07-12)
+
+> 발단: "`Logistic needs a binary target (exactly 2 classes)` 알림이 계속 나온다. 이 데이터로 **어떤 모델을 돌릴 수 있는지 검증하는 로직**이 필요하다."
+> 진단 결과 **정당한 지적** — 현재는 사후 `alert()`만 있고 사전 적격성 검사가 전무. 아래는 근거·설계·CLI 구현 가이드.
+
+### 문제 (코드·데이터 실측)
+
+`js/mlMode.jsx`:
+- `targets = (task==='clf'||task==='logit') ? catCols : numCols` — **카디널리티 무관하게** 모든 범주형을 target 후보로 나열(`400~408행`).
+- Logistic 엔진은 정확히 2클래스 요구(`113행`), 실패 시 throw → `train()` catch에서 **`alert(err.message)`** (`437행`)만. 사전 차단·비활성화·안내 없음.
+- 결과: 유효 target이 없어도 태스크·target 선택이 다 열려 있고, **학습 눌러야 비로소 알림**. 반복 발생.
+
+**결정적 근거 — 샘플 데이터 전수 스캔(binary 범주형 개수)**:
+
+| 데이터셋 | 범주형(고유값) | binary(2클래스) |
+|---|---|---|
+| seoul_txns | district(12)·building_type(3)·complex_name(409)… | **0** |
+| monthly_index | month(42) | 0 |
+| kospi_stock | date(320) | 0 |
+| district_stats | district(12) | 0 |
+| world_gdp | country(30)·region(6) | 0 |
+
+→ **기본 제공 7개 데이터셋 어디에도 binary 범주형이 없음** = Logistic + ROC는 현재 상태로 **성공 불가능한 태스크**인데도 버튼·target이 정상처럼 노출됨. (building_type 3클래스가 최근접)
+
+### 제안 설계 — "데이터가 정하는 실행 가능성"
+
+**A. 태스크별 적격성 함수 (순수, 테스트 가능)** — `js/mlCfg.js`에 `mlEligibility(columns, rows)` 추가:
+태스크마다 `{ ok, reason, validTargets }`를 반환.
+
+| 태스크 | 적격 조건 |
+|---|---|
+| Regression | 숫자 target ≥1 **AND** 숫자 특성 ≥1 |
+| k-NN Classify | 범주형 target(2~약20 클래스) ≥1 AND 숫자 특성 ≥1 |
+| Logistic + ROC | **정확히 2클래스** 범주형 target ≥1 AND 숫자 특성 ≥1 |
+| PCA/KMeans/DBSCAN/Hier | 숫자 컬럼 ≥2 AND 행 ≥ (k 또는 minPts) |
+
+**B. UI 반영 (3단 방어)**:
+1. **태스크 버튼**: 부적격이면 비활성(dim) + 배지/툴팁("binary 대상 없음", "숫자 열 2개 필요"). 발 들이기 전에 차단.
+2. **target 셀렉터**: 태스크에 맞는 컬럼만 나열하고 **클래스 수 주석** — 예 `building_type (3 클래스)`. logit이면 2클래스만, 없으면 "적격 대상 없음" placeholder + Train 비활성.
+3. **Train 버튼**: `eligibility.ok===false`면 disabled + 사유 인라인 표시. **`alert()` 제거**(§5 C3 리스크 동시 해소 — 임베드/자동화서 alert는 블로킹·무반응).
+
+**C. (선택) 데이터 준비도 요약**: 패널 상단에 "이 데이터로 가능한 분석: PCA·KMeans·DBSCAN·Hier·Regression·k-NN / 불가: Logistic(2클래스 대상 없음)" 한 줄.
+
+### 보너스 — Logistic을 실데이터로 쓰게 만들기 (범위 판단 필요)
+검증만 하면 "logit은 영원히 비활성"이 됨. 실사용 길을 하나 열어주면 좋음(둘 중 택1, P10 후보):
+- **(권장) 양성 클래스 선택으로 이진화**: 다중클래스 target + "양성 클래스" 드롭다운 → one-vs-rest. 예 `building_type` + 양성=`아파트` → 아파트 vs 나머지. 엔진 `Logistic.fit`은 그대로, 라벨 전처리만 UI에서.
+- (대안) 숫자 컬럼 임계값 이진화: `price_manwon > 중앙값` → 고가/저가.
+
+### CLI 구현 순서 제안
+1. `mlCfg.js`에 `mlEligibility` 순수 함수 + `tests/mlCfg.test.js`에 케이스(binary 유무·숫자열 수·행수 경계) 추가 — 정적 회귀 잠금.
+2. `mlMode.jsx`: 태스크 버튼 `disabled`·target 필터/클래스주석·Train 가드·alert 제거. (§0-0b 렌더 크래시 수정과 같은 파일이라 **함께 처리 효율적**.)
+3. E2E(P11)에 "부적격 태스크 비활성·target 주석" 어서션 1개.
+
+> **관계**: §0-0b(reg/clf 렌더 크래시)와 별개 이슈지만 같은 파일·같은 세션 수정 대상. §5 C3(alert 리스크)도 B-3에서 함께 해소됨.
