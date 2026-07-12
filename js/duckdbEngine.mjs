@@ -37,19 +37,39 @@ async function query(sql) {
   }
 }
 
-// Register a { id, tableName, rows } list as DuckDB tables (S2 uses this). rows are plain objects.
+// Register a [{ id, tableName, rows }] list as DuckDB tables. rows are plain objects.
 async function registerTables(specs) {
   await ready;
   const conn = await state.db.connect();
   try {
-    for (const { tableName, rows } of specs) {
-      const fname = `__reg_${tableName}.json`;
+    for (let i = 0; i < specs.length; i++) {
+      const { tableName, rows } = specs[i];
+      const fname = `__reg_${i}.json`; // ascii filename (table name may be Korean); table is quoted
       await state.db.registerFileText(fname, JSON.stringify(rows || []));
-      await conn.query(`CREATE OR REPLACE TABLE "${tableName}" AS SELECT * FROM read_json_auto('${fname}')`);
+      await conn.query(`CREATE OR REPLACE TABLE "${tableName.replace(/"/g, '""')}" AS SELECT * FROM read_json_auto('${fname}')`);
     }
   } finally {
     await conn.close();
   }
+}
+
+// Register EVERY dataset's post-cleaning view as a table (enables cross-dataset JOIN). __rid is
+// dropped (internal). Table name = sanitized short/id. Returns [{id, table, rows}] for the UI.
+async function registerDatasets() {
+  await ready;
+  const S = window.Store, NODE = window.NODE, MAP = window.DuckDBMap;
+  const datasets = (NODE && NODE.datasets) || [];
+  const seen = {};
+  const specs = datasets.map((ds) => {
+    const view = S.derive.getActiveData(ds.id); // { rows, columns } after cleaning steps
+    const rows = view.rows.map((r) => { const o = Object.assign({}, r); delete o.__rid; return o; });
+    let table = MAP.sanitizeTableName(ds.short || ds.id);
+    while (seen[table]) table = table + "_"; // de-dupe collisions
+    seen[table] = true;
+    return { id: ds.id, tableName: table, rows };
+  });
+  await registerTables(specs);
+  return specs.map((s) => ({ id: s.id, table: s.tableName, rows: s.rows.length }));
 }
 
 window.DuckDB = {
@@ -59,6 +79,7 @@ window.DuckDB = {
   ready,
   query,
   registerTables,
+  registerDatasets,
   version: DUCKDB_VERSION,
 };
 
