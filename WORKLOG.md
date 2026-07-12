@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **🎉 v2.0.0 릴리스** (Phase 4 DuckDB ship 완료). 다음: Track B(P13 ML 적격성)→C(P10 DT/NB/CV) |
-| Status | feat/duckdb→main 병합·`v2.0.0` 태그·origin push 전부 완료. 새 로드맵: ML 확장(P13→P10). |
-| Branch | **`main`** (= v2.0.0, origin 동기화 +0). ML 작업은 `feat/ml-expansion` 분기. |
-| Base commit | `3acaf4d` — merge: Phase 4 DuckDB (v2.0.0) |
-| Last checkpoint commit | `v2.0.0` 태그 @ `3acaf4d` |
-| Working tree | 깨끗. main·feat/duckdb·v2.0.0 태그 origin push됨 |
-| Last verified | 2026-07-12 — **Node 247/247** + E2E 13, tsc 0, asset v=270. **origin 동기화 완료** |
+| Current milestone | v2.0.0 후 **Track B(P13 ML 적격성) 완료**. 다음: Track C(P10 DT/NB/CV) |
+| Status | ML 데이터 적격성 검증(부적격 태스크 disabled·target 필터·Logistic one-vs-rest·alert 제거) 완료. |
+| Branch | **`feat/ml-expansion`** (main=v2.0.0서 분기, 미push). |
+| Base commit | `3acaf4d` — v2.0.0 (main) |
+| Last checkpoint commit | `b356ec6` — P13 B2·B3 (적격성 3단 방어) |
+| Working tree | 깨끗. B1 mlEligibility(mlCfg) + B2/B3 mlMode 3단 방어·one-vs-rest |
+| Last verified | 2026-07-12 — **Node 253/253** + E2E(P13 +3), tsc 0, asset v=272. main=v2.0.0 push됨·feat/ml-expansion 미push |
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
@@ -45,6 +45,17 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (v2.0.0 ship + P13 ML 데이터 적격성 검증)
+
+**Track A ship**: `feat/duckdb`→main `--no-ff` 병합 `3acaf4d` + **`v2.0.0` 태그** + origin push(main·태그·feat/duckdb 동기화). DuckDB 전환 정식 릴리스.
+
+**Track B — P13(사용자 발의 §7)**: "이 데이터로 어떤 모델 돌릴 수 있는지 사전 검증" — 근본 해결.
+- `1b58e1f` **B1**: `js/mlCfg.js` `mlEligibility(columns,rows)` — 태스크별 `{ok,reason,validTargets}`. reg(숫자≥2)·clf/dt/nb(2~20클래스 범주+숫자특성)·logit(범주 target, one-vs-rest로 다중클래스 가능·binaryTargets 플래그)·pca/km/dbscan/hier(숫자≥2+행수). mlDefaultCfg가 'id' 기본 target 회피. mlCfg.test +6.
+- `b356ec6` **B2·B3**: `mlMode.jsx` 3단 방어 — 부적격 태스크 버튼 disabled+툴팁, target 셀렉터 적격 컬럼만+클래스수 주석("적격 대상 없음" placeholder), Train 가드+인라인 사유. **`alert()` 전면 제거**(§5 C3 임베드 블로킹 해소). 태스크 전환 시 result 초기화(§0-0b 부가관찰). **B3**: 다중클래스 target+양성 클래스 드롭다운→one-vs-rest 이진화(logit이 sample 데이터서 영구 비활성 되던 것 해소).
+- **E2E** `mlEligibility.spec.mjs` +3 통과. **중요 발견**: E2E가 `setMode`를 IndexedDB hydration 완료 전에 호출하면 복원값으로 되돌려지는 레이스 → boot에 **loader-hidden 대기** 추가로 해소. (타 스펙도 동일 잠재 — 후속 통일 권장.)
+
+**NEXT: Track C — P10(Decision Tree·Naive Bayes·Cross Validation) 엔진+배선.**
 
 ## 세션 기록 — 2026-07-12 (Phase 4 S2·S3: DuckDB 전환 완료 — SQL 모드 async)
 
