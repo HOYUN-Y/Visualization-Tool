@@ -18,9 +18,9 @@
 | Status | SQL이 DuckDB(전체 SQL·데이터셋 간 JOIN·window·CTE), CDN 실패 시 JS 폴백. §0-0b ML 크래시 수정도 반영. |
 | Branch | **`feat/duckdb`** (S1~S3 + ML fix). main은 core+P0~P3+ML fix(origin push됨). |
 | Base commit | `3c59918` — merge: P0+P2+P3+P0.5 스택 (main) |
-| Last checkpoint commit | `7b50b94` — S3 폴리시(Reference·StatusBar) |
-| Working tree | 깨끗. Phase 4: duckdbEngine.mjs·duckdbMap.js·sqlMode async·shell 배지 |
-| Last verified | 2026-07-12 — **Node 245/245** + **E2E 13(모드전환3·DuckDB2·테이블3·ML2·SQL3)**, tsc 0, asset v=269. main push됨·feat/duckdb 미push |
+| Last checkpoint commit | `f7fdb73` — DuckDB 날짜 표시 수정(epoch-ms→문자열) |
+| Working tree | 깨끗. Phase 4 완료+폴리시(날짜 표시). 사용자 라이브 확인: JOIN·window 동작 ✓ |
+| Last verified | 2026-07-12 — **Node 247/247** + **E2E 13**, tsc 0, asset v=270. main push됨·feat/duckdb 미push(S1~S3) |
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
