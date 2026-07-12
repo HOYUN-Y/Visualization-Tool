@@ -35,6 +35,8 @@
       pBuildTitle: "피벗 만들기", pBuildDesc: "오른쪽 패널에서 행·열·값에 필드를 끌어다 놓으세요. 값에는 최소 하나의 필드가 필요합니다.",
       pNote: "필드는 좌측 Data Explorer에서 드래그하세요. 합계·집계는 원본 행에서 재계산됩니다.",
       pTitle: "피벗 테이블", pSaveOpen: "저장 후 차트에서 열기",
+      sqlRunning: "실행 중…", sqlEngineLoading: "SQL 엔진 로딩 중…",
+      sqlFullSql: "DuckDB-WASM · 데이터셋 간 JOIN·서브쿼리·CTE·윈도우 함수 등 전체 SQL.",
       // dashboard — generic UI chrome
       dashFormulaError: "수식 오류", dashPctOfTotal: "% (전체 대비)", dashTextPlaceholder: "더블클릭하거나 인스펙터에서 텍스트를 편집하세요",
       dashEditLayout: "레이아웃 편집", dashCrossFilterActive: "크로스 필터 활성:",
@@ -139,6 +141,8 @@
       pBuildTitle: "Build a pivot", pBuildDesc: "Drag fields into Rows, Columns, and Values in the right panel. Values need at least one field.",
       pNote: "Drag fields from the Data Explorer on the left. Totals and aggregates are recomputed from source rows.",
       pTitle: "Pivot Table", pSaveOpen: "Save & open in Chart",
+      sqlRunning: "Running…", sqlEngineLoading: "Loading SQL engine…",
+      sqlFullSql: "DuckDB-WASM · full SQL incl. cross-dataset JOIN, subqueries, CTEs, window functions.",
       dashFormulaError: "formula error", dashPctOfTotal: "% of total", dashTextPlaceholder: "Double-click or use the inspector to edit text",
       dashEditLayout: "Edit layout", dashCrossFilterActive: "Cross-filter active:",
       dashCrossFilterHint: "All widgets filtered · click the same mark again or here to clear",

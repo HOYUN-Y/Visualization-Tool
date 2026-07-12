@@ -144,22 +144,49 @@ LIMIT 10`;
     return `SELECT *\nFROM ${ds.id}\nLIMIT 100`;
   }
 
+  function sqlErrMsg(e) { return String((e && e.message) || e || "query failed").replace(/^Error:\s*/, "").slice(0, 400); }
+
+  // Run a query through DuckDB-WASM if it loaded (registering all datasets as tables first, so
+  // cross-dataset JOIN/window/CTE work); otherwise fall back to the hand-written JS engine
+  // (offline / CDN unreachable). Returns { columns, rows, n, ms, engine } or { error, ms, engine }.
+  async function runQuery(sql) {
+    const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+    const t0 = now(), dur = () => Math.round(now() - t0);
+    const D = window.DuckDB;
+    if (D) { try { await D.ready; } catch (e) { /* load failed → JS fallback below */ } }
+    if (D && D.status === "ready") {
+      try {
+        await D.registerDatasets();
+        const r = await D.query(sql);
+        return { columns: r.columns, rows: r.rows, n: r.rows.length, ms: dur(), engine: "duckdb" };
+      } catch (e) {
+        return { error: sqlErrMsg(e), ms: dur(), engine: "duckdb" };
+      }
+    }
+    const res = runSQL(sql); res.engine = "js"; return res;
+  }
+
   function SQLCenter() {
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
     const activeId = useStore((s) => s.activeId);
     const initSql = React.useMemo(() => defaultSql(derive.getDataset(activeId)), []);
     const [sql, setSql] = React.useState(initSql);
-    const [result, setResult] = React.useState(() => runSQL(initSql));
+    const [result, setResult] = React.useState(null);
+    const [running, setRunning] = React.useState(true);
     const taRef = React.useRef(null);
-    const run = () => {
-      window.LOG && window.LOG.info('sql', 'SQL executed', { sql: sql.trim().slice(0, 300) });
-      const res = runSQL(sql);
-      if (res.error) window.LOG && window.LOG.warn('sql', 'SQL error: ' + res.error, { sql: sql.trim().slice(0, 300) });
-      setResult(res);
+    const execute = async (q) => {
+      window.LOG && window.LOG.info('sql', 'SQL executed', { sql: q.trim().slice(0, 300) });
+      setRunning(true);
+      const res = await runQuery(q);
+      if (res.error) window.LOG && window.LOG.warn('sql', 'SQL error: ' + res.error, { sql: q.trim().slice(0, 300) });
+      setResult(res); setRunning(false);
     };
+    const run = () => execute(sql);
+    React.useEffect(() => { execute(initSql); }, []); // initial run once DuckDB (or fallback) is available
     React.useEffect(() => { window.__sqlSet = (q) => setSql(q); return () => { delete window.__sqlSet; }; }, []);
     const onKey = (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); run(); } };
+    const engineLabel = result && result.engine === "js" ? "in-browser JS" : "DuckDB-WASM";
 
     const save = () => {
       if (!result || result.error) return;
@@ -174,10 +201,10 @@ LIMIT 10`;
           <span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
             <Icon name="sql" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{T("sqlWorkspace")}
           </span>
-          <span className="badge mono"><Icon name="db" size={11} /> {T("sqlInBrowser")}</span>
+          <span className="badge mono"><Icon name="db" size={11} /> {engineLabel}</span>
           <div className="spacer" />
-          <button className="btn ghost sm" disabled={!result || result.error} onClick={save}><Icon name="save" /> {T("sqlSaveDataset")}</button>
-          <button className="btn primary sm" onClick={run}><Icon name="play" size={12} /> {T("sqlRun")} <span className="kbd" style={{ marginLeft: 4 }}>⌘↵</span></button>
+          <button className="btn ghost sm" disabled={running || !result || result.error} onClick={save}><Icon name="save" /> {T("sqlSaveDataset")}</button>
+          <button className="btn primary sm" disabled={running} onClick={run}><Icon name="play" size={12} /> {running ? T("sqlRunning") : T("sqlRun")} <span className="kbd" style={{ marginLeft: 4 }}>⌘↵</span></button>
         </div>
 
         <div className="sql-editor">
@@ -187,14 +214,16 @@ LIMIT 10`;
         </div>
 
         <div className="sql-resbar">
-          {result.error
-            ? <span className="sql-err"><Icon name="info" size={13} /> {result.error}</span>
-            : <span className="mono"><span style={{ color: "var(--pos)" }}>●</span> {result.n} {T("rows")} · {result.ms} ms · {T("sqlFrom")} <b style={{ color: "var(--tx-hi)" }}>{result.table.short}</b></span>}
+          {running ? <span className="mono" style={{ color: "var(--tx-lo)" }}>{T("sqlRunning")}</span>
+            : !result ? null
+            : result.error ? <span className="sql-err"><Icon name="info" size={13} /> {result.error}</span>
+            : <span className="mono"><span style={{ color: "var(--pos)" }}>●</span> {result.n} {T("rows")} · {result.ms} ms · <b style={{ color: "var(--tx-hi)" }}>{engineLabel}</b></span>}
           <div className="spacer" />
         </div>
         <div className="sql-results">
-          {result.error
-            ? <div className="empty"><Icon name="sql" /><div className="t">{T("sqlQueryError")}</div><div className="s">{result.error}</div></div>
+          {running ? <div className="empty"><Icon name="sql" /><div className="t">{T("sqlRunning")}</div></div>
+            : !result ? null
+            : result.error ? <div className="empty"><Icon name="sql" /><div className="t">{T("sqlQueryError")}</div><div className="s">{result.error}</div></div>
             : <DataGrid columns={result.columns} rows={result.rows} pageSize={50} />}
         </div>
       </React.Fragment>
@@ -232,8 +261,7 @@ LIMIT 10`;
           <div className="cp-blocktitle">{T("sqlSupported")}</div>
           <div className="cf-info" style={{ display: "block" }}>
             <span style={{ fontSize: "var(--fs-11)", color: "var(--tx-lo)", lineHeight: 1.6 }}>
-              <code>SELECT</code> · <code>WHERE</code> (AND, LIKE) · <code>GROUP BY</code> · aggregates
-              <code> SUM/AVG/COUNT/MIN/MAX/MEDIAN</code> · <code>ORDER BY</code> · <code>LIMIT</code>. {T("sqlSavableNote")}
+              <code>SELECT</code> · <code>JOIN</code> · <code>WHERE</code> · <code>GROUP BY</code> · <code>HAVING</code> · <code>WITH</code> · window · <code>ORDER BY</code> · <code>LIMIT</code>. {T("sqlFullSql")} {T("sqlSavableNote")}
             </span>
           </div>
         </div>
