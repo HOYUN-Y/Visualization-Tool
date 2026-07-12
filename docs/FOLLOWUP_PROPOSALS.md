@@ -12,6 +12,7 @@
 
 > 대상: `fix/mode-render-p0` (= Phase 1+2+3 + P0 수정 `4d402b9`), asset v265, Node 237/237·tsc 0 선확인.
 > **판정: 병합 가능** — 아래 4개 게이트 전부 통과, 신규 콘솔 에러 0. main 병합·push는 CLI/사용자 몫.
+> ⚠️ **후속 갱신**: 이후 ML 심층검증에서 **ML 회귀·k-NN 결과 렌더 크래시(§0-0b)** 발견 — 게이트 범위(모드 전환) 밖의 리그레션. **병합 전 §0-0b 1줄 수정 동반 권장.**
 
 | 게이트 | 검증 내용 | 결과 |
 |---|---|---|
@@ -27,6 +28,46 @@
 | ④ IndexedDB 왕복 | 셀편집(424242)+열추가+mode=pivot → saveNow → **리로드** | ✅ mode·스텝 2건·편집값·추가열 전부 복원, **__rid 연속성**(신규 rid 1009 > max 503) |
 
 종료 상태: 테스트 흔적 정리(clearSteps) 후 data 모드로 저장 — 사용자가 열면 깨끗한 상태.
+
+---
+
+## 0-0b. 🚨 신규 P0급 — ML 회귀·k-NN 결과 렌더 크래시 (ML 심층검증, 2026-07-12 추가)
+
+> Phase 3.5 게이트의 "8모드 전환"은 통과했으나(전환만으로는 안 터짐), **ML에서 실제 학습을 돌리면** 발견되는 리그레션. **병합 전 수정 권장** — 수정은 CLI에서.
+
+**증상**: ML 모드에서 **Regression 또는 k-NN Classify 학습 → 결과 렌더 즉시 크래시**. ErrorBoundary가 잡아 앱은 생존(P0 수정 효과 실증 ✓)하지만:
+- "다시 시도" 무효 — 결과가 `s.ui.ml.result`에 남아 재렌더 즉시 재크래시
+- 모드 이탈→재진입도 무효 → **ML 모드가 세션 내 잠김**
+- `ui`는 projectStore STATE_KEYS 포함 → autosave되면 **리로드 후에도 ML 잠김** (P0 벽돌화의 모드 국소판)
+
+**근본 원인** ([`js/mlMode.jsx:281`](../js/mlMode.jsx) — 도입 커밋 `54214b9`):
+차트 제목을 객체 리터럴 맵으로 선택하는데, **JS 객체 리터럴은 모든 value를 즉시 평가**함:
+```js
+{ reg: "...", ..., dbscan: "... " + res.feats[0] + ..., hier: "... " + res.feats[0] }[res.kind]
+```
+`reg`/`clf` 결과 객체에는 `feats` 키가 없음(50·83행 return) → `res.feats[0]`에서 `undefined[0]` throw. `feats`를 포함하는 km/logit/pca/dbscan/hier 결과만 렌더 가능.
+
+**수정 레시피 (CLI용)**:
+1. 제목 맵을 지연 평가로 — switch/함수 맵, 또는 최소 `res.feats?.[0]` 옵셔널 체이닝 (1줄)
+2. (방어) ErrorBoundary `componentDidCatch`에서 `ui.ml.result` 클리어 → "다시 시도" 실효성 확보 + autosave 오염 차단
+3. (회귀 방지) reg/clf 학습→렌더를 E2E(P11) 시나리오에 추가 — "8모드 전환"만으론 못 잡음이 실증됨
+
+**세션 복구법**: 콘솔에서 `Store.setState(s=>{...})`로 `ui.ml.result` 삭제 후 모드 왕복. (이번 검증 종료 시 정리·저장 완료 — 현재 저장 상태 깨끗함)
+
+**ML 7종 태스크 검증 결과** (seoul_txns, 기본 특성):
+
+| 태스크 | 결과 |
+|---|---|
+| Regression | 🚨 학습 성공(R²=0.493 이력 기록) → **렌더 크래시** |
+| k-NN Classify | 🚨 학습 성공(Acc 70.3%) → **동일 크래시** |
+| Logistic + ROC | ⚠️ 3클래스 타깃(building_type)에서 binary 가드 발동 → **`alert()` 에러 표시** — 임베드 브라우저에선 억제/블로킹되어 **무반응처럼 보임** (§5 C3 리스크 실증). seoul 데이터엔 2클래스 컬럼이 없어 정상경로 UI 검증 불가 (엔진은 Node 7테스트 통과) |
+| PCA | ✅ Scree+로딩표 렌더, PC1 36.7%·CUM(2) 69.7% |
+| KMeans | ✅ K=3, inertia 790, 군집크기 179/179/101, 산점도 |
+| DBSCAN | ✅ 1 cluster·noise 11 (eps 0.8 기본) |
+| Hierarchical | ✅ ward·K=3 |
+| 모델 비교 이력 | ✅ 8회 누적·점수 표시 정상 |
+
+**부가 관찰** (사소, CLI 참고): ① 기본 목표가 `id` — 회귀에서 무의미한 타깃이 기본값 ② 태스크 전환 후 이전 결과 화면이 유지되어 우측 작업 하이라이트와 불일치 ③ logit의 binary 가드 메시지를 alert 대신 인앱 표시 권장(C3).
 
 ---
 
