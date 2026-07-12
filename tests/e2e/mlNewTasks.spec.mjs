@@ -45,6 +45,21 @@ test("Decision Tree trains and renders without crashing", async ({ page }) => {
 test("Naive Bayes trains and renders without crashing", async ({ page }) => {
   await mlReady(page);
   await trainTaskAndAssert(page, "Naive Bayes");
+});
+
+test("Cross-validation (5-fold) shows a mean±std card", async ({ page }) => {
+  await mlReady(page);
+  await page.getByRole("button", { name: "Decision Tree" }).click();
+  await page.waitForTimeout(300);
+  await page.locator(".mlpanel select").first().selectOption("building_type").catch(() => {});
+  await page.waitForTimeout(200);
+  await page.getByRole("button", { name: "5-fold" }).click();
+  await page.waitForTimeout(200);
+  await page.getByRole("button", { name: /Train model|모델 학습/ }).click();
+  await page.waitForTimeout(2200);
+  const txt = await page.evaluate(() => document.body.innerText || "");
+  expect(txt).toMatch(/교차검증/);
+  expect(txt).toMatch(/±/);
   await page.evaluate(async () => {
     window.Store.actions.setUI({ ml: { ...(window.Store.getState().ui.ml || {}), result: null } });
     window.Store.actions.setMode("data");

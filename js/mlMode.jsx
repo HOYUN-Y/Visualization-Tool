@@ -171,6 +171,84 @@
     return { kind: "logit", classes: model.classes, roc, pr, coefs, feats, target, acc: m.accuracy, auc: roc.auc, ap: pr ? pr.ap : null, f1: m.f1, prec: m.precision, rec: m.recall, nTrain: tr.length, nTest: te.length };
   }
 
+  // ---- k-fold Cross-Validation runner (window.CrossVal) ----
+  // Returns { mean, std, folds, metric } or null if not applicable.
+  // Uses engine-level fit/predict per fold (NOT the wrappers above, which do their
+  // own hold-out split). CrossVal is seeded (1) → deterministic across runs.
+  function runCV(task, data, feats, target, split, k) {
+    if (!(k >= 2)) return null;
+    if (!["reg", "clf", "logit", "dt", "nb"].includes(task)) return null;
+    const cleanData = data.filter((r) => feats.every((f) => r[f] != null) && r[target] != null);
+    if (cleanData.length < 2 * k) return null;
+
+    let trainFn, scoreFn, metric;
+    if (task === "reg") {
+      metric = "R²";
+      // Replicate the normal-equations OLS fit from regression().
+      trainFn = (tr) => {
+        const p = feats.length + 1;
+        const A = Array.from({ length: p }, () => Array(p).fill(0)); const Bv = Array(p).fill(0);
+        for (const r of tr) {
+          const x = [1, ...feats.map((f) => r[f])]; const y = r[target];
+          for (let a = 0; a < p; a++) { Bv[a] += x[a] * y; for (let b = 0; b < p; b++) A[a][b] += x[a] * x[b]; }
+        }
+        const coef = solve(A, Bv);
+        return (r) => coef[0] + feats.reduce((s, f, i) => s + coef[i + 1] * r[f], 0);
+      };
+      scoreFn = (pred, te) => {
+        const yt = te.map((r) => r[target]), yp = te.map(pred);
+        const ym = _mean(yt), ssTot = yt.reduce((s, v) => s + (v - ym) ** 2, 0);
+        if (ssTot === 0) return NaN;
+        const ssRes = yt.reduce((s, v, i) => s + (v - yp[i]) ** 2, 0);
+        return 1 - ssRes / ssTot;
+      };
+    } else if (task === "clf") {
+      metric = "Accuracy";
+      // Replicate classification()'s standardized k-NN majority vote.
+      trainFn = (tr) => {
+        const stats = feats.map((f) => [_mean(tr.map((r) => r[f])), _std(tr.map((r) => r[f]))]);
+        const z = (r) => feats.map((f, i) => (r[f] - stats[i][0]) / stats[i][1]);
+        const trZ = tr.map((r) => ({ z: z(r), c: r[target] }));
+        return { trZ, z, stats, k };
+      };
+      scoreFn = (model, te) => {
+        let correct = 0;
+        for (const r of te) {
+          const zr = model.z(r);
+          const nn = model.trZ.map((t) => ({ d: t.z.reduce((s, v, i) => s + (v - zr[i]) ** 2, 0), c: t.c })).sort((a, b) => a.d - b.d).slice(0, model.k);
+          const vote = {}; for (const x of nn) vote[x.c] = (vote[x.c] || 0) + 1;
+          const ranked = Object.entries(vote).sort((a, b) => b[1] - a[1]);
+          if (ranked.length && String(ranked[0][0]) === String(r[target])) correct++;
+        }
+        return correct / te.length;
+      };
+    } else if (task === "dt") {
+      metric = "Accuracy";
+      trainFn = (tr) => window.DecisionTree.fit(tr, feats, target, { maxDepth: 6, minSamples: 2 });
+      scoreFn = (model, te) => { let correct = 0; for (const r of te) if (model.predict(r) === r[target]) correct++; return correct / te.length; };
+    } else if (task === "nb") {
+      metric = "Accuracy";
+      trainFn = (tr) => window.NaiveBayes.fit(tr, feats, target);
+      scoreFn = (model, te) => { let correct = 0; for (const r of te) if (model.predict(r) === r[target]) correct++; return correct / te.length; };
+    } else { // logit
+      const distinct = [...new Set(cleanData.map((r) => r[target]))];
+      if (distinct.length !== 2) return null; // CV assumes a 2-class target
+      metric = "Accuracy";
+      trainFn = (tr) => window.Logistic.fit(tr, feats, target, { iterations: 400, lr: 0.3, standardize: true });
+      scoreFn = (model, te) => {
+        let correct = 0;
+        for (const r of te) {
+          const pred = window.Logistic.predictProba(model, r) >= 0.5 ? model.classes[1] : model.classes[0];
+          if (String(pred) === String(r[target])) correct++;
+        }
+        return correct / te.length;
+      };
+    }
+
+    const cv = window.CrossVal.crossValidate(cleanData, k, trainFn, scoreFn, 1);
+    return { mean: cv.mean, std: cv.std, folds: cv.folds, metric };
+  }
+
   // ---- PCA (window.PCA) ----
   function pcaModel(rows, feats) {
     if (feats.length < 2) throw new Error("PCA needs at least 2 features");
@@ -322,6 +400,16 @@
         <div className="ml-metrics">
           {metrics.map(([k, v]) => <div className="ml-metric" key={k}><div className="mm-val mono">{v}</div><div className="mm-lbl">{k}</div></div>)}
         </div>
+
+        {/* k-fold cross-validation summary */}
+        {res.cv && (
+          <div className="ml-metrics" style={{ marginTop: 0 }}>
+            <div className="ml-metric" style={{ flex: 1 }}>
+              <div className="mm-val mono">{res.cv.metric}: {Number.isFinite(res.cv.mean) ? res.cv.mean.toFixed(3) : "—"} ± {Number.isFinite(res.cv.std) ? res.cv.std.toFixed(3) : "—"}</div>
+              <div className="mm-lbl">교차검증 ({res.cv.folds.length}-fold)</div>
+            </div>
+          </div>
+        )}
 
         <div className="ml-chartwrap">
           <div className="ml-charttitle">{{ reg: "Predicted vs actual (test set)", clf: "Confusion matrix", dt: "Confusion matrix · Decision Tree · depth " + (res.depth != null ? res.depth : "?") + " · " + (res.nNodes != null ? res.nNodes : "?") + " nodes", nb: "Confusion matrix · Naive Bayes · class posteriors", logit: "ROC curve · AUC = " + (res.auc != null ? res.auc.toFixed(3) : "—"), pca: "Scree plot · explained variance", km: "Cluster scatter · standardized space", dbscan: "DBSCAN clusters · " + res.feats?.[0] + " vs " + (res.feats?.[1] || res.feats?.[0]), hier: "Hierarchical clusters · " + res.feats?.[0] + " vs " + (res.feats?.[1] || res.feats?.[0]) }[res.kind] || ""}</div>
@@ -505,6 +593,16 @@
         return;
       }
 
+      // Optional k-fold cross-validation (additive; failure never breaks training).
+      if (cfg.cv >= 2 && (cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit" || cfg.task === "dt" || cfg.task === "nb")) {
+        try {
+          result.cv = runCV(cfg.task, rows, feats, cfg.target, cfg.split, cfg.cv);
+        } catch (err) {
+          window.LOG && window.LOG.error('ml', 'CV failed: ' + err.message, { task: cfg.task });
+          result.cv = null;
+        }
+      }
+
       // push to history
       const score = result.kind === "reg" ? result.r2.toFixed(3)
         : result.kind === "clf" ? (result.acc * 100).toFixed(1) + "%"
@@ -577,6 +675,10 @@
           {cfg.task === "clf" && (
             <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>k (neighbors)</span>
               <div className="seg">{[3, 5, 9].map((k) => <button key={k} className={cfg.k === k ? "on" : ""} onClick={() => set({ k })}>{k}</button>)}</div></div>
+          )}
+          {(cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit" || cfg.task === "dt" || cfg.task === "nb") && (
+            <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Cross-validation</span>
+              <div className="seg">{[["Off", 0], ["5-fold", 5]].map(([l, v]) => <button key={v} className={(cfg.cv || 0) === v ? "on" : ""} onClick={() => set({ cv: v })}>{l}</button>)}</div></div>
           )}
           {(cfg.task === "km" || cfg.task === "hier") && (
             <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Clusters (K)</span>
