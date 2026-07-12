@@ -62,6 +62,27 @@ test("decimalScale reads field.type.scale or parses the type string", () => {
   assert.equal(M.decimalScale({ type: "Utf8" }), 0);
 });
 
+test("formatTemporal renders epoch-ms as readable date/datetime strings", () => {
+  const ms = 1704153600000; // 2024-01-02T00:00:00Z
+  assert.equal(M.formatTemporal(ms, true), "2024-01-02");            // DATE → date only
+  assert.equal(M.formatTemporal(ms, false), "2024-01-02 00:00:00");  // TIMESTAMP → datetime
+  assert.equal(M.formatTemporal(BigInt(ms), true), "2024-01-02");    // bigint ms
+  assert.equal(M.formatTemporal(new Date(ms), true), "2024-01-02");  // Date instance
+  assert.equal(M.formatTemporal(null, true), null);
+  assert.equal(M.formatTemporal("already-a-string", true), "already-a-string"); // leave non-numeric
+});
+
+test("arrowToResult formats a Date32 column as YYYY-MM-DD, not a raw number", () => {
+  const mock = {
+    schema: { fields: [{ name: "date", type: "Date32<DAY>" }, { name: "ts", type: "Timestamp<MICROSECOND>" }] },
+    toArray: () => [{ toJSON: () => ({ date: 1704153600000, ts: 1704153600000 }) }],
+  };
+  const r = M.arrowToResult(mock);
+  assert.equal(r.columns[0].type, "datetime");
+  assert.equal(r.rows[0].date, "2024-01-02");
+  assert.equal(r.rows[0].ts, "2024-01-02 00:00:00");
+});
+
 test("arrowToResult decodes a Decimal column to a plain number", () => {
   const mock = {
     schema: { fields: [{ name: "avg", type: "Decimal[10,2]" }] },

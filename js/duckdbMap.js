@@ -44,6 +44,21 @@
     return m ? Number(m[1]) : 0;
   }
 
+  // DuckDB temporal values arrive from row.toJSON() as an epoch-ms number (Date32/Timestamp are
+  // normalized to ms) — render them as readable strings instead of a raw number like 1704153600000.
+  // dateOnly (DATE columns) → "YYYY-MM-DD"; otherwise (TIMESTAMP) → "YYYY-MM-DD HH:MM:SS".
+  function formatTemporal(v, dateOnly) {
+    if (v == null) return null;
+    let ms = v;
+    if (typeof ms === "bigint") ms = Number(ms);
+    if (ms instanceof Date) ms = ms.getTime();
+    if (typeof ms !== "number" || !isFinite(ms)) return v; // already a string etc. → leave
+    const d = new Date(ms);
+    if (isNaN(d.getTime())) return v;
+    const iso = d.toISOString();
+    return dateOnly ? iso.slice(0, 10) : iso.slice(0, 19).replace("T", " ");
+  }
+
   // Build the app column meta list from Arrow schema fields.
   function columnsFromArrow(fields) {
     return (fields || []).map((f) => {
@@ -57,12 +72,20 @@
   function arrowToResult(table) {
     const fields = table.schema.fields;
     const columns = columnsFromArrow(fields);
-    // precompute decimal columns → scale (need the schema, not just the cell value)
-    const decScale = {};
-    for (const f of fields) if (/^Decimal/i.test(String(f.type))) decScale[f.name] = decimalScale(f);
+    // precompute special columns → conversion (need the schema, not just the cell value)
+    const decScale = {}, dateOnly = {};
+    for (const f of fields) {
+      const ts = String(f.type);
+      if (/^Decimal/i.test(ts)) decScale[f.name] = decimalScale(f);
+      else if (/^(Date|Timestamp|Time)/i.test(ts)) dateOnly[f.name] = /^Date/i.test(ts);
+    }
     const rows = table.toArray().map((r) => {
       const o = r.toJSON();
-      for (const k in o) o[k] = (k in decScale) ? decimalToNumber(o[k], decScale[k]) : coerceCell(o[k]);
+      for (const k in o) {
+        o[k] = (k in decScale) ? decimalToNumber(o[k], decScale[k])
+          : (k in dateOnly) ? formatTemporal(o[k], dateOnly[k])
+          : coerceCell(o[k]);
+      }
       return o;
     });
     return { columns, rows };
@@ -77,7 +100,7 @@
     return s || "table";
   }
 
-  const api = { arrowTypeToApp, coerceCell, decimalToNumber, decimalScale, columnsFromArrow, arrowToResult, sanitizeTableName };
+  const api = { arrowTypeToApp, coerceCell, decimalToNumber, decimalScale, formatTemporal, columnsFromArrow, arrowToResult, sanitizeTableName };
   if (typeof window !== "undefined") window.DuckDBMap = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();
