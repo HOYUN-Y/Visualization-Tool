@@ -4,6 +4,24 @@ All notable changes to insight Analytics Workbench are documented here.
 
 ---
 
+## [Unreleased] — 안전 후속 배치 (2026-07-12, `feat/safe-hardening` → main `9c7c6b3`)
+
+> FOLLOWUP §5 저위험 자율 항목 일괄. 전부 저위험(테스트/인프라·폴백·핸들러·속성). Node 295/295 · E2E 21/21 깨끗 종료 · tsc 0.
+
+### Added
+- **SQL 폴백 유니코드 식별자** (B3): DuckDB 실패 시 폴백 `runSQL`을 `js/sqlFallback.js`(dual-mode) 로 추출, `[\w]+`→`[\p{L}\p{N}_]+`(u 플래그) — 한글 컬럼/테이블명 조회 가능. `tests/sqlFallback.test.js` +7(한글 GROUP BY·WHERE·LIKE·alias).
+- **계절분해 multiplicative E2E**: `tests/e2e/statsDecomp.spec.mjs` — Stats›Decomposition›multiplicative UI 경로 무크래시 검증(엔진은 기존 Node 테스트).
+- **캐시버스트 자동화** (P12): `scripts/bump-assets.sh` + `npm run bump` — `index.html`의 모든 `?v=`를 단일 번호로 원자적 통일·증가. 드리프트(275/276) → v277 통일.
+
+### Changed / Fixed
+- **언로드 저장 플러시** (B2): `projectStore` `pagehide`/`beforeunload`에 `saveNow()` — 1초 디바운스 창에서 탭 종료 시 마지막 편집 유실 방지.
+- **ECharts SRI** (A3): `echarts@5.5.1`에 `integrity`(sha384)+`crossorigin` 추가(React/Babel과 동일 보증).
+- **다변량 이상치 카드 컬럼명 툴팁**: Clean 이슈바 이상치 카드에 대상 컬럼명 `title=` 노출.
+- **E2E 인프라 견고화**: `tests/e2e/helpers.mjs`(hydration-safe `bootApp` + `teardownDuckDB`)로 7스펙 통일. **전체 스위트 5분 force-kill 해소** — `playwright.config` `launchOptions(--disable-gpu/--disable-dev-shm-usage/--no-sandbox)` + `workers:1` → 5.5분(kill 2~3) → 2.3분·kill 0.
+
+### 제외 (별도 결정 필요)
+- C4 차트 export 대상 · A1 formula 안전파서(공유 기능 도입 시) · C2 클릭=선택 UX.
+
 ## [Unreleased] — v2.0.0 이후 ML 확장 (2026-07-12, `feat/ml-expansion`)
 
 ### Added — ML 데이터 적격성 (P13) + 신규 모델 (P10)
