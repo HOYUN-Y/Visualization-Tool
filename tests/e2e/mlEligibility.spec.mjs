@@ -2,24 +2,12 @@
 // are filtered + class-annotated, and Logistic works on a multi-class target via positive-class
 // (one-vs-rest). Verifies the "data decides what you can run" behavior headlessly.
 import { test, expect } from '@playwright/test';
+import { bootApp, teardownDuckDB } from './helpers.mjs';
 
 test.setTimeout(60000);
+test.afterEach(async ({ page }) => teardownDuckDB(page));
 
-async function mlReady(page) {
-  await page.goto("/index.html", { waitUntil: "load" });
-  // wait for the loading screen to hide — this signals IndexedDB hydration finished. Setting mode
-  // before hydration completes gets reverted (hydration overwrites the whole persisted state).
-  await page.waitForFunction(() => {
-    const l = document.querySelector("#node-loader");
-    return window.Store && window.Store.actions && document.querySelector(".app") &&
-      (!l || l.classList.contains("hiding") || getComputedStyle(l).display === "none");
-  }, { timeout: 30000 });
-  await page.waitForTimeout(1200);
-  page.on("dialog", (d) => d.dismiss().catch(() => {})); // there must be NO alert now, but guard anyway
-  await page.evaluate(() => window.Store.actions.setMode("ml"));
-  await page.waitForFunction(() => window.Store.getState().mode === "ml", { timeout: 5000 });
-  await page.waitForTimeout(400);
-}
+const mlReady = (page) => bootApp(page, { mode: "ml" });
 
 // switching the active dataset also needs a settle so the panel re-renders eligibility
 async function setActive(page, id) {

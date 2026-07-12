@@ -4,15 +4,10 @@
 // The "8-mode switch" smoke did NOT catch this — you must actually train. Fixed via optional chaining
 // + ErrorBoundary clearing ui.ml.result.
 import { test, expect } from '@playwright/test';
+import { bootApp, teardownDuckDB } from './helpers.mjs';
 
 test.setTimeout(60000);
-
-async function ready(page) {
-  await page.goto("/index.html", { waitUntil: "load" });
-  await page.waitForFunction(() => window.Store && window.Store.actions && document.querySelector(".app"), { timeout: 30000 });
-  await page.waitForTimeout(800);
-  page.on("dialog", (d) => d.dismiss().catch(() => {})); // don't let any alert() hang the run
-}
+test.afterEach(async ({ page }) => teardownDuckDB(page));
 
 async function assertNoCrash(page, label) {
   const s = await page.evaluate(() => {
@@ -29,9 +24,7 @@ async function assertNoCrash(page, label) {
 }
 
 test("ML Regression: train → result renders without crash", async ({ page }) => {
-  await ready(page);
-  await page.evaluate(() => window.Store.actions.setMode("ml"));
-  await page.waitForTimeout(400);
+  await bootApp(page, { mode: "ml" });
   // default task is regression; click Train (label is language-dependent → match both)
   await page.getByRole("button", { name: /Train model|모델 학습/ }).click();
   await page.waitForTimeout(1500);
@@ -39,9 +32,7 @@ test("ML Regression: train → result renders without crash", async ({ page }) =
 });
 
 test("ML k-NN Classify: train → result renders without crash", async ({ page }) => {
-  await ready(page);
-  await page.evaluate(() => window.Store.actions.setMode("ml"));
-  await page.waitForTimeout(400);
+  await bootApp(page, { mode: "ml" });
   await page.getByRole("button", { name: /k-NN Classify/ }).click();
   await page.waitForTimeout(300);
   await page.getByRole("button", { name: /Train model|모델 학습/ }).click();

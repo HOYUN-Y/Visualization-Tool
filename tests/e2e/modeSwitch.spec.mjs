@@ -4,6 +4,7 @@
 // persisted `mode` re-crashed on reload (bricking). Fixed by rendering modes as JSX elements.
 // This test switches through every mode and asserts no crash, plus a reload-restore check.
 import { test, expect } from '@playwright/test';
+import { bootApp, teardownDuckDB } from './helpers.mjs';
 
 const MODES = ["data", "clean", "sql", "visualize", "pivot", "map", "dashboard", "ml", "stats"];
 
@@ -32,11 +33,8 @@ async function switchAndCheck(page, to) {
   expect(hookErrors, `${to}: no React hook/render error`).toEqual([]);
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.goto("/index.html", { waitUntil: "load" });
-  await page.waitForFunction(() => window.Store && window.Store.actions && document.querySelector(".app"), { timeout: 30000 });
-  await page.waitForTimeout(1000);
-});
+test.beforeEach(async ({ page }) => { await bootApp(page); });
+test.afterEach(async ({ page }) => teardownDuckDB(page));
 
 test("data → every mode switches without crashing", async ({ page }) => {
   for (const to of MODES) {
@@ -60,8 +58,12 @@ test("a persisted non-data mode restores on reload without crashing (un-bricking
   });
   await page.waitForTimeout(500);
   await page.reload({ waitUntil: "load" });
-  await page.waitForFunction(() => window.Store && document.querySelector(".app"), { timeout: 30000 });
-  await page.waitForTimeout(1000);
+  await page.waitForFunction(() => {
+    const l = document.querySelector("#node-loader");
+    return window.Store && document.querySelector(".app") &&
+      (!l || l.classList.contains("hiding") || getComputedStyle(l).display === "none");
+  }, { timeout: 30000 });
+  await page.waitForTimeout(600);
   const s = await page.evaluate(() => {
     const app = document.querySelector(".app");
     return { mode: window.Store.getState().mode, blank: !app || app.childElementCount === 0, boundary: (document.body.innerText || "").includes("오류가 발생했습니다") };
