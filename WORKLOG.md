@@ -14,15 +14,15 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Track A·B·C 완료** (v2.0.0 ship · P13 적격성 · P10 DT/NB/CV). 병합·push는 사용자 게이트 |
-| Status | ML 확장 완료: 데이터 적격성 검증 + Decision Tree·Naive Bayes·Cross Validation. |
-| Branch | **`feat/ml-expansion`** (main=v2.0.0서 분기, **미push**). |
-| Base commit | `3acaf4d` — v2.0.0 (main) |
+| Current milestone | **Track A·B·C 완료 + main 병합·push 완료** (v2.0.0 ship · P13 적격성 · P10 DT/NB/CV · FOLLOWUP §0-0e ①② 반영) |
+| Status | ML 확장 완료·병합됨: 데이터 적격성 검증 + Decision Tree·Naive Bayes·Cross Validation. |
+| Branch | **`main`** (`28e7ae4` merge, origin 동기화). `feat/ml-expansion`도 push됨. |
+| Base commit | `28e7ae4` — merge: ML 확장 → main |
 | Last checkpoint commit | `03c7eee` — P10 C4b Cross Validation |
 | Working tree | 깨끗. P13(mlCfg/mlMode) + P10(decisionTree/naiveBayes/crossVal 엔진 + mlMode 배선) |
 | Last verified | 2026-07-12 — **Node 288/288** + E2E(ML +6: P13 3·DT/NB/CV 3), tsc 0, asset v=276. **feat/ml-expansion 미push** |
 
-> ☀️ **사용자 게이트**: `feat/ml-expansion` → main 병합 + push (ML 확장 검증 완료 — Node 288 + E2E 20). 원하면 시각 최종 확인 후.
+> ✅ **게이트 통과 (2026-07-12)**: `feat/ml-expansion` → main 병합(`28e7ae4`, --no-ff) + origin push 완료. Node 288/288 · E2E 20.
 
 > ✅ **FOLLOWUP 6차 검증 반영 (2026-07-12)** — Fable §0-0e: P13·P10 전면 통과(E2E 19/19, Logistic one-vs-rest AUC 0.79, CV 0.684±0.026). 관찰 ②(분류 기본 target=district 12클래스 → 학습 정확도 랜덤 근처로 "고장"처럼 보임) 반영: `mlEligibility`의 clf/dt/nb/logit `validTargets`를 **클래스 수 오름차순 정렬** → 기본 target이 최저 카디널리티 범주형(building_type 3클래스). mlCfg.test +1 assertion, ML E2E 6/6 통과.
 > ✅ **§0-0e ① 반영 (2026-07-12)** — 데이터셋 전환 시 현재 태스크가 부적격이면(예: 숫자만 있는 데이터셋으로 전환 + clf 선택 상태) `mlMode.jsx`에서 **첫 적격 태스크로 자동 전환**(로컬 힐링) → disabled인데 주황 하이라이트 남던 문제 해소. target도 전환된 태스크의 validTargets 기준으로 재힐링(dt/nb 전용 힐링을 일반화). E2E `mlEligibility.spec.mjs` +1(자동 전환 검증) → **ML E2E 7개**, 전체 **E2E 20**.
