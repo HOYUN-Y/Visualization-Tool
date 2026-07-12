@@ -5,7 +5,7 @@
   const EChart = Charts.EChart;
   const IE = window.IE;
   // Config helpers (schema-agnostic starter/heal) extracted to js/mlCfg.js for Node regression tests.
-  const { mlNums, mlCats, mlDefaultCfg, mlResolveCfg } = window.MlCfg;
+  const { mlNums, mlCats, mlDefaultCfg, mlResolveCfg, mlEligibility } = window.MlCfg;
 
   // ---- math ----
   function seededShuffle(n, seed) {
@@ -401,32 +401,53 @@
     const numCols = mlNums(columns);
     const catCols = mlCats(columns);
     const cfg = mlResolveCfg(cfgS, columns);
-    const set = (patch) => actions.setUI({ ml: { ...cfg, ...patch, result: undefined } });
+    const set = (patch) => actions.setUI({ ml: { ...cfg, ...patch, result: undefined, trainError: undefined } });
+
+    const elig = mlEligibility(columns, rows);
+    const curElig = elig[cfg.task] || { ok: true, validTargets: [] };
 
     const needsTarget = cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit";
-    const targets = (cfg.task === "clf" || cfg.task === "logit") ? catCols : numCols;
     const featPool = numCols.filter((c) => c.key !== (needsTarget ? cfg.target : null));
+
+    // Logistic one-vs-rest: distinct class VALUES of the selected target.
+    const logitClasses = cfg.task === "logit" && cfg.target
+      ? [...new Set(rows.map((r) => r[cfg.target]).filter((v) => v != null && v !== "").map(String))]
+      : [];
+
+    const isSupervised = cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit";
+    const validFeats = cfg.feats.filter((f) => featPool.find((c) => c.key === f));
+    const hasValidTarget = curElig.validTargets.some((t) => t.key === cfg.target);
+    const canTrain = curElig.ok
+      && (!needsTarget || hasValidTarget)
+      && (!isSupervised || validFeats.length > 0);
 
     const train = () => {
       const feats = cfg.feats.filter((f) => featPool.find((c) => c.key === f));
       // reg/clf/logit need at least one feature; clustering falls back to numeric cols below.
-      if ((cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit") && !feats.length) {
-        alert("특성(feature)을 하나 이상 선택하세요."); return;
-      }
+      // The Train button is disabled when feats are missing, so this is a defensive no-op.
+      if ((cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit") && !feats.length) return;
       window.LOG && window.LOG.info('ml', 'Train started', { task: cfg.task, target: cfg.target, feats, rows: rows.length });
       const clusterFeats = feats.length >= 2 ? feats : numCols.slice(0, 2).map((c) => c.key);
       let result;
       try {
         if (cfg.task === "reg") result = regression(rows, cfg.target, feats, cfg.split);
         else if (cfg.task === "clf") result = classification(rows, cfg.target, feats, cfg.split, cfg.k);
-        else if (cfg.task === "logit") result = logisticModel(rows, cfg.target, feats, cfg.split);
+        else if (cfg.task === "logit") {
+          if (logitClasses.length > 2) {
+            const pos = cfg.posClass || logitClasses[0];
+            const binRows = rows.map((r) => ({ ...r, __logit_y: String(r[cfg.target]) === String(pos) ? "1" : "0" }));
+            result = logisticModel(binRows, "__logit_y", feats, cfg.split);
+          } else {
+            result = logisticModel(rows, cfg.target, feats, cfg.split);
+          }
+        }
         else if (cfg.task === "pca") result = pcaModel(rows, clusterFeats);
         else if (cfg.task === "dbscan") result = dbscanModel(rows, clusterFeats, cfg.eps || 0.8, cfg.minPts || 4);
         else if (cfg.task === "hier") result = hierModel(rows, clusterFeats, cfg.K);
         else result = kmeans(rows, clusterFeats, cfg.K);
       } catch (err) {
         window.LOG && window.LOG.error('ml', 'Train failed: ' + err.message, { task: cfg.task, target: cfg.target, feats, stack: err.stack });
-        alert(err.message);
+        actions.setUI({ ml: { ...cfg, result: null, trainError: err.message } });
         return;
       }
 
@@ -450,9 +471,10 @@
           <div className="cp-blocktitle">{T("mlTask")}</div>
           <div className="ml-tasks">
             {[["reg", "Regression"], ["clf", "k-NN Classify"], ["logit", "Logistic + ROC"], ["pca", "PCA"], ["km", "KMeans"], ["dbscan", "DBSCAN"], ["hier", "Hierarchical"]].map(([k, l]) => {
-              const catTask = k === "clf" || k === "logit";
-              return <button key={k} className={"ml-taskbtn" + (cfg.task === k ? " on" : "")}
-                onClick={() => set({ task: k, target: catTask ? (catCols[1] || catCols[0] || {}).key : (numCols[0] || {}).key })}>{l}</button>;
+              const e = elig[k] || { ok: true, validTargets: [] };
+              return <button key={k} disabled={!e.ok} title={e.ok ? "" : e.reason}
+                className={"ml-taskbtn" + (cfg.task === k ? " on" : "") + (e.ok ? "" : " disabled")}
+                onClick={() => set({ task: k, target: (e.validTargets[0] || {}).key })}>{l}</button>;
             })}
           </div>
         </div>
@@ -461,7 +483,18 @@
           <div className="cp-block">
             <div className="cp-blocktitle">{T("mlTarget")}{cfg.task === "logit" ? T("mlBinarySuffix") : ""}</div>
             <select className="sel" style={{ width: "100%" }} value={cfg.target} onChange={(e) => set({ target: e.target.value })}>
-              {targets.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+              {curElig.validTargets.length
+                ? curElig.validTargets.map((c) => <option key={c.key} value={c.key}>{c.classes ? `${c.label} (${c.classes} 클래스)` : c.label}</option>)
+                : <option value="" disabled>적격 대상 없음</option>}
+            </select>
+          </div>
+        )}
+
+        {cfg.task === "logit" && logitClasses.length > 2 && (
+          <div className="cp-block">
+            <div className="cp-blocktitle">양성 클래스</div>
+            <select className="sel" style={{ width: "100%" }} value={cfg.posClass || logitClasses[0]} onChange={(e) => set({ posClass: e.target.value })}>
+              {logitClasses.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
         )}
@@ -508,7 +541,17 @@
         {rows.length > 5000 && (cfg.task === "dbscan" || cfg.task === "hier") && (
           <div className="cf-info" style={{ borderColor: "var(--warn)" }}><Icon name="info" size={14} /><div>{rows.length.toLocaleString()}행 — {cfg.task === "dbscan" ? "DBSCAN" : "계층군집"}은 O(n²)라 5k행 초과 시 느릴 수 있습니다.</div></div>
         )}
-        <button className="btn primary" style={{ width: "100%", height: 32 }} onClick={train}><Icon name="play" size={13} /> {T("mlTrainModel")}</button>
+        <button className="btn primary" style={{ width: "100%", height: 32 }} disabled={!canTrain} onClick={train}><Icon name="play" size={13} /> {T("mlTrainModel")}</button>
+        {!canTrain && (
+          <div className="cf-info" style={{ borderColor: "var(--warn)" }}><Icon name="info" size={14} /><div>{
+            !curElig.ok ? curElig.reason
+              : (needsTarget && !hasValidTarget) ? "적격한 목표가 없습니다"
+              : "특성을 1개 이상 선택하세요"
+          }</div></div>
+        )}
+        {cfg.trainError && !cfg.result && (
+          <div className="cf-info" style={{ borderColor: "var(--neg)" }}><Icon name="info" size={14} /><div>{cfg.trainError}</div></div>
+        )}
         <div className="cf-info"><Icon name="bolt" size={14} /><div>{{
           reg: "OLS via normal equations",
           clf: "k-NN on standardized features + Precision/Recall/F1",
