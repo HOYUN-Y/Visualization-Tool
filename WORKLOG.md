@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Phase 4 S1 통과 — DuckDB-WASM 로드·쿼리 헤드리스 검증**. 다음: S2(테이블 등록)·S3(sqlMode async) |
-| Status | main 병합 후 `feat/duckdb`서 S1 완료. **make-or-break(DuckDB 브라우저 로드+JOIN) 자율 검증됨.** |
-| Branch | **`feat/duckdb`** (main서 분기). |
+| Current milestone | **Phase 4 S1 통과 + §0-0b ML 크래시 수정**. 다음: S2(테이블 등록)·S3(sqlMode async) |
+| Status | S1(DuckDB 로드+JOIN 자율검증) 완료. Fable §0-0b(ML 결과렌더 크래시) main hotfix `54b2e18`→feat/duckdb 전파 `acc6290`. |
+| Branch | **`feat/duckdb`** (S1+ML fix). main도 ML fix 반영(`54b2e18`). |
 | Base commit | `3c59918` — merge: P0+P2+P3+P0.5 스택 (main) |
-| Last checkpoint commit | `0b6cf49` — DuckDB S1 로딩 PoC (make-or-break 통과) |
-| Working tree | 깨끗. S1: duckdbEngine.mjs(ES모듈)·duckdbMap.js(순수)·E2E |
-| Last verified | 2026-07-12 — **Node 245/245** + **E2E 5 passed(모드전환 3·DuckDB 2)**, tsc 0, asset v=266. **origin 미push** |
+| Last checkpoint commit | `acc6290` — merge ML §0-0b fix into feat/duckdb |
+| Working tree | 깨끗. S1(duckdbEngine.mjs·duckdbMap.js) + ML fix(mlMode 옵셔널체이닝·ErrorBoundary) |
+| Last verified | 2026-07-12 — **Node 245/245** + **E2E 7 passed(모드전환3·DuckDB2·ML학습2)**, tsc 0, asset v=266. **origin 미push** |
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
