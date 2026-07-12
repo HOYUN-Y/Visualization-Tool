@@ -18,13 +18,13 @@
 | Status | 병합→i18n→P3→P9→DuckDB. Phase 0~3 + **P0 hotfix** 완료. Fable가 3차 검증서 모드전환 크래시(main에 잠복) 발견 → 수정. |
 | Branch | **`fix/mode-render-p0`** (feat/excel-edit 팁 = Phase 1+2+3 전부 + P0). 스택: main(=P0+1) → analytics-wiring(P2) → excel-edit(P3) → fix/mode-render-p0(P0). |
 | Base commit | `65754ab` — merge: Core v2 (main) |
-| Last checkpoint commit | `4d402b9` — P0 모드 전환 크래시 수정 |
-| Working tree | 깨끗. P0: app.jsx 모드 8곳 엘리먼트 렌더 + HANDOFF 규칙 |
-| Last verified | 2026-07-12 — **Node 237/237**, tsc TS1xxx 0, asset v=265. **origin 미push** |
+| Last checkpoint commit | `659524f` — 모드 전환 스모크 E2E (P0.5) |
+| Working tree | 깨끗. P0: app.jsx 엘리먼트 렌더 + P0.5: Playwright E2E(자동 회귀망) |
+| Last verified | 2026-07-12 — **Node 237/237** + **Playwright E2E 3 passed(P0 헤드리스 검증)**, tsc 0, asset v=265. **origin 미push** |
 | Updated at | 2026-07-12 |
 
-> ☀️ **아침 브라우저 게이트(`fix/mode-render-p0`에서 검증 후 main 병합)** — 활성 계획 `~/.claude/plans/temporal-juggling-fountain.md` Phase 3.5:
-> ① **8모드 전환 매트릭스**(크래시 0·리로드 후 정상 — P0 수정 확인), ② P3: Stats›Time Series decomposition 4단 차트·Clean "다변량 이상치" 카드·(Map choropleth Fable ✓), ③ P9: 붙여넣기(1 undo)·Enter/Tab·Cmd+Z·Shift-범위, ④ IndexedDB 리로드 복원. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
+> ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
+> E2E 재현: `npx playwright test`.
 >
 > ✅ **게이트 통과 (2026-07-12 Fable 브라우저 검증)** — ①~④ **전 항목 통과**, 콘솔 에러 0. 결과표: `docs/FOLLOWUP_PROPOSALS.md` §0-0. **병합 가능 판정** — main 병합·push는 CLI에서 진행. (관찰 2건: 다변량 카드 컬럼명 미표시, multiplicative 미클릭 — FOLLOWUP §1 참고)
 
@@ -45,6 +45,16 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (P0.5: 모드 전환 스모크 E2E — P0 헤드리스 자동 검증)
+
+**핵심 돌파구**: "MCP Chrome이 사용자 localhost 미접근"이라 시각검증을 계속 사용자 게이트로 미뤄왔는데, **Playwright는 자체 헤드리스(시스템 Chrome) 인스턴스를 띄워 localhost:8742에 접근 가능** → 이 클래스(렌더 크래시)는 내가 자율 검증 가능. 시스템 Chrome 존재+CDN 네트워크 가능 확인 후 진행.
+
+- `659524f` **`tests/e2e/modeSwitch.spec.mjs` + `playwright.config.mjs`**: Playwright(channel:chrome, 브라우저 다운로드 없음) + `webServer`(python http.server, reuseExistingServer). 3 tests — (1) data→9모드 전환 무크래시, (2) 전 모드 연쇄 전환, (3) 비-data 모드 영속화→리로드 복원(벽돌화 해소). 크래시 판정=blank root/ErrorBoundary/React hook·render 에러.
+- **결과: 3 passed** → **P0 수정이 헤드리스로 자동 검증됨**. 정적검사(Node/tsc)가 못 잡던 "Rendered more hooks" 클래스의 영구 회귀망 확보. `npx playwright test`.
+- package.json은 **테스트 하네스 전용**(앱은 여전히 no-build), node_modules·playwright 아티팩트 gitignore.
+- 마이너 후속(비차단): ml 진입 시 ECharts `clientWidth`(null container) 콘솔 에러 1건 — 렌더 정상, 크래시 아님.
+- **NEXT**: 사용자 시각·상호작용 검증(P3/P9/IndexedDB)만 남음 → `fix/mode-render-p0`→main 병합 → Phase 4 DuckDB.
 
 ## 세션 기록 — 2026-07-12 (🚨 P0: 모드 전환 크래시 리그레션 수정)
 
