@@ -20,11 +20,12 @@
 | Base commit | `3acaf4d` — v2.0.0 (main) |
 | Last checkpoint commit | `03c7eee` — P10 C4b Cross Validation |
 | Working tree | 깨끗. P13(mlCfg/mlMode) + P10(decisionTree/naiveBayes/crossVal 엔진 + mlMode 배선) |
-| Last verified | 2026-07-12 — **Node 289/289** + E2E(ML +6: P13 3·DT/NB/CV 3), tsc 0, asset v=276. **feat/ml-expansion 미push** |
+| Last verified | 2026-07-12 — **Node 288/288** + E2E(ML +6: P13 3·DT/NB/CV 3), tsc 0, asset v=276. **feat/ml-expansion 미push** |
 
-> ☀️ **사용자 게이트**: `feat/ml-expansion` → main 병합 + push (ML 확장 검증 완료 — Node 289 + E2E). 원하면 시각 최종 확인 후.
+> ☀️ **사용자 게이트**: `feat/ml-expansion` → main 병합 + push (ML 확장 검증 완료 — Node 288 + E2E 20). 원하면 시각 최종 확인 후.
 
 > ✅ **FOLLOWUP 6차 검증 반영 (2026-07-12)** — Fable §0-0e: P13·P10 전면 통과(E2E 19/19, Logistic one-vs-rest AUC 0.79, CV 0.684±0.026). 관찰 ②(분류 기본 target=district 12클래스 → 학습 정확도 랜덤 근처로 "고장"처럼 보임) 반영: `mlEligibility`의 clf/dt/nb/logit `validTargets`를 **클래스 수 오름차순 정렬** → 기본 target이 최저 카디널리티 범주형(building_type 3클래스). mlCfg.test +1 assertion, ML E2E 6/6 통과.
+> ✅ **§0-0e ① 반영 (2026-07-12)** — 데이터셋 전환 시 현재 태스크가 부적격이면(예: 숫자만 있는 데이터셋으로 전환 + clf 선택 상태) `mlMode.jsx`에서 **첫 적격 태스크로 자동 전환**(로컬 힐링) → disabled인데 주황 하이라이트 남던 문제 해소. target도 전환된 태스크의 validTargets 기준으로 재힐링(dt/nb 전용 힐링을 일반화). E2E `mlEligibility.spec.mjs` +1(자동 전환 검증) → **ML E2E 7개**, 전체 **E2E 20**.
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.

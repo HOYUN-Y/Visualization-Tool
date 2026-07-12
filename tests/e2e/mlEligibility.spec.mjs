@@ -33,6 +33,12 @@ const taskDisabled = (page, text) => page.evaluate((t) => {
   return b ? (b.disabled || b.className.includes("disabled")) : null;
 }, text);
 
+// text of the currently-highlighted (selected) task button
+const activeTask = (page) => page.evaluate(() => {
+  const b = [...document.querySelectorAll(".ml-taskbtn")].find((x) => x.className.split(" ").includes("on"));
+  return b ? b.textContent : null;
+});
+
 test("a dataset with no 2–20 class categorical disables the classification tasks", async ({ page }) => {
   await mlReady(page);
   // monthly_index has only `month` (42 distinct) → no valid clf/logit target
@@ -41,6 +47,23 @@ test("a dataset with no 2–20 class categorical disables the classification tas
   expect(await taskDisabled(page, "Logistic")).toBe(true);
   // regression still fine (numeric columns present)
   expect(await taskDisabled(page, "Regression")).toBe(false);
+});
+
+test("switching to a numeric-only dataset auto-switches an ineligible task off the highlight (§0-0e ①)", async ({ page }) => {
+  await mlReady(page);
+  // pick a classification task on a dataset that HAS a valid categorical target
+  await setActive(page, "seoul_txns");
+  await page.getByRole("button", { name: "k-NN Classify" }).click();
+  await page.waitForTimeout(300);
+  expect(await activeTask(page)).toMatch(/k-NN Classify/);
+  // now switch to a numeric-only dataset — clf has no valid target here
+  await setActive(page, "monthly_index");
+  // the highlighted task must NOT be a disabled classification task; it auto-switches to an eligible one
+  expect(await taskDisabled(page, "k-NN Classify")).toBe(true);
+  const active = await activeTask(page);
+  expect(active).not.toBeNull();
+  expect(active).not.toMatch(/k-NN Classify|Logistic/); // ineligible tasks never keep the highlight
+  expect(await taskDisabled(page, active)).toBe(false); // whatever is highlighted is runnable
 });
 
 test("classification target selector shows class-count annotations", async ({ page }) => {

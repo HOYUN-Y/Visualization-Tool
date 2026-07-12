@@ -538,11 +538,21 @@
     const set = (patch) => actions.setUI({ ml: { ...cfg, ...patch, result: undefined, trainError: undefined } });
 
     const elig = mlEligibility(columns, rows);
-    // dt/nb are classification tasks (categorical target), but the shared mlResolveCfg only heals
-    // clf/logit as categorical — re-heal their target to a valid categorical target here.
-    if ((cfg.task === "dt" || cfg.task === "nb")) {
+    // If the persisted task is ineligible for THIS dataset (e.g. switching to a numeric-only dataset
+    // while "clf" was selected), auto-switch to the first eligible task so the highlighted task always
+    // matches what the center can actually run — no more disabled-but-selected orange (FOLLOWUP §0-0e ①).
+    if (!(elig[cfg.task] || {}).ok) {
+      const order = ["reg", "clf", "dt", "nb", "logit", "km", "pca", "hier", "dbscan"];
+      const fallback = order.find((t) => (elig[t] || {}).ok);
+      if (fallback) cfg.task = fallback;
+    }
+    // Re-heal the target against the (possibly switched) task's eligible targets. mlResolveCfg heals
+    // against a guessed cat/num split using the PRE-switch task, so re-anchor here where we know both
+    // the final task and per-target class counts (also covers dt/nb, which mlResolveCfg doesn't).
+    {
       const vt = (elig[cfg.task] || {}).validTargets || [];
-      if (!vt.some((t) => t.key === cfg.target)) cfg.target = (vt[0] || {}).key || "";
+      const supervised = cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit" || cfg.task === "dt" || cfg.task === "nb";
+      if (supervised && vt.length && !vt.some((t) => t.key === cfg.target)) cfg.target = (vt[0] || {}).key || "";
     }
     const curElig = elig[cfg.task] || { ok: true, validTargets: [] };
 
