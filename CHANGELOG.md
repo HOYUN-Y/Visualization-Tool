@@ -4,6 +4,20 @@ All notable changes to insight Analytics Workbench are documented here.
 
 ---
 
+## [Unreleased] — v2.0.0 이후 ML 확장 (2026-07-12, `feat/ml-expansion`)
+
+### Added — ML 데이터 적격성 (P13) + 신규 모델 (P10)
+- **데이터 적격성 검증**: `mlEligibility`가 데이터로 실행 가능한 태스크만 활성화 — 부적격 태스크 버튼 비활성+사유, target은 적격 컬럼만+클래스수 주석, `alert()` 전면 제거(인라인 안내). 기본 target `id` 회피.
+- **Logistic one-vs-rest**: 다중클래스 대상 + 양성 클래스 선택으로 이진화(2클래스 없는 데이터에서도 사용 가능).
+- **Decision Tree** (CART gini), **Naive Bayes** (Gaussian), **Cross Validation** (k-fold, mean±std) — 순수 엔진 + mlMode 배선. `tests/{decisionTree,naiveBayes,crossVal}.test.js` +35, ML E2E +6.
+
+## [2.0.0] — 2026-07-12 · DuckDB-WASM SQL 엔진
+
+### Added / Changed
+- **SQL 모드를 DuckDB-WASM으로 전환**: CDN ESM 모듈 island, 전체 데이터셋 테이블 등록(**데이터셋 간 JOIN**), 전체 SQL(subquery·**window**·**CTE**·전체 함수), 한글/특수문자 컬럼 조회. CDN 실패 시 기존 JS 엔진 폴백. Arrow→앱 타입 매핑(Decimal/BigInt/날짜).
+- **Playwright E2E 회귀망**: 모드 전환·DuckDB 로드/쿼리·ML 학습 등 헤드리스 자동 검증(시스템 Chrome).
+- **Fixes**: 모드 전환 크래시(app.jsx 엘리먼트 렌더) · ML 결과 렌더 크래시(§0-0b) · getActiveData 메모이제이션 · 편집 견고성.
+
 ## [Unreleased] — Phase 2 (진행 중)
 
 ### 밤샘 자율 작업 — 견고성·테스트·분석 엔진 (2026-07-12, `feat/analytics`)

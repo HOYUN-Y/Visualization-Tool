@@ -14,13 +14,15 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | v2.0.0 후 **Track B(P13 ML 적격성) 완료**. 다음: Track C(P10 DT/NB/CV) |
-| Status | ML 데이터 적격성 검증(부적격 태스크 disabled·target 필터·Logistic one-vs-rest·alert 제거) 완료. |
-| Branch | **`feat/ml-expansion`** (main=v2.0.0서 분기, 미push). |
+| Current milestone | **Track A·B·C 완료** (v2.0.0 ship · P13 적격성 · P10 DT/NB/CV). 병합·push는 사용자 게이트 |
+| Status | ML 확장 완료: 데이터 적격성 검증 + Decision Tree·Naive Bayes·Cross Validation. |
+| Branch | **`feat/ml-expansion`** (main=v2.0.0서 분기, **미push**). |
 | Base commit | `3acaf4d` — v2.0.0 (main) |
-| Last checkpoint commit | `b356ec6` — P13 B2·B3 (적격성 3단 방어) |
-| Working tree | 깨끗. B1 mlEligibility(mlCfg) + B2/B3 mlMode 3단 방어·one-vs-rest |
-| Last verified | 2026-07-12 — **Node 253/253** + E2E(P13 +3), tsc 0, asset v=272. main=v2.0.0 push됨·feat/ml-expansion 미push |
+| Last checkpoint commit | `03c7eee` — P10 C4b Cross Validation |
+| Working tree | 깨끗. P13(mlCfg/mlMode) + P10(decisionTree/naiveBayes/crossVal 엔진 + mlMode 배선) |
+| Last verified | 2026-07-12 — **Node 288/288** + E2E(ML +6: P13 3·DT/NB/CV 3), tsc 0, asset v=275. **feat/ml-expansion 미push** |
+
+> ☀️ **사용자 게이트**: `feat/ml-expansion` → main 병합 + push (ML 확장 검증 완료 — Node 288 + E2E). 원하면 시각 최종 확인 후.
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
@@ -45,6 +47,17 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (Track C — P10: Decision Tree·Naive Bayes·Cross Validation)
+
+기존 ML 7종과 동일 패턴(순수 엔진 .js + Node 테스트 → mlMode 배선)으로 3종 추가. 엔진 3개는 독립 파일이라 서브에이전트 병렬 → 메인이 검수. ML UI는 Playwright 헤드리스로 자율 검증.
+
+- `0707044` **C1-C3 순수 엔진**: `js/decisionTree.js`(CART gini 분류트리, +11) · `js/naiveBayes.js`(Gaussian NB, log-space proba, +10) · `js/crossVal.js`(k-fold mulberry32 시드, mean±std, +14). 전부 결정적·dual-mode. Node 253→288.
+- `ad0920c` **C4a DT/NB 배선**: `dtModel`/`nbModel` 래퍼(clfMetrics 공용 헬퍼), 태스크 버튼·dispatch·결과 렌더(clf/dt/nb 공용 혼동행렬·per-class, DT는 depth/nNodes). `mlResolveCfg`가 dt/nb도 범주 태스크로 인식.
+- `03c7eee` **C4b Cross Validation**: `runCV`(엔진레벨 fit/predict로 reg/clf/dt/nb/logit k-fold), Off/5-fold 토글, "교차검증 (5-fold)" mean±std 카드. try/catch로 학습 무영향.
+- **E2E** `mlNewTasks.spec.mjs` +3(DT·NB 학습 무크래시·CV mean±std). ML E2E 총 6(P13 3 + P10 3).
+
+**남은 것(사용자 게이트)**: `feat/ml-expansion`→main 병합·push. 그 외 FOLLOWUP: P10 잔여(PPT 매핑·공유링크)·§5 리스크(A1 수식 보안 등 배포 전)·E2E boot 통일.
 
 ## 세션 기록 — 2026-07-12 (v2.0.0 ship + P13 ML 데이터 적격성 검증)
 
