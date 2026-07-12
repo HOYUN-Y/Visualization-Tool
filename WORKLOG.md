@@ -13,19 +13,28 @@
 
 | 항목 | 현재 값 |
 |---|---|
-| Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Track A·B·C 완료 + main 병합·push 완료** (v2.0.0 ship · P13 적격성 · P10 DT/NB/CV · FOLLOWUP §0-0e ①② 반영) |
-| Status | ML 확장 완료·병합됨: 데이터 적격성 검증 + Decision Tree·Naive Bayes·Cross Validation. |
-| Branch | **`main`** (`28e7ae4` merge, origin 동기화). `feat/ml-expansion`도 push됨. |
+| Plan version | `safe-hardening-batch` (자율 실행 승인) |
+| Current milestone | **안전 후속 배치 완료** (E2E 인프라·캐시버스트·언로드 플러시·ECharts SRI·UI 폴리시·SQL 폴백 유니코드). 병합·push는 사용자 게이트 |
+| Status | FOLLOWUP §5 저위험 6트랙 완료. ML 확장(P13·P10)은 이미 main 병합됨. |
+| Branch | **`feat/safe-hardening`** (main=`28e7ae4`서 분기, 5커밋, **미push**). |
 | Base commit | `28e7ae4` — merge: ML 확장 → main |
-| Last checkpoint commit | `03c7eee` — P10 C4b Cross Validation |
-| Working tree | 깨끗. P13(mlCfg/mlMode) + P10(decisionTree/naiveBayes/crossVal 엔진 + mlMode 배선) |
-| Last verified | 2026-07-12 — **Node 288/288** + E2E(ML +6: P13 3·DT/NB/CV 3), tsc 0, asset v=276. **feat/ml-expansion 미push** |
+| Last checkpoint commit | `3eb86f0` — build(assets): 캐시버스트+SRI+sqlFallback 등록 |
+| Working tree | 깨끗. |
+| Last verified | 2026-07-12 — **Node 295/295**(+7 sqlFallback) · tsc 0 · **E2E 21/21**(+statsDecomp) **깨끗 종료**(force-kill 0) · asset v=277. **feat/safe-hardening 미push** |
 
 > ✅ **게이트 통과 (2026-07-12)**: `feat/ml-expansion` → main 병합(`28e7ae4`, --no-ff) + origin push 완료. Node 288/288 · E2E 20.
 
 > ✅ **FOLLOWUP 6차 검증 반영 (2026-07-12)** — Fable §0-0e: P13·P10 전면 통과(E2E 19/19, Logistic one-vs-rest AUC 0.79, CV 0.684±0.026). 관찰 ②(분류 기본 target=district 12클래스 → 학습 정확도 랜덤 근처로 "고장"처럼 보임) 반영: `mlEligibility`의 clf/dt/nb/logit `validTargets`를 **클래스 수 오름차순 정렬** → 기본 target이 최저 카디널리티 범주형(building_type 3클래스). mlCfg.test +1 assertion, ML E2E 6/6 통과.
 > ✅ **§0-0e ① 반영 (2026-07-12)** — 데이터셋 전환 시 현재 태스크가 부적격이면(예: 숫자만 있는 데이터셋으로 전환 + clf 선택 상태) `mlMode.jsx`에서 **첫 적격 태스크로 자동 전환**(로컬 힐링) → disabled인데 주황 하이라이트 남던 문제 해소. target도 전환된 태스크의 validTargets 기준으로 재힐링(dt/nb 전용 힐링을 일반화). E2E `mlEligibility.spec.mjs` +1(자동 전환 검증) → **ML E2E 7개**, 전체 **E2E 20**.
+
+> ✅ **안전 후속 배치 (2026-07-12, `feat/safe-hardening` 5커밋)** — FOLLOWUP §5 저위험 자율 항목 일괄:
+> - **Track 1 E2E 인프라**(`269ca49`): `tests/e2e/helpers.mjs`(bootApp hydration-safe + teardownDuckDB), 7스펙 통일. **전체 스위트 5분 force-kill 해소** — 원인은 시스템 Chrome GPU/shm 헬퍼 프로세스 미종료 + 병렬 워커 teardown 레이스 → `playwright.config` `launchOptions(--disable-gpu/--disable-dev-shm-usage/--no-sandbox)` + `workers:1`. 5.5분(kill 2~3) → **2.3분·kill 0**.
+> - **Track 6 SQL 폴백 유니코드**(`f3ce2d7`): `runSQL`→`js/sqlFallback.js`(dual-mode) 추출, `[\w]+`→`[\p{L}\p{N}_]+`(u). 한글 컬럼/테이블 지원. `tests/sqlFallback.test.js` +7.
+> - **Track 3 언로드 플러시**(`1d13d4b`): projectStore pagehide/beforeunload saveNow(B2).
+> - **Track 5 UI**(`d2a44b1`): 다변량 이상치 카드 컬럼명 툴팁 + statsDecomp multiplicative E2E.
+> - **Track 2·4 자산**(`3eb86f0`): `scripts/bump-assets.sh`+`npm run bump`(캐시버스트 자동화·드리프트 통일 v277), ECharts SRI(sha384).
+> - 검증: **Node 295/295 · E2E 21/21 깨끗 종료 · tsc 0**. 제외(결정 필요): C4 export 대상·A1 formula 안전파서·C2 클릭=선택.
+> ☀️ **사용자 게이트**: `feat/safe-hardening` → main 병합 + push.
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
