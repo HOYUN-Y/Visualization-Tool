@@ -20,7 +20,7 @@
     const cfg = { ...base, ...(cfgS || {}) };
     const nums = mlNums(columns), cats = mlCats(columns);
     const num0 = nums[0] ? nums[0].key : "";
-    const isCatTask = cfg.task === "clf" || cfg.task === "logit";
+    const isCatTask = cfg.task === "clf" || cfg.task === "logit" || cfg.task === "dt" || cfg.task === "nb";
     const okTarget = isCatTask ? cats.some((c) => c.key === cfg.target) : nums.some((c) => c.key === cfg.target);
     if (!okTarget) cfg.target = isCatTask ? ((cats[0] || {}).key || "") : num0;
     cfg.feats = (cfg.feats || []).filter((k) => k !== cfg.target && nums.some((c) => c.key === k));

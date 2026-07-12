@@ -83,6 +83,52 @@
     return { kind: "clf", acc: correct / te.length, classes, cm, perClass, macroF1, nTrain: tr.length, nTest: te.length, target, k };
   }
 
+  // Shared classification metrics: confusion matrix + per-class precision/recall/F1 + macro-F1 + accuracy.
+  // `predFn(row)` returns the predicted class label. Mirrors the cm/perClass/macroF1 logic in classification().
+  function clfMetrics(classes, te, target, predFn) {
+    const cm = classes.map(() => classes.map(() => 0));
+    let correct = 0;
+    for (const r of te) {
+      const predClass = predFn(r);
+      const ai = classes.indexOf(r[target]), pi = classes.indexOf(predClass);
+      if (ai < 0 || pi < 0) continue; // unseen class → skip (defensive; keeps cm indexing safe)
+      cm[ai][pi]++;
+      if (predClass === r[target]) correct++;
+    }
+    const perClass = classes.map((cl, i) => {
+      const tp = cm[i][i];
+      const fp = cm.reduce((s, row, ri) => ri !== i ? s + row[i] : s, 0);
+      const fn = cm[i].reduce((s, v, j) => j !== i ? s + v : s, 0);
+      const prec = tp / (tp + fp) || 0, rec = tp / (tp + fn) || 0;
+      const f1 = prec + rec > 0 ? 2 * prec * rec / (prec + rec) : 0;
+      return { cl, tp, fp, fn, prec, rec, f1 };
+    });
+    const macroF1 = perClass.reduce((s, p) => s + p.f1, 0) / classes.length;
+    return { acc: correct / te.length, cm, perClass, macroF1 };
+  }
+
+  // ---- Decision Tree (window.DecisionTree) ----
+  function dtModel(rows, target, feats, split) {
+    const data = rows.filter((r) => feats.every((f) => r[f] != null) && r[target] != null);
+    const idx = seededShuffle(data.length, 17); const cut = Math.floor(data.length * (1 - split));
+    const tr = idx.slice(0, cut).map((i) => data[i]), te = idx.slice(cut).map((i) => data[i]);
+    const model = window.DecisionTree.fit(tr, feats, target, { maxDepth: 6, minSamples: 2 });
+    const classes = model.classes;
+    const { acc, cm, perClass, macroF1 } = clfMetrics(classes, te, target, (r) => model.predict(r));
+    return { kind: "dt", acc, cm, classes, perClass, macroF1, nTrain: tr.length, nTest: te.length, target, depth: model.depth, nNodes: model.nNodes };
+  }
+
+  // ---- Naive Bayes (window.NaiveBayes) ----
+  function nbModel(rows, target, feats, split) {
+    const data = rows.filter((r) => feats.every((f) => r[f] != null) && r[target] != null);
+    const idx = seededShuffle(data.length, 19); const cut = Math.floor(data.length * (1 - split));
+    const tr = idx.slice(0, cut).map((i) => data[i]), te = idx.slice(cut).map((i) => data[i]);
+    const model = window.NaiveBayes.fit(tr, feats, target);
+    const classes = model.classes;
+    const { acc, cm, perClass, macroF1 } = clfMetrics(classes, te, target, (r) => model.predict(r));
+    return { kind: "nb", acc, cm, classes, perClass, macroF1, nTrain: tr.length, nTest: te.length, target };
+  }
+
   function kmeans(rows, feats, K) {
     const data = rows.filter((r) => feats.every((f) => r[f] != null));
     const stats = feats.map((f) => [_mean(data.map((r) => r[f])), _std(data.map((r) => r[f]))]);
@@ -182,9 +228,9 @@
     );
 
     const c = Charts.themeColors(), pal = Charts.palette();
-    const summary = IE && (res.kind === "reg" || res.kind === "clf" || res.kind === "km") ? (
+    const summary = IE && (res.kind === "reg" || ["clf", "dt", "nb"].includes(res.kind) || res.kind === "km") ? (
       res.kind === "reg" ? IE.summarizeRegression({ r2: res.r2, adj: 1 - (1 - res.r2) * res.nTrain / (res.nTrain - 2), terms: [], target: res.target, pF: 0 }) :
-      res.kind === "clf" ? IE.summarizeClassification(res) :
+      ["clf", "dt", "nb"].includes(res.kind) ? IE.summarizeClassification(res) :
       IE.summarizeClustering(res)
     ) : "";
 
@@ -199,7 +245,7 @@
         series: [{ type: "scatter", symbolSize: 6, data: res.scatter, itemStyle: { color: pal[0], opacity: 0.6 },
           markLine: { silent: true, symbol: "none", lineStyle: { color: c.faint, type: "dashed" }, data: [[{ coord: [lo, lo] }, { coord: [hi, hi] }]] } }] };
       metrics = [["R²", res.r2.toFixed(3)], ["RMSE", NODE.fmtCompact(res.rmse)], ["MAE", NODE.fmtCompact(res.mae)], ["Test n", res.nTest]];
-    } else if (res.kind === "clf") {
+    } else if (["clf", "dt", "nb"].includes(res.kind)) {
       const data = []; res.cm.forEach((row, i) => row.forEach((v, j) => data.push([j, i, v])));
       const maxV = Math.max(...res.cm.flat(), 1);
       option = { animation: false, grid: { left: 8, right: 60, top: 10, bottom: 60, containLabel: true },
@@ -262,7 +308,7 @@
     return (
       <React.Fragment>
         <div className="phead"><span className="ttl" style={{ textTransform: "none", fontSize: "var(--fs-13)", letterSpacing: 0, color: "var(--tx-hi)" }}>
-          <Icon name="ml" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{{ reg: "Linear Regression", clf: "k-NN Classification", logit: "Logistic Regression", pca: "Principal Component Analysis", km: "KMeans Clustering", dbscan: "DBSCAN Clustering", hier: "Hierarchical Clustering" }[res.kind] || "Model"}</span>
+          <Icon name="ml" size={14} style={{ verticalAlign: "-2px", marginRight: 6, color: "var(--accent)" }} />{{ reg: "Linear Regression", clf: "k-NN Classification", dt: "Decision Tree", nb: "Naive Bayes", logit: "Logistic Regression", pca: "Principal Component Analysis", km: "KMeans Clustering", dbscan: "DBSCAN Clustering", hier: "Hierarchical Clustering" }[res.kind] || "Model"}</span>
           <span className="badge mono">{T("mlTrained")} · {res.nTrain} {T("rows")}</span></div>
 
         {/* Auto-interpretation */}
@@ -278,12 +324,12 @@
         </div>
 
         <div className="ml-chartwrap">
-          <div className="ml-charttitle">{{ reg: "Predicted vs actual (test set)", clf: "Confusion matrix", logit: "ROC curve · AUC = " + (res.auc != null ? res.auc.toFixed(3) : "—"), pca: "Scree plot · explained variance", km: "Cluster scatter · standardized space", dbscan: "DBSCAN clusters · " + res.feats?.[0] + " vs " + (res.feats?.[1] || res.feats?.[0]), hier: "Hierarchical clusters · " + res.feats?.[0] + " vs " + (res.feats?.[1] || res.feats?.[0]) }[res.kind] || ""}</div>
+          <div className="ml-charttitle">{{ reg: "Predicted vs actual (test set)", clf: "Confusion matrix", dt: "Confusion matrix · Decision Tree · depth " + (res.depth != null ? res.depth : "?") + " · " + (res.nNodes != null ? res.nNodes : "?") + " nodes", nb: "Confusion matrix · Naive Bayes · class posteriors", logit: "ROC curve · AUC = " + (res.auc != null ? res.auc.toFixed(3) : "—"), pca: "Scree plot · explained variance", km: "Cluster scatter · standardized space", dbscan: "DBSCAN clusters · " + res.feats?.[0] + " vs " + (res.feats?.[1] || res.feats?.[0]), hier: "Hierarchical clusters · " + res.feats?.[0] + " vs " + (res.feats?.[1] || res.feats?.[0]) }[res.kind] || ""}</div>
           <div style={{ flex: 1, minHeight: 0 }}><EChart option={option} theme={theme + res.kind} style={{ height: "100%" }} /></div>
         </div>
 
         {/* Per-class metrics for classification */}
-        {res.kind === "clf" && res.perClass && (
+        {["clf", "dt", "nb"].includes(res.kind) && res.perClass && (
           <div className="clf-metrics">
             <div className="ml-charttitle">{T("mlPerClassMetrics")}</div>
             <table className="model-comparison-table">
@@ -381,7 +427,7 @@
               <td className="mono" style={{ color: "var(--tx-faint)" }}>{hist.length - i}</td>
               <td style={{ color: "var(--tx-mid)", textTransform: "capitalize" }}>{h.task}</td>
               <td style={{ color: "var(--tx-hi)" }}>{h.target || "—"}</td>
-              <td className="mono" style={{ color: "var(--tx-faint)" }}>{{ reg: "R²", clf: "Acc", logit: "AUC", pca: "PC1", dbscan: "Clusters", hier: "Clusters", km: "Inertia" }[h.task] || "Score"}</td>
+              <td className="mono" style={{ color: "var(--tx-faint)" }}>{{ reg: "R²", clf: "Acc", dt: "Acc", nb: "Acc", logit: "AUC", pca: "PC1", dbscan: "Clusters", hier: "Clusters", km: "Inertia" }[h.task] || "Score"}</td>
               <td className="mono" style={{ color: "var(--accent-hi)", fontWeight: 600 }}>{h.score}</td>
             </tr>
           ))}</tbody>
@@ -404,9 +450,15 @@
     const set = (patch) => actions.setUI({ ml: { ...cfg, ...patch, result: undefined, trainError: undefined } });
 
     const elig = mlEligibility(columns, rows);
+    // dt/nb are classification tasks (categorical target), but the shared mlResolveCfg only heals
+    // clf/logit as categorical — re-heal their target to a valid categorical target here.
+    if ((cfg.task === "dt" || cfg.task === "nb")) {
+      const vt = (elig[cfg.task] || {}).validTargets || [];
+      if (!vt.some((t) => t.key === cfg.target)) cfg.target = (vt[0] || {}).key || "";
+    }
     const curElig = elig[cfg.task] || { ok: true, validTargets: [] };
 
-    const needsTarget = cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit";
+    const needsTarget = cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit" || cfg.task === "dt" || cfg.task === "nb";
     const featPool = numCols.filter((c) => c.key !== (needsTarget ? cfg.target : null));
 
     // Logistic one-vs-rest: distinct class VALUES of the selected target.
@@ -414,7 +466,7 @@
       ? [...new Set(rows.map((r) => r[cfg.target]).filter((v) => v != null && v !== "").map(String))]
       : [];
 
-    const isSupervised = cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit";
+    const isSupervised = cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit" || cfg.task === "dt" || cfg.task === "nb";
     const validFeats = cfg.feats.filter((f) => featPool.find((c) => c.key === f));
     const hasValidTarget = curElig.validTargets.some((t) => t.key === cfg.target);
     const canTrain = curElig.ok
@@ -425,13 +477,15 @@
       const feats = cfg.feats.filter((f) => featPool.find((c) => c.key === f));
       // reg/clf/logit need at least one feature; clustering falls back to numeric cols below.
       // The Train button is disabled when feats are missing, so this is a defensive no-op.
-      if ((cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit") && !feats.length) return;
+      if ((cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit" || cfg.task === "dt" || cfg.task === "nb") && !feats.length) return;
       window.LOG && window.LOG.info('ml', 'Train started', { task: cfg.task, target: cfg.target, feats, rows: rows.length });
       const clusterFeats = feats.length >= 2 ? feats : numCols.slice(0, 2).map((c) => c.key);
       let result;
       try {
         if (cfg.task === "reg") result = regression(rows, cfg.target, feats, cfg.split);
         else if (cfg.task === "clf") result = classification(rows, cfg.target, feats, cfg.split, cfg.k);
+        else if (cfg.task === "dt") result = dtModel(rows, cfg.target, feats, cfg.split);
+        else if (cfg.task === "nb") result = nbModel(rows, cfg.target, feats, cfg.split);
         else if (cfg.task === "logit") {
           if (logitClasses.length > 2) {
             const pos = cfg.posClass || logitClasses[0];
@@ -454,6 +508,7 @@
       // push to history
       const score = result.kind === "reg" ? result.r2.toFixed(3)
         : result.kind === "clf" ? (result.acc * 100).toFixed(1) + "%"
+        : result.kind === "dt" || result.kind === "nb" ? (result.acc * 100).toFixed(1) + "%"
         : result.kind === "logit" ? "AUC " + result.auc.toFixed(3)
         : result.kind === "pca" ? (result.pc1 * 100).toFixed(1) + "% PC1"
         : result.kind === "dbscan" ? result.clusters + " clusters"
@@ -470,7 +525,7 @@
         <div className="cp-block">
           <div className="cp-blocktitle">{T("mlTask")}</div>
           <div className="ml-tasks">
-            {[["reg", "Regression"], ["clf", "k-NN Classify"], ["logit", "Logistic + ROC"], ["pca", "PCA"], ["km", "KMeans"], ["dbscan", "DBSCAN"], ["hier", "Hierarchical"]].map(([k, l]) => {
+            {[["reg", "Regression"], ["clf", "k-NN Classify"], ["logit", "Logistic + ROC"], ["dt", "Decision Tree"], ["nb", "Naive Bayes"], ["pca", "PCA"], ["km", "KMeans"], ["dbscan", "DBSCAN"], ["hier", "Hierarchical"]].map(([k, l]) => {
               const e = elig[k] || { ok: true, validTargets: [] };
               return <button key={k} disabled={!e.ok} title={e.ok ? "" : e.reason}
                 className={"ml-taskbtn" + (cfg.task === k ? " on" : "") + (e.ok ? "" : " disabled")}
@@ -515,7 +570,7 @@
 
         <div className="cp-block">
           <div className="cp-blocktitle">{T("mlHyperparameters")}</div>
-          {(cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit") && (
+          {(cfg.task === "reg" || cfg.task === "clf" || cfg.task === "logit" || cfg.task === "dt" || cfg.task === "nb") && (
             <div className="ctl-row"><span className="fieldlabel" style={{ margin: 0 }}>Test split</span>
               <div className="seg">{[0.2, 0.3, 0.4].map((s) => <button key={s} className={cfg.split === s ? "on" : ""} onClick={() => set({ split: s })}>{s * 100}%</button>)}</div></div>
           )}
@@ -556,6 +611,8 @@
           reg: "OLS via normal equations",
           clf: "k-NN on standardized features + Precision/Recall/F1",
           logit: "Logistic regression (gradient descent) + ROC/AUC",
+          dt: "CART gini decision tree + confusion matrix / F1",
+          nb: "Gaussian Naive Bayes + confusion matrix / F1",
           pca: "Principal Component Analysis (Jacobi eigen) + Scree/Biplot",
           km: "Lloyd's KMeans + cluster characteristics table",
           dbscan: "Density-based clustering (eps/minPts) + noise detection",
