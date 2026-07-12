@@ -261,8 +261,7 @@ LIMIT 10`;
           <div className="cp-blocktitle">{T("sqlSupported")}</div>
           <div className="cf-info" style={{ display: "block" }}>
             <span style={{ fontSize: "var(--fs-11)", color: "var(--tx-lo)", lineHeight: 1.6 }}>
-              <code>SELECT</code> · <code>WHERE</code> (AND, LIKE) · <code>GROUP BY</code> · aggregates
-              <code> SUM/AVG/COUNT/MIN/MAX/MEDIAN</code> · <code>ORDER BY</code> · <code>LIMIT</code>. {T("sqlSavableNote")}
+              <code>SELECT</code> · <code>JOIN</code> · <code>WHERE</code> · <code>GROUP BY</code> · <code>HAVING</code> · <code>WITH</code> · window · <code>ORDER BY</code> · <code>LIMIT</code>. {T("sqlFullSql")} {T("sqlSavableNote")}
             </span>
           </div>
         </div>

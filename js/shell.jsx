@@ -358,7 +358,7 @@
     const mode = useStore((s) => s.mode);
     return (
       <div className="statusbar">
-        <span className="si"><span className="dot" /> Local engine · in-browser JS</span>
+        <span className="si"><span className="dot" /> Local engine · {window.DuckDB && window.DuckDB.status === "ready" ? "DuckDB-WASM" : "in-browser JS"}</span>
         <span className="si mono">{ds.short}</span>
         <span className="si mono">{rows.length.toLocaleString()} rows × {ds.columns.length} cols</span>
         <span className="spacer" />
