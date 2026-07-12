@@ -86,7 +86,8 @@
         const result = window.Outliers.detect(rows, mvKeys);
         if (result.ok && result.outliers.length > 0) {
           const rids = result.outliers.map((i) => rows[i].__rid).filter((x) => x != null);
-          mv = { count: result.outliers.length, cols: mvKeys.length, rids };
+          const colNames = (result.keys || mvKeys).map((k) => (columns.find((c) => c.key === k) || {}).label || k);
+          mv = { count: result.outliers.length, cols: mvKeys.length, colNames, rids };
         }
       }
       return { missing, totalMissing, dups, outliers, outCol, mv };
@@ -115,6 +116,7 @@
           <Issue ok={!issues.outliers} icon="filter" label={T("cleanOutliers")} val={issues.outliers} sub={issues.outCol}
             action={issues.outliers ? { txt: T("cleanRemove"), fn: () => actions.addStep({ op: "remove_outliers", col: issues.outCol }) } : null} />
           {issues.mv && <Issue ok={false} icon="filter" label="다변량 이상치" val={issues.mv.count} cols={issues.mv.cols}
+            title={`대상 열: ${issues.mv.colNames.join(", ")}`}
             action={{ txt: T("cleanRemove"), fn: () => actions.deleteRows(issues.mv.rids) }} />}
           <div className="spacer" />
           <div className="issue-meta">
@@ -130,11 +132,11 @@
     );
   }
 
-  function Issue({ ok, icon, label, val, sub, cols, action }) {
+  function Issue({ ok, icon, label, val, sub, cols, title, action }) {
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
     return (
-      <div className={"issue" + (ok ? " ok" : "")}>
+      <div className={"issue" + (ok ? " ok" : "")} title={title || undefined}>
         <span className="issue-ic"><Icon name={ok ? "check" : icon} size={13} /></span>
         <div className="issue-body">
           <div className="issue-val mono">{ok ? T("cleanClean") : val.toLocaleString()}</div>
