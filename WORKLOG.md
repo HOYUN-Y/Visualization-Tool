@@ -14,10 +14,10 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **🚨 P0 크래시 수정 완료** (Fable 발견). 다음: 사용자 브라우저 검증(Phase 3.5)→병합→Phase 4 DuckDB |
-| Status | 병합→i18n→P3→P9→DuckDB. Phase 0~3 + **P0 hotfix** 완료. Fable가 3차 검증서 모드전환 크래시(main에 잠복) 발견 → 수정. |
-| Branch | **`fix/mode-render-p0`** (feat/excel-edit 팁 = Phase 1+2+3 전부 + P0). 스택: main(=P0+1) → analytics-wiring(P2) → excel-edit(P3) → fix/mode-render-p0(P0). |
-| Base commit | `65754ab` — merge: Core v2 (main) |
+| Current milestone | **Phase 3.5 완료 — P0+P2+P3+P0.5 전부 main 병합**. 다음: Phase 4 DuckDB(S1 로딩) |
+| Status | Fable 4차 브라우저 검증 전 항목 통과 → `3c59918` 병합. Phase 0~3+P0+P0.5 완료. 다음 `feat/duckdb`. |
+| Branch | **`main`** (병합 완료, origin 미push). Phase 4는 `feat/duckdb` 분기. |
+| Base commit | `3c59918` — merge: P0+P2+P3+P0.5 스택 |
 | Last checkpoint commit | `659524f` — 모드 전환 스모크 E2E (P0.5) |
 | Working tree | 깨끗. P0: app.jsx 엘리먼트 렌더 + P0.5: Playwright E2E(자동 회귀망) |
 | Last verified | 2026-07-12 — **Node 237/237** + **Playwright E2E 3 passed(P0 헤드리스 검증)**, tsc 0, asset v=265. **origin 미push** |
