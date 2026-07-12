@@ -14,14 +14,26 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v3` (밤샘 자율 실행 승인) |
-| Current milestone | **Phase 1 i18n 완료** (7파일 한/영). 다음: Phase 2 P3 엔진 UI 배선 |
-| Status | 병합→i18n→P3→P9→DuckDB 로드맵. Phase 0(병합)·1(i18n 7파일) 완료. `feat/i18n` 브랜치. |
-| Branch | **`feat/i18n`** (main에서 분기). Phase 2는 `feat/analytics-wiring` 분기 예정 |
+| Current milestone | **🚨 P0 크래시 수정 완료** (Fable 발견). 다음: 사용자 브라우저 검증(Phase 3.5)→병합→Phase 4 DuckDB |
+| Status | 병합→i18n→P3→P9→DuckDB. Phase 0~3 + **P0 hotfix** 완료. Fable가 3차 검증서 모드전환 크래시(main에 잠복) 발견 → 수정. |
+| Branch | **`fix/mode-render-p0`** (feat/excel-edit 팁 = Phase 1+2+3 전부 + P0). 스택: main(=P0+1) → analytics-wiring(P2) → excel-edit(P3) → fix/mode-render-p0(P0). |
 | Base commit | `65754ab` — merge: Core v2 (main) |
-| Last checkpoint commit | `ea9fd16` — i18n sql+ai (Phase 1f/1g) |
-| Working tree | 깨끗. Phase 1: i18n.js(대칭 dict 대폭 확장)·7개 모드 .jsx 배선 |
-| Last verified | 2026-07-12 — Node 225/225, tsc TS1xxx 0, asset v=261. **origin 미push** |
+| Last checkpoint commit | `659524f` — 모드 전환 스모크 E2E (P0.5) |
+| Working tree | 깨끗. P0: app.jsx 엘리먼트 렌더 + P0.5: Playwright E2E(자동 회귀망) |
+| Last verified | 2026-07-12 — **Node 237/237** + **Playwright E2E 3 passed(P0 헤드리스 검증)**, tsc 0, asset v=265. **origin 미push** |
 | Updated at | 2026-07-12 |
+
+> ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
+> E2E 재현: `npx playwright test`.
+>
+> ✅ **게이트 통과 (2026-07-12 Fable 브라우저 검증)** — ①~④ **전 항목 통과**, 콘솔 에러 0. 결과표: `docs/FOLLOWUP_PROPOSALS.md` §0-0. **병합 가능 판정** — main 병합·push는 CLI에서 진행. (관찰 2건: 다변량 카드 컬럼명 미표시, multiplicative 미클릭 — FOLLOWUP §1 참고)
+
+> ☀️ **아침 브라우저 게이트(시각·상호작용 확인 후 병합)**
+> - **Phase 2 P3**(`feat/analytics-wiring`): (1) Stats›Time Series View=decomposition→Original/Trend/Seasonal/Residual 4단 차트, (2) Clean 이슈바 "다변량 이상치" 카드→제거, (3) Map›내 데이터 "단계구분도"→지역명 매칭 채색.
+> - **Phase 3 P9**(`feat/excel-edit`): Data 편집모드에서 (a) Excel/시트에서 복사→셀 붙여넣기(1 undo), (b) 편집 중 Enter/↓/↑/Tab 이동, (c) Cmd+Z/Shift+Cmd+Z(셀 편집 밖에서), (d) Shift-클릭 행 범위선택.
+> - 문제 없으면 브랜치 스택을 순서대로 main 병합(feat/analytics-wiring → feat/excel-edit) 후 필요 시 origin push.
+>
+> ⏭️ **NEXT (Phase 4 DuckDB, 새 세션)**: `feat/duckdb` 분기 → **S1 로딩 PoC**(vendor/duckdb/에 glue+worker+wasm 벤더링+SHA256/라이선스, index.html에 첫 `<script type="module">` island로 DuckDB 인스턴스화 → `window.DuckDB.query(sql)` 노출 → 사소 쿼리). **브라우저 로드·쿼리 성공 여부가 make-or-break 게이트** — 성공 시 S2 어댑터(js/sqlEngine.js, rows→테이블 등록)·S3 sqlMode async 교체. 상세: `~/.claude/plans/temporal-juggling-fountain.md`.
 
 > 활성 계획: `~/.claude/plans/temporal-juggling-fountain.md` (Phase 0~4 체크리스트). 실브라우저 검증은 Claude Desktop/Fable로 대체.
 
@@ -33,6 +45,49 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-12 (P0.5: 모드 전환 스모크 E2E — P0 헤드리스 자동 검증)
+
+**핵심 돌파구**: "MCP Chrome이 사용자 localhost 미접근"이라 시각검증을 계속 사용자 게이트로 미뤄왔는데, **Playwright는 자체 헤드리스(시스템 Chrome) 인스턴스를 띄워 localhost:8742에 접근 가능** → 이 클래스(렌더 크래시)는 내가 자율 검증 가능. 시스템 Chrome 존재+CDN 네트워크 가능 확인 후 진행.
+
+- `659524f` **`tests/e2e/modeSwitch.spec.mjs` + `playwright.config.mjs`**: Playwright(channel:chrome, 브라우저 다운로드 없음) + `webServer`(python http.server, reuseExistingServer). 3 tests — (1) data→9모드 전환 무크래시, (2) 전 모드 연쇄 전환, (3) 비-data 모드 영속화→리로드 복원(벽돌화 해소). 크래시 판정=blank root/ErrorBoundary/React hook·render 에러.
+- **결과: 3 passed** → **P0 수정이 헤드리스로 자동 검증됨**. 정적검사(Node/tsc)가 못 잡던 "Rendered more hooks" 클래스의 영구 회귀망 확보. `npx playwright test`.
+- package.json은 **테스트 하네스 전용**(앱은 여전히 no-build), node_modules·playwright 아티팩트 gitignore.
+- 마이너 후속(비차단): ml 진입 시 ECharts `clientWidth`(null container) 콘솔 에러 1건 — 렌더 정상, 크래시 아님.
+- **NEXT**: 사용자 시각·상호작용 검증(P3/P9/IndexedDB)만 남음 → `fix/mode-render-p0`→main 병합 → Phase 4 DuckDB.
+
+## 세션 기록 — 2026-07-12 (🚨 P0: 모드 전환 크래시 리그레션 수정)
+
+Fable가 3차 브라우저 검증(`docs/FOLLOWUP_PROPOSALS.md` §0-1)에서 발견: Data→Clean/SQL/Dashboard/ML/Stats 전환 시 앱 블랙스크린, `mode` 영속화로 리로드 후 재크래시(벽돌화). **Node 237/237·tsc 그린이지만 React 렌더 규칙 위반이라 정적검사로 안 잡힘.** 이 버그는 **이미 main에 있었음**(Phase 1 i18n 머지분).
+
+- **근본원인**: `js/app.jsx`가 모드를 함수호출(`content = window.CleanMode()`)로 렌더 → 모드 내부 훅이 App 훅으로 계상. i18n Phase 1이 모드 export 최상위에 `useStore(lang)` 추가 → 모드 전환 시 App 훅 개수 변동 → "Rendered more hooks" 크래시. ErrorBoundary는 content(자식)만 감싸 App 자신 오류 못 잡음 → root unmount.
+- `4d402b9` **수정**: L62~76의 `window.XMode()` 8곳 → `<window.XMode/>` 엘리먼트 렌더. 각 모드가 자기 훅 스코프 확보, **ErrorBoundary가 이제 모드 크래시를 실제로 잡아** 벽돌화 해소("데이터 화면으로" 버튼). HANDOFF에 "모드=엘리먼트 렌더" 규칙 명문화. Node 237/237.
+- **교훈**: 정적검사가 못 잡는 클래스 → **P0.5 Playwright "8모드 전환 스모크" E2E**로 재발 차단(계획에 추가).
+- **NEXT**: 브라우저서 8모드 전환+P3/P9+IndexedDB 검증(Phase 3.5) → `fix/mode-render-p0`→main 병합 → Phase 4 DuckDB.
+
+## 세션 기록 — 2026-07-12 (Phase 3: P9 Excel식 편집)
+
+Data 그리드에 스프레드시트식 편집 추가. store 배치 op가 핵심(원자적 undo). Node 230→237.
+
+- `2aa9faa` **3a `set_cells` 배치 op + `actions.editCells`**: 여러 (rid,col,value)를 한 undo 스텝. 숫자열 coerce(invalid→null) 재사용. `tests/storeEdit.test.js` +5(배치·단일 undo/redo·coerce·안전 skip·빈 리스트) — store.jsx 실코드 스텁 하네스.
+- `d469d78` **3b-3e (grid.jsx + editHandlers)** [상호작용 아침 게이트]:
+  - 3b 붙여넣기: `js/gridPaste.js` `parseClipboardMatrix`(순수·dual-mode, `tests/gridPaste.test.js` +7: CRLF·trailing NL·빈셀·1x1·null). 셀 input `onPaste`가 블록이면 앵커부터 매트릭스 매핑(그리드 경계 clip), `edit.onCells` 1회=1 undo. (초과행 자동추가는 2차)
+  - 3c 셀 이동: 편집 input에서 Enter/↓→아래, ↑→위, Tab/Shift+Tab→좌우(경계서 다음행 wrap), isComposing 가드.
+  - 3d Cmd/Ctrl+Z→undo, Shift+Z·Ctrl+Y→redo. 기존 editable keydown effect에 추가, INPUT/TEXTAREA 포커스 시 네이티브 텍스트 undo 보존.
+  - 3e Shift-클릭: `lastSelRid` 앵커, 행 클릭 시 shiftKey면 pageRows 범위 selRows 추가.
+  - editHandlers(cleanMode·dataMode)에 `onCells`/`onUndo`/`onRedo` 배선.
+
+**NEXT: Phase 4 DuckDB-WASM(새 세션, 브라우저 반복 필요). S1 로딩 PoC부터.**
+
+## 세션 기록 — 2026-07-12 (Phase 2: P3 미배선 엔진 3종 UI 배선)
+
+밤샘/Batch C에서 만들어 Node 테스트까지 끝났지만 화면이 없던 엔진 3종을 UI에 연결(`80287a0`). 엔진은 이미 테스트되어 배선만 추가. Node 225/225. **실제 렌더는 브라우저 확인 필요(아침 게이트).** 각 파일 독립이라 서브에이전트 3기 병렬 → 메인이 diff+tsc 검수.
+
+- **2A TSDecomp → Stats › Time Series**(statsMode +65줄): `cfg.tsView` 토글(smoothing|decomposition). decomposition 시 config에 period `seg`[4/7/12/52]·additive/multiplicative 추가, 렌더는 기존 정렬 series로 `TSDecomp.decompose` → Original/Trend/Seasonal/Residual 4단 스택 EChart. period<2/n<2·period throw는 try/catch로 "Not enough data".
+- **2B Outliers → Clean 이슈바**(cleanMode +13줄): `issues` useMemo에 numeric measure 컬럼(≥2)으로 `Outliers.detect` 추가 → 4번째 `<Issue>` "다변량 이상치" 카드. 제거는 `results[].index`→`__rid`→기존 `actions.deleteRows`. `!ok`(특이공분산)/컬럼<2면 카드 없음(무크래시).
+- **2C GeoMatch → Map › 내 데이터**(mapMode +107줄): `useBaseMap`에 `_baseMapNames` 캐시+getter 추가해 geojson 지역명(remap 후) 노출. `mode:"points"|"choropleth"` 토글, choropleth 시 `GeoMatch.bestColumn` 자동감지+"지역 컬럼" 셀렉터, `match`로 data→geoName 매핑·**합계 집계**, `series:[{type:"map"}]`+visualMap(province 패턴 재사용). 매칭률/미매칭 note, 매칭 실패 시 안내.
+
+**NEXT: Phase 3 P9 — Excel식 편집(grid.jsx + store `set_cells` 배치 op). `feat/excel-edit` 분기.**
 
 ## 세션 기록 — 2026-07-12 (Phase 1: i18n 커버리지 — 7파일 한/영)
 

@@ -454,6 +454,50 @@
     const series = ordered.map((r) => { const v = r[colKey]; return v == null || v === "" || isNaN(v) ? null : +v; });
     const labels = dateCol ? ordered.map((r) => r[dateCol.key]) : ordered.map((_, i) => i + 1);
     if (series.filter((v) => v != null).length < 3) return <React.Fragment><StatsHead title={"Time Series · " + (col.label || colKey)} /><div className="empty"><Icon name="trend" /><div className="t">{T("statNotEnoughData")}</div></div></React.Fragment>;
+    if (cfg.tsView === "decomposition") {
+      const period = cfg.tsPeriod || 12, model = cfg.tsModel || "additive";
+      let decomp = null, decompErr = null;
+      try { decomp = window.TSDecomp.decompose(series, { period, model }); }
+      catch (e) { decompErr = e; }
+      if (decompErr || !decomp) {
+        return (
+          <React.Fragment>
+            <StatsHead title={"Time Series · Decomposition · " + (col.label || colKey)} />
+            <div className="empty"><Icon name="trend" />
+              <div className="t">{T("statNotEnoughData")}</div>
+              <div className="s">{lang === "ko"
+                ? `분해에는 최소 ${period * 2}개의 관측값(주기 ${period}의 2배 이상)이 필요합니다. 주기를 줄이거나 데이터를 늘려 보세요.`
+                : `Decomposition needs at least ${period * 2} points (≥2 full cycles of period ${period}). Reduce the period or add more data.`}</div></div>
+          </React.Fragment>
+        );
+      }
+      const dbase = Charts.baseGrid(c);
+      const decompOpt = (data, color) => ({ ...dbase, grid: { left: 8, right: 14, top: 10, bottom: 28, containLabel: true },
+        tooltip: { ...dbase.tooltip, trigger: "axis" },
+        xAxis: { type: "category", data: labels, axisLabel: { color: c.text, fontSize: 9, rotate: labels.length > 12 ? 35 : 0, interval: Math.max(0, Math.floor(labels.length / 12)) }, axisLine: { lineStyle: { color: c.axis } } },
+        yAxis: { type: "value", axisLabel: { color: c.text, fontSize: 10, formatter: NODE.fmtCompact }, splitLine: { lineStyle: { color: c.split } } },
+        series: [{ type: "line", data: data.map((v) => v == null ? null : NODE.round(v, 4)), showSymbol: false, lineStyle: { color, width: 1.5 }, itemStyle: { color } }] });
+      const panels = [
+        ["Original", series, c.faint],
+        ["Trend", decomp.trend, pal[0]],
+        ["Seasonal", decomp.seasonal, pal[2]],
+        ["Residual", decomp.residual, pal[3]],
+      ];
+      return (
+        <React.Fragment>
+          <StatsHead title={"Time Series · Decomposition · " + (col.label || colKey)} />
+          <div className="pbody statsbody">
+            <Cards items={[[T("statPoints"), series.filter((v) => v != null).length], ["Period", period], ["Model", model], [T("statOrderedBy"), dateCol ? dateCol.label : (lang === "ko" ? "행" : "row")]]} />
+            {panels.map(([name, data, color]) => (
+              <React.Fragment key={name}>
+                <div className="ml-charttitle">{name}</div>
+                <div style={{ height: 130, margin: "2px 0 8px" }}><EChart option={decompOpt(data, color)} theme={theme} style={{ height: "100%" }} /></div>
+              </React.Fragment>
+            ))}
+          </div>
+        </React.Fragment>
+      );
+    }
     const ma = window.TimeSeries.movingAverage(series, win);
     const ema = window.TimeSeries.exponentialSmoothing(series.map((v) => v == null ? 0 : v), alpha);
     const maxLag = Math.min(20, Math.floor(series.length / 3));
@@ -826,10 +870,23 @@
         {cfg.test === "timeseries" && (
           <React.Fragment>
             <Picker label={T("statColumn")} value={cfg.distCol || (numCols[0] && numCols[0].key)} opts={numCols} onChange={(v) => set({ distCol: v })} />
-            <div className="cp-block"><div className="cp-blocktitle">MA window</div>
-              <div className="seg" style={{ width: "100%" }}>{[3, 5, 7, 12].map((w) => <button key={w} className={(cfg.tsWindow || 5) === w ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsWindow: w })}>{w}</button>)}</div></div>
-            <div className="cp-block"><div className="cp-blocktitle">EMA α</div>
-              <div className="seg" style={{ width: "100%" }}>{[0.1, 0.3, 0.5, 0.7].map((a) => <button key={a} className={(cfg.tsAlpha || 0.3) === a ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsAlpha: a })}>{a}</button>)}</div></div>
+            <div className="cp-block"><div className="cp-blocktitle">View</div>
+              <div className="seg" style={{ width: "100%" }}>{[["smoothing", "Smoothing"], ["decomposition", "Decomposition"]].map(([v, lbl]) => <button key={v} className={(cfg.tsView || "smoothing") === v ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsView: v })}>{lbl}</button>)}</div></div>
+            {(cfg.tsView || "smoothing") === "decomposition" ? (
+              <React.Fragment>
+                <div className="cp-block"><div className="cp-blocktitle">Period</div>
+                  <div className="seg" style={{ width: "100%" }}>{[4, 7, 12, 52].map((p) => <button key={p} className={(cfg.tsPeriod || 12) === p ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsPeriod: p })}>{p}</button>)}</div></div>
+                <div className="cp-block"><div className="cp-blocktitle">Model</div>
+                  <div className="seg" style={{ width: "100%" }}>{["additive", "multiplicative"].map((m) => <button key={m} className={(cfg.tsModel || "additive") === m ? "on" : ""} style={{ flex: 1, textTransform: "capitalize" }} onClick={() => set({ tsModel: m })}>{m}</button>)}</div></div>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <div className="cp-block"><div className="cp-blocktitle">MA window</div>
+                  <div className="seg" style={{ width: "100%" }}>{[3, 5, 7, 12].map((w) => <button key={w} className={(cfg.tsWindow || 5) === w ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsWindow: w })}>{w}</button>)}</div></div>
+                <div className="cp-block"><div className="cp-blocktitle">EMA α</div>
+                  <div className="seg" style={{ width: "100%" }}>{[0.1, 0.3, 0.5, 0.7].map((a) => <button key={a} className={(cfg.tsAlpha || 0.3) === a ? "on" : ""} style={{ flex: 1 }} onClick={() => set({ tsAlpha: a })}>{a}</button>)}</div></div>
+              </React.Fragment>
+            )}
           </React.Fragment>
         )}
         {cfg.test === "corr" && (

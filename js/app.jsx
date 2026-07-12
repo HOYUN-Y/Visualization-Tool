@@ -59,21 +59,26 @@
       content = <window.Workspace left={<window.DatasetTree />} leftTitle="Data Explorer"
         center={<window.DataCenter />} right={<window.ColumnProfile />} rightTitle="Column Profile" />;
     } else if (mode === "clean" && window.CleanMode) {
-      content = window.CleanMode();
+      // Render modes as ELEMENTS, not function calls — each mode owns its hook scope so its
+      // hooks aren't counted as App's. Rendering window.XMode() inline made a mode's top-level
+      // useStore(lang) shift App's hook count on mode switch → "Rendered more hooks" crash that
+      // ErrorBoundary couldn't catch (it wraps content, not App). Elements also let ErrorBoundary
+      // actually catch a mode crash. (FOLLOWUP P0 / C5)
+      content = <window.CleanMode />;
     } else if (mode === "sql" && window.SqlMode) {
-      content = window.SqlMode();
+      content = <window.SqlMode />;
     } else if (mode === "visualize" && window.VizMode) {
-      content = window.VizMode();
+      content = <window.VizMode />;
     } else if (mode === "pivot" && window.PivotMode) {
-      content = window.PivotMode();
+      content = <window.PivotMode />;
     } else if (mode === "map" && window.MapMode) {
-      content = window.MapMode();
+      content = <window.MapMode />;
     } else if (mode === "dashboard" && window.DashMode) {
-      content = window.DashMode();
+      content = <window.DashMode />;
     } else if (mode === "ml" && window.MlMode) {
-      content = window.MlMode();
+      content = <window.MlMode />;
     } else if (mode === "stats" && window.StatsMode) {
-      content = window.StatsMode();
+      content = <window.StatsMode />;
     } else {
       const meta = {
         stats: ["stats", "통계 분석", "모듈을 불러오는 중입니다…"],
