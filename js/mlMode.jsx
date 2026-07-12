@@ -278,7 +278,7 @@
         </div>
 
         <div className="ml-chartwrap">
-          <div className="ml-charttitle">{{ reg: "Predicted vs actual (test set)", clf: "Confusion matrix", logit: "ROC curve · AUC = " + (res.auc != null ? res.auc.toFixed(3) : "—"), pca: "Scree plot · explained variance", km: "Cluster scatter · standardized space", dbscan: "DBSCAN clusters · " + res.feats[0] + " vs " + (res.feats[1] || res.feats[0]), hier: "Hierarchical clusters · " + res.feats[0] + " vs " + (res.feats[1] || res.feats[0]) }[res.kind] || ""}</div>
+          <div className="ml-charttitle">{{ reg: "Predicted vs actual (test set)", clf: "Confusion matrix", logit: "ROC curve · AUC = " + (res.auc != null ? res.auc.toFixed(3) : "—"), pca: "Scree plot · explained variance", km: "Cluster scatter · standardized space", dbscan: "DBSCAN clusters · " + res.feats?.[0] + " vs " + (res.feats?.[1] || res.feats?.[0]), hier: "Hierarchical clusters · " + res.feats?.[0] + " vs " + (res.feats?.[1] || res.feats?.[0]) }[res.kind] || ""}</div>
           <div style={{ flex: 1, minHeight: 0 }}><EChart option={option} theme={theme + res.kind} style={{ height: "100%" }} /></div>
         </div>
 

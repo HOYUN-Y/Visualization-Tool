@@ -21,7 +21,12 @@
   class ErrorBoundary extends React.Component {
     constructor(props) { super(props); this.state = { err: null }; }
     static getDerivedStateFromError(err) { return { err }; }
-    componentDidCatch(err) { if (window.LOG && window.LOG.error) window.LOG.error("app", "render crash: " + (err && err.message), { mode: this.props.mode }); }
+    componentDidCatch(err) {
+      if (window.LOG && window.LOG.error) window.LOG.error("app", "render crash: " + (err && err.message), { mode: this.props.mode });
+      // If an ML result render crashed, clear the stored result so "다시 시도" works and the bad
+      // result isn't autosaved (persisted `ui.ml.result` would re-crash on reload → mode locked).
+      try { if (this.props.mode === "ml") actions.setUI({ ml: { ...(window.Store.getState().ui.ml || {}), result: null } }); } catch (e) {}
+    }
     render() {
       if (this.state.err) {
         return (
