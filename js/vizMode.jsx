@@ -920,7 +920,7 @@
       const r = window.PptxExport ? window.PptxExport.exportChart(viz, opt, "insight-" + (viz.type || "chart"), (viz.format && viz.format.title && viz.format.title.text) || "") : { ok: false, reason: "no-lib" };
       if (!r.ok) {
         if (r.reason === "no-lib") alert("PowerPoint 내보내기 라이브러리(PptxGenJS)가 아직 설치되지 않았습니다.\nvendor/pptxgenjs/pptxgen.bundle.js 를 추가하세요 (vendor/pptxgenjs/README.md 참고).");
-        else if (r.reason === "unsupported") alert("이 차트 종류는 PPT 네이티브 차트(데이터 편집)로는 지원되지 않습니다.\n막대·라인·영역·파이만 가능 — 나머지는 이미지/SVG로 내보내세요.");
+        else if (r.reason === "unsupported") alert("이 차트 종류(캔들스틱·분산형·박스플롯 등)는 PPT 네이티브 차트(데이터 편집)로 대응되는 형식이 없습니다.\n막대·라인·영역·파이(스택·보조축·콤보 포함)만 가능 — 나머지는 이미지/SVG로 내보내세요.");
         else if (r.reason === "no-chart") alert("차트를 먼저 그려주세요.");
         else alert("PPTX 내보내기 실패: " + r.reason);
       } else window.LOG && window.LOG.info("export", "PPTX exported");
