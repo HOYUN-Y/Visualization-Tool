@@ -67,16 +67,21 @@
     };
   }
 
-  function EChart({ option, onEvents, style, className, theme, group }) {
+  function EChart({ option, onEvents, style, className, theme, group, onInst }) {
     const ref = React.useRef(null);
     const inst = React.useRef(null);
     React.useEffect(() => {
       inst.current = echarts.init(ref.current, null, { renderer: "canvas" });
       if (group) inst.current.group = group;
       Charts.lastInst = inst.current;
+      // C4: let the owner capture *this* instance so export can target it
+      // explicitly instead of relying on the global `lastInst` (which any
+      // other EChart mount clobbers — wrong chart exported in dashboards /
+      // right after a mode/chart switch).
+      if (onInst) onInst(inst.current);
       const ro = new ResizeObserver(() => inst.current && inst.current.resize());
       ro.observe(ref.current);
-      return () => { ro.disconnect(); inst.current && inst.current.dispose(); if (Charts.lastInst === inst.current) Charts.lastInst = null; };
+      return () => { ro.disconnect(); if (onInst) onInst(null); inst.current && inst.current.dispose(); if (Charts.lastInst === inst.current) Charts.lastInst = null; };
     }, []);
     React.useEffect(() => {
       if (!inst.current) return;
@@ -91,8 +96,11 @@
   }
 
   // ── Export helpers ───────────────────────────────────────────────
-  function downloadPNG(filename, background) {
-    const inst = Charts.lastInst;
+  // `inst` (optional, last arg) lets a caller export a *specific* chart.
+  // When omitted we fall back to the global last-rendered instance
+  // (backward compatible). See C4 in docs/FOLLOWUP_PROPOSALS.md.
+  function downloadPNG(filename, background, inst) {
+    inst = inst || Charts.lastInst;
     if (!inst) return false;
     try {
       const opt = inst.getOption ? inst.getOption() : null;
@@ -106,8 +114,8 @@
   }
 
   // Copy the chart to the clipboard as a PNG image (paste straight into PowerPoint/Slides).
-  function copyPNG(background) {
-    const inst = Charts.lastInst;
+  function copyPNG(background, inst) {
+    inst = inst || Charts.lastInst;
     if (!inst || !navigator.clipboard || typeof window.ClipboardItem === "undefined") return Promise.resolve(false);
     try {
       const opt = inst.getOption ? inst.getOption() : null;
@@ -120,8 +128,8 @@
   }
 
   // Vector SVG export — re-render the current option with the SVG renderer offscreen.
-  function downloadSVG(filename, background) {
-    const inst = Charts.lastInst;
+  function downloadSVG(filename, background, inst) {
+    inst = inst || Charts.lastInst;
     if (!inst || typeof echarts === "undefined") return false;
     let svgInst = null, div = null;
     try {

@@ -35,6 +35,7 @@
 > - **Track 2·4 자산**(`3eb86f0`): `scripts/bump-assets.sh`+`npm run bump`(캐시버스트 자동화·드리프트 통일 v277), ECharts SRI(sha384).
 > - 검증: **Node 295/295 · E2E 21/21 깨끗 종료 · tsc 0**. 제외(결정 필요): C4 export 대상·A1 formula 안전파서·C2 클릭=선택.
 > ✅ **게이트 통과 (2026-07-12)**: `feat/safe-hardening`(6커밋) → main 병합(`9c7c6b3`, --no-ff) + origin push 완료(`f892a94..9c7c6b3`). main=origin/main 동기화. 6번째 커밋 = WORKLOG 갱신(`05e799c`).
+> ✅ **C4 export 대상 명시 (2026-07-16, `fix/c4-export-target` 3커밋)** — FOLLOWUP §5 C4: export가 전역 `Charts.lastInst`(마지막 렌더 차트)에만 의존해 대시보드 다중차트·차트전환 직후 **엉뚱한 차트가 PPT/PNG로** 나가던 문제. `EChart`에 `onInst(inst)` 콜백 추가(각 차트가 자기 인스턴스 노출) + export 헬퍼(downloadPNG/SVG/copyPNG)에 optional `inst` 인자(생략 시 lastInst 폴백=하위호환). Chart 모드(VizCenter)는 `chartInstRef`로 캡처해 doExport/doCopy/doPPTX에 명시 전달. 전역 TopBar ExportBtn은 모드 무관이라 폴백 유지(의도). 검증: Node **295/295** · **E2E 22/22**(신규 `chartExport.spec.mjs` — onInst 캡처·명시 인스턴스·폴백·대상 전무 false) · tsc 0. 커밋 `392ece0`·`1f49f82`·`8c1cf8b`. **병합·push는 사용자 게이트.**
 | Updated at | 2026-07-12 |
 
 > ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
