@@ -4,6 +4,25 @@ All notable changes to insight Analytics Workbench are documented here.
 
 ---
 
+## [Unreleased] — P10 공유 링크 + 보안·품질 (2026-07-16~17)
+
+> FOLLOWUP §5 C4·A1 완료 후, P10 공유 링크 구현. Node 315/315 · E2E 25/25 · tsc 0.
+
+### Added — 공유 링크 (P10, `feat/p10-share-link`)
+- **프로젝트 공유 링크**: Projects 메뉴에 **Share link** — 현재 프로젝트(데이터 포함) 전체를 `#p=…` URL fragment로 인코딩해 클립보드 복사. 링크를 열면 데이터·분석이 그대로 재현. **백엔드 불필요**(fragment는 서버로 전송 안 됨 → no-build/local-first 유지).
+  - `js/shareLink.js`(`window.ShareLink`): 이식 번들 ↔ JSON ↔ base64url ↔ fragment. 브라우저 `CompressionStream`(deflate-raw) 압축 + 무압축 폴백, 1자 코덱태그(z/r). 크기 상한 `MAX_PAYLOAD_CHARS`(32k) 초과 시 JSON 파일 폴백 안내.
+  - `projectStore.exportBundle()`(파일 저장 없이 번들 반환), 부팅 시 `#p=` 감지→`importJSON`→`history.replaceState`로 fragment 정리(리로드 재임포트·주소창 노출 방지).
+  - **보안**: A1 안전파서 전제 — 공유 번들의 Formula Column은 `FormulaEval`로 평가되어 코드실행 불가.
+  - `tests/shareLink.test.js`(8) + `tests/e2e/shareLink.spec.mjs`(코덱 왕복 + 실브라우저 열기·fragment 정리).
+
+### Added — C4 export 대상 명시 (`fix/c4-export-target`)
+- Chart export가 전역 `Charts.lastInst` 대신 **활성 차트 인스턴스**를 명시 대상화(EChart `onInst` 콜백 + export 헬퍼 optional `inst` 인자, 폴백 하위호환). 대시보드 다중차트·차트전환 직후 엉뚱한 차트 export 방지. `tests/e2e/chartExport.spec.mjs`.
+
+### Security — A1 formula 안전파서 (`fix/a1-formula-safe-parser`)
+- Formula Column의 `new Function("row","Math",expr)` **임의 코드실행 취약점 제거** → `js/formulaEval.js`(`window.FormulaEval`, eval/new Function 없는 재귀하강 파서). `row.*` 읽기 + `Math.*` 화이트리스트만, 프로토타입 체인 차단(`constructor.constructor` 탈출 봉쇄). `tests/formulaEval.test.js`(12) + `tests/e2e/formulaColumn.spec.mjs`.
+
+---
+
 ## [Unreleased] — 안전 후속 배치 (2026-07-12, `feat/safe-hardening` → main `9c7c6b3`)
 
 > FOLLOWUP §5 저위험 자율 항목 일괄. 전부 저위험(테스트/인프라·폴백·핸들러·속성). Node 295/295 · E2E 21/21 깨끗 종료 · tsc 0.
@@ -62,7 +81,6 @@ All notable changes to insight Analytics Workbench are documented here.
 ### Planned (아직 미구현)
 - SQL JOIN/window 및 DuckDB-WASM 전환
 - Decision Tree, Naive Bayes, Cross Validation, Seasonal Decomposition
-- 배포 시 차트 공유 링크
 - PPT 네이티브 차트 매핑 확장(스택/보조축/캔들 등)
 
 ### Added — 차트 서식 & 내보내기 (Chart Format & Export, `feat/analytics`)

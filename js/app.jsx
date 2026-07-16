@@ -107,6 +107,26 @@
     );
   }
 
+  // P10: if the page was opened with a #p=… share link, decode it into a project and import it.
+  // Runs before/around the first render; importJSON validates the bundle (schemaVersion, ids) and
+  // activates it, and the store subscription re-renders. We strip the hash so a reload doesn't
+  // re-import, and so the (potentially huge) fragment isn't left in the address bar.
+  async function maybeImportShareLink() {
+    try {
+      if (!window.ShareLink || !location.hash || location.hash.indexOf("p=") < 0) return;
+      const bundle = await window.ShareLink.decodeShareFragmentAsync(location.hash);
+      if (!bundle) return;
+      // clear the fragment first (avoid re-import on reload) without adding a history entry
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { location.hash = ""; }
+      await window.ProjectStore.importJSON(bundle);
+      window.LOG && window.LOG.info("share", "imported project from share link");
+    } catch (e) {
+      console.error("share link import failed", e);
+      alert("공유 링크를 열지 못했습니다: " + (e.message || e));
+    }
+  }
+  maybeImportShareLink();
+
   const root = ReactDOM.createRoot(document.getElementById("root"));
   root.render(<App />);
 })();

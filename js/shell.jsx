@@ -82,6 +82,27 @@
       if (fileRef.current) fileRef.current.value = "";
     }
 
+    // P10: build a shareable #p=… link for the current project and copy it to the clipboard.
+    // Full project (data included) → deflate → base64url → URL fragment (never hits a server).
+    // Safe to open because Formula Columns run through the A1 safe evaluator, not new Function.
+    async function shareLink() {
+      if (!snapshot.project) return;
+      const bundle = await PS.exportBundle(snapshot.project.id);
+      const base = location.origin + location.pathname;
+      const res = await window.ShareLink.encodeShareLink(base, bundle);
+      if (res.tooLarge) {
+        alert("이 프로젝트는 공유 링크로 담기엔 너무 큽니다 (" + Math.round(res.chars / 1024) + "KB).\n대신 \"Project JSON\"으로 내보내 파일로 공유하세요.");
+        return;
+      }
+      let copied = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(res.url); copied = true; }
+      } catch (e) { copied = false; }
+      window.LOG && window.LOG.info("share", "link built · " + res.chars + " chars · " + (res.compressed ? "deflate" : "raw"));
+      if (copied) alert("공유 링크가 클립보드에 복사되었습니다.\n이 링크를 열면 데이터·분석이 그대로 재현됩니다.");
+      else window.prompt("공유 링크 (복사하세요):", res.url);
+    }
+
     const saveState = snapshot.state || "unsaved";
     const projectName = snapshot.project ? snapshot.project.name : "Loading project…";
 
@@ -117,6 +138,7 @@
                 <div className="project-actions backup">
                   <button className="btn ghost sm" disabled={busy || !snapshot.project} onClick={() => run(() => PS.exportJSON(), false)}><Icon name="download" /> Project JSON</button>
                   <button className="btn ghost sm" disabled={busy} onClick={() => fileRef.current.click()}><Icon name="upload" /> Restore JSON</button>
+                  <button className="btn ghost sm" disabled={busy || !snapshot.project} onClick={() => run(() => shareLink(), false)}><Icon name="share" /> Share link</button>
                   <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={(event) => importProject(event.target.files[0])} />
                 </div>
               </div>

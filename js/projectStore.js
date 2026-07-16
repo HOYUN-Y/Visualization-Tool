@@ -479,6 +479,16 @@
       }
     },
 
+    // Return the portable bundle object WITHOUT downloading a file — used by the P10 share-link
+    // encoder (ShareLink.encodeShareLink). Same validated shape exportJSON serializes.
+    exportBundle: async function (id) {
+      await api.init();
+      id = id || (currentProject && currentProject.id);
+      if (!id) throw new Error("No project selected");
+      if (currentProject && currentProject.id === id) await api.saveNow();
+      return toPortable(await loadBundle(id));
+    },
+
     exportJSON: async function (id) {
       await api.init();
       id = id || (currentProject && currentProject.id);
