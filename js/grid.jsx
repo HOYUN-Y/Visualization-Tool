@@ -73,8 +73,9 @@
     const [menu, setMenu] = React.useState(null);      // {key, rect}
     const [filterMenu, setFilterMenu] = React.useState(null);
     // editing state
-    const [cellEdit, setCellEdit] = React.useState(null); // {rid, key}
+    const [cellEdit, setCellEdit] = React.useState(null); // {rid, key} — cell currently in the inline editor
     const [cellVal, setCellVal] = React.useState("");
+    const [activeCell, setActiveCell] = React.useState(null); // {rid, key} — Excel-style selected cell (click), edit only on dbl-click/F2/type
     const [headEdit, setHeadEdit] = React.useState(null); // key being renamed
     const [headVal, setHeadVal] = React.useState("");
     const [selRows, setSelRows] = React.useState(() => new Set()); // selected __rid
@@ -86,8 +87,9 @@
     const lang = window.Store.useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
 
-    // commit / cancel cell edit
-    const startCell = (rid, key, cur) => { setCellEdit({ rid, key }); setCellVal(cur == null ? "" : String(cur)); };
+    // commit / cancel cell edit. startCell also marks the cell active so the
+    // Excel-style selection follows the editor as Enter/Tab move it around.
+    const startCell = (rid, key, cur) => { setCellEdit({ rid, key }); setCellVal(cur == null ? "" : String(cur)); setActiveCell({ rid, key }); };
     const commitCell = () => { if (cellEdit) { edit.onCell(cellEdit.rid, cellEdit.key, cellVal); setCellEdit(null); } };
     const startHead = (key, cur) => { setHeadEdit(key); setHeadVal(cur); setMenu(null); };
     const commitHead = () => {
@@ -130,6 +132,36 @@
       document.addEventListener("keydown", h);
       return () => document.removeEventListener("keydown", h);
     }, [editable, selRows, cellEdit, headEdit, edit]);
+
+    // Excel-style keyboard nav on the active (selected) cell: arrows move selection,
+    // F2/Enter open the editor keeping the value, a printable key starts editing with that char.
+    // No-op while already editing a cell/header or focused in any input.
+    React.useEffect(() => {
+      if (!editable || !cellEditable || !activeCell || cellEdit || headEdit) return;
+      const h = (e) => {
+        const tag = document.activeElement && document.activeElement.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        if (e.altKey || e.metaKey || e.ctrlKey) return;
+        const ri = pageRows.findIndex((r) => r.__rid === activeCell.rid);
+        const ci = visCols.findIndex((c) => c.key === activeCell.key);
+        if (ri < 0 || ci < 0) return;
+        const move = (nr, nc) => {
+          if (nr < 0 || nr >= pageRows.length || nc < 0 || nc >= visCols.length) return;
+          e.preventDefault(); setActiveCell({ rid: pageRows[nr].__rid, key: visCols[nc].key });
+        };
+        if (e.key === "ArrowDown") return move(ri + 1, ci);
+        if (e.key === "ArrowUp") return move(ri - 1, ci);
+        if (e.key === "ArrowLeft") return move(ri, ci - 1);
+        if (e.key === "ArrowRight") return move(ri, ci + 1);
+        if (e.key === "Escape") { setActiveCell(null); return; }
+        if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); startCell(activeCell.rid, activeCell.key, pageRows[ri][visCols[ci].key]); return; }
+        // a single printable character begins editing, replacing the cell content (Excel behavior).
+        // Native (document) keydown → use e.isComposing, NOT e.nativeEvent (which is undefined here).
+        if (e.key.length === 1 && !e.isComposing) { e.preventDefault(); setCellEdit({ rid: activeCell.rid, key: activeCell.key }); setCellVal(e.key); }
+      };
+      document.addEventListener("keydown", h);
+      return () => document.removeEventListener("keydown", h);
+    }, [editable, cellEditable, activeCell, cellEdit, headEdit, pageRows, visCols]);
 
     // color maps for category cols
     const cmaps = React.useMemo(() => {
@@ -358,18 +390,21 @@
                     }
                     const f = fmtCell(r[c.key], c);
                     const canEditCell = editable && cellEditable && rid != null;
-                    const cls = [f.cls === "num" ? "num" : "", selCol === c.key ? "sel" : "", fr ? "frozen" : "", canEditCell ? "editable" : ""].filter(Boolean).join(" ");
-                    const dbl = canEditCell ? () => startCell(rid, c.key, r[c.key]) : undefined;
+                    const isActive = canEditCell && activeCell && activeCell.rid === rid && activeCell.key === c.key;
+                    const cls = [f.cls === "num" ? "num" : "", selCol === c.key ? "sel" : "", fr ? "frozen" : "", canEditCell ? "editable" : "", isActive ? "cellactive" : ""].filter(Boolean).join(" ");
+                    // Excel convention (C2): single click selects, double click / F2 / typing edits.
+                    const onSel = canEditCell ? () => setActiveCell({ rid, key: c.key }) : undefined;
+                    const onEdit = canEditCell ? () => startCell(rid, c.key, r[c.key]) : undefined;
                     const cellTitle = canEditCell ? T("gClickEdit") : undefined;
-                    if (f.isNull) return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}><span className="cell-null">null</span></td>;
+                    if (f.isNull) return <td key={c.key} className={cls} style={style} onClick={onSel} onDoubleClick={onEdit} title={cellTitle}><span className="cell-null">null</span></td>;
                     if (c.type === "category" && cmaps[c.key]) {
-                      return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}><span className="cell-cat" style={{ "--swatch": cmaps[c.key][r[c.key]] || "var(--tx-faint)" }}>{f.text}</span></td>;
+                      return <td key={c.key} className={cls} style={style} onClick={onSel} onDoubleClick={onEdit} title={cellTitle}><span className="cell-cat" style={{ "--swatch": cmaps[c.key][r[c.key]] || "var(--tx-faint)" }}>{f.text}</span></td>;
                     }
                     if (f.cls === "num" && extents[c.key] && c.role === "measure") {
                       const [lo, hi] = extents[c.key]; const pct = hi > lo ? Math.max(2, ((f.num - lo) / (hi - lo)) * 100) : 0;
-                      return <td key={c.key} className={cls + " databar"} style={style} onClick={dbl} title={cellTitle}><span className="fill" style={{ width: pct + "%" }} /><span className="val">{f.text}</span></td>;
+                      return <td key={c.key} className={cls + " databar"} style={style} onClick={onSel} onDoubleClick={onEdit} title={cellTitle}><span className="fill" style={{ width: pct + "%" }} /><span className="val">{f.text}</span></td>;
                     }
-                    return <td key={c.key} className={cls} style={style} onClick={dbl} title={cellTitle}>{f.text}</td>;
+                    return <td key={c.key} className={cls} style={style} onClick={onSel} onDoubleClick={onEdit} title={cellTitle}>{f.text}</td>;
                   })}
                 </tr>
                 );

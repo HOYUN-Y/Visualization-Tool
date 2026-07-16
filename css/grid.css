@@ -128,6 +128,9 @@ table.grid tbody tr.rowsel:hover td { background: color-mix(in oklch, var(--acce
 
 /* editable cell hover + inline input */
 table.grid tbody td.editable { cursor: cell; }
+/* Excel-style selected cell (C2): single click selects, double-click / F2 / typing edits */
+table.grid tbody td.cellactive { box-shadow: inset 0 0 0 2px var(--accent); }
+table.grid tbody tr:hover td.cellactive { box-shadow: inset 0 0 0 2px var(--accent); }
 table.grid tbody td.editing { padding: 0; }
 .cell-input { width: 100%; height: var(--row-h); padding: 0 8px; font-size: var(--fs-12);
   color: var(--tx-hi); background: var(--bg-0); border: 1.5px solid var(--accent);
