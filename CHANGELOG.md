@@ -265,7 +265,7 @@ All notable changes to insight Analytics Workbench are documented here.
 
 #### Clean 모드 — Formula Column (store.jsx · cleanMode.jsx)
 - **Formula** (`formula`): JS 수식으로 파생 컬럼 생성.
-  - `new Function("row", "Math", expr)` — `row` 객체로 모든 컬럼 값 접근, `Math.*` 함수 사용 가능.
+  - **안전 평가기** `window.FormulaEval.compile(expr)` — eval/new Function 없는 재귀하강 파서. `row` 객체로 컬럼 값 접근, `Math.*`(화이트리스트) 함수 사용 가능. 프로토타입 체인·전역 접근 차단(A1 보안). *(구: `new Function("row","Math",expr)` — 코드실행 취약점으로 제거됨)*
   - 수식 오류 시 해당 셀 `null` 처리 (전체 파이프라인 중단 없음).
   - 결과 타입 자동 감지 → integer / float / string 컬럼 메타 생성.
 
