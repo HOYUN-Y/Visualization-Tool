@@ -904,17 +904,19 @@
     const doExport = (kind, bg) => {
       const name = "insight-" + (viz.type || "chart");
       const bgVal = bg === "current" ? undefined : (bg === "white" ? "#ffffff" : "transparent");
-      const ok = kind === "svg" ? window.Charts.downloadSVG(name, bgVal) : window.Charts.downloadPNG(name, bgVal);
+      const inst = chartInstRef.current;   // C4: export this chart, not the global last one
+      const ok = kind === "svg" ? window.Charts.downloadSVG(name, bgVal, inst) : window.Charts.downloadPNG(name, bgVal, inst);
       if (!ok) alert("차트를 먼저 그려주세요. / Draw a chart first.");
       else window.LOG && window.LOG.info("export", kind.toUpperCase() + " exported · " + bg);
       setExpOpen(false);
     };
     const doCopy = () => {
-      window.Charts.copyPNG(undefined).then((ok) => alert(ok ? "클립보드에 복사됨 · 파워포인트에서 Ctrl+V로 붙여넣기" : "복사를 지원하지 않는 브라우저입니다. PNG 다운로드를 사용하세요."));
+      window.Charts.copyPNG(undefined, chartInstRef.current).then((ok) => alert(ok ? "클립보드에 복사됨 · 파워포인트에서 Ctrl+V로 붙여넣기" : "복사를 지원하지 않는 브라우저입니다. PNG 다운로드를 사용하세요."));
       setExpOpen(false);
     };
     const doPPTX = () => {
-      const opt = window.Charts.lastInst ? window.Charts.lastInst.getOption() : null;
+      const inst = chartInstRef.current;   // C4: PPTX from this chart's option
+      const opt = inst ? inst.getOption() : (window.Charts.lastInst ? window.Charts.lastInst.getOption() : null);
       const r = window.PptxExport ? window.PptxExport.exportChart(viz, opt, "insight-" + (viz.type || "chart"), (viz.format && viz.format.title && viz.format.title.text) || "") : { ok: false, reason: "no-lib" };
       if (!r.ok) {
         if (r.reason === "no-lib") alert("PowerPoint 내보내기 라이브러리(PptxGenJS)가 아직 설치되지 않았습니다.\nvendor/pptxgenjs/pptxgen.bundle.js 를 추가하세요 (vendor/pptxgenjs/README.md 참고).");
@@ -941,6 +943,9 @@
     const chartW = (viz.format && viz.format.width) || null;
     // ── Free positioning (drag) for legend or title ──
     const canvasRef = React.useRef(null);
+    // C4: capture *this* chart's instance so export targets it explicitly
+    // (not the global lastInst, which facet cells / other modes overwrite).
+    const chartInstRef = React.useRef(null);
     const [poseTarget, setPoseTarget] = React.useState(null);   // "legend" | "title" | null
     React.useEffect(() => {
       const h = (e) => setPoseTarget((e.detail && e.detail.target) || "legend");
@@ -1043,7 +1048,7 @@
             {viz.type === "facet"
               ? <FacetGrid rows={rows} cols={viz.cols} measures={measures} color={viz.color} theme={theme} />
               : (measures.length || viz.cols.length
-                ? <EChart option={option} theme={theme} style={{ height: "100%" }} />
+                ? <EChart option={option} theme={theme} style={{ height: "100%" }} onInst={(i) => { chartInstRef.current = i; }} />
                 : <div className="empty"><Icon name="visualize" /><div className="t">Build a chart</div><div className="s">Drag fields from the Data Explorer onto the <b>Columns</b> and <b>Rows</b> shelves — or double-click a field. Then pick a chart type on the right.</div></div>
               )
             }
