@@ -18,7 +18,7 @@
       vizColumnsHint: "차원을 놓으세요 (가로축 · 그룹)", vizRowsHint: "측정값을 놓으세요 (세로축 값)",
       // data grid — toolbar / search / column menu / filter
       gSearchAll: "모든 컬럼 검색…", gAddRow: "행 추가", gAddCol: "열 추가",
-      gEditHint: "셀을 클릭해 수정 · 헤더 ⋯ 로 열 편집", gClickEdit: "클릭해서 수정",
+      gEditHint: "셀 클릭=선택 · 더블클릭/F2/입력=수정 · 헤더 ⋯ 로 열 편집", gClickEdit: "더블클릭 또는 F2로 수정",
       gSortAsc: "오름차순 정렬", gSortDesc: "내림차순 정렬", gFilterDots: "필터…", gFilterWord: "필터",
       gFreeze: "열 고정", gUnfreeze: "고정 해제", gHide: "열 숨기기", gRename: "이름 변경…",
       gChangeType: "타입 변경", gInsertLeft: "왼쪽에 삽입", gInsertRight: "오른쪽에 삽입", gDeleteCol: "열 삭제",
@@ -126,7 +126,7 @@
       vizColumns: "X-axis · Dimension", vizRows: "Y-axis · Measure",
       vizColumnsHint: "Drop dimensions (x-axis / groups)", vizRowsHint: "Drop measures (y-axis values)",
       gSearchAll: "Search all columns…", gAddRow: "Add row", gAddCol: "Add column",
-      gEditHint: "Click a cell to edit · header ⋯ for column ops", gClickEdit: "Click to edit",
+      gEditHint: "Click to select · double-click/F2/type to edit · header ⋯ for column ops", gClickEdit: "Double-click or F2 to edit",
       gSortAsc: "Sort ascending", gSortDesc: "Sort descending", gFilterDots: "Filter…", gFilterWord: "Filter",
       gFreeze: "Freeze column", gUnfreeze: "Unfreeze", gHide: "Hide column", gRename: "Rename…",
       gChangeType: "Change type", gInsertLeft: "Insert left", gInsertRight: "Insert right", gDeleteCol: "Delete column",
