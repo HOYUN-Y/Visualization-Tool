@@ -8,6 +8,15 @@ All notable changes to insight Analytics Workbench are documented here.
 
 > FOLLOWUP §5 C4·A1 완료 후, P10 공유 링크 구현. Node 315/315 · E2E 25/25 · tsc 0.
 
+### Added — PPT 네이티브 차트 매핑 확장 (P10, `feat/p10-pptx-chart-mapping`)
+- **PowerPoint(.pptx) 내보내기가 스택·보조축·콤보 차트를 네이티브(데이터 편집 가능)로 매핑**. 이전엔 단일 막대/라인/영역/파이만 대응 → 이제 렌더된 ECharts 옵션을 읽어 구조를 자동 판별:
+  - **스택**: 시리즈 `stack` 키 → `barGrouping: "stacked"`(막대·영역 모두).
+  - **보조축(secondary axis)**: `yAxisIndex===1` 시리즈 → `secondaryValAxis/secondaryCatAxis` 콤보로 우측 축 보존.
+  - **콤보**: 막대+라인 혼합 → 멀티타입 `addChart([...])`.
+  - **캔들스틱·분산형·박스플롯**: PPT 네이티브 대응 형식이 없어 정직하게 `unsupported` 반환 → 이미지/SVG 폴백 안내(가짜 매핑 없음).
+  - `js/pptxExport.js`: 순수 `planChart(viz, option)`/`extract()`(Node 테스트 가능)로 구조 결정 + 얇은 브라우저 `exportChart()`가 PptxGenJS 구동. **출력 계약 하위호환**(기존 `exportChart` 시그니처 유지).
+  - `tests/pptxExport.test.js`(14: 스택·보조축·콤보·캔들스틱 unsupported 등) + `tests/e2e/pptxExport.spec.mjs`(실 PptxGenJS로 스택·콤보 유효 blob 생성·캔들스틱 폴백).
+
 ### Added — 공유 링크 (P10, `feat/p10-share-link`)
 - **프로젝트 공유 링크**: Projects 메뉴에 **Share link** — 현재 프로젝트(데이터 포함) 전체를 `#p=…` URL fragment로 인코딩해 클립보드 복사. 링크를 열면 데이터·분석이 그대로 재현. **백엔드 불필요**(fragment는 서버로 전송 안 됨 → no-build/local-first 유지).
   - `js/shareLink.js`(`window.ShareLink`): 이식 번들 ↔ JSON ↔ base64url ↔ fragment. 브라우저 `CompressionStream`(deflate-raw) 압축 + 무압축 폴백, 1자 코덱태그(z/r). 크기 상한 `MAX_PAYLOAD_CHARS`(32k) 초과 시 JSON 파일 폴백 안내.
