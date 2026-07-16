@@ -294,8 +294,13 @@
         // ---- Phase 2: Formula Column ----
         case "formula": {
           const newKey = s.params.name || "formula_col";
-          let fn; try { fn = new Function("row", "Math", `"use strict"; return (${s.params.expr})`); } catch (e) { break; }
-          rows.forEach((r) => { try { r[newKey] = fn(r, Math); } catch (e) { r[newKey] = null; } });
+          // A1 security: compile via the safe recursive-descent evaluator (window.FormulaEval) —
+          // NO new Function / eval. Only row.* reads + whitelisted Math.*; a malicious expr in a
+          // shared project JSON can't execute arbitrary code. compile() throws on a syntax error;
+          // the returned fn is per-row and null-safe (runtime error on a row → null).
+          let fn;
+          try { fn = window.FormulaEval.compile(s.params.expr); } catch (e) { break; }
+          rows.forEach((r) => { try { r[newKey] = fn(r); } catch (e) { r[newKey] = null; } });
           if (!columns.find((c) => c.key === newKey)) {
             const sample = rows.find((r) => r[newKey] != null)?.[newKey];
             const type = typeof sample === "number" ? (Number.isInteger(sample) ? "integer" : "float") : "string";
