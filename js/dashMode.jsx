@@ -179,9 +179,15 @@
     const ref = React.useRef(null);
     const [cw, setCw] = React.useState(1000);
     React.useEffect(() => {
-      if (!ref.current) return;
-      const ro = new ResizeObserver(() => setCw(ref.current.clientWidth));
-      ro.observe(ref.current); setCw(ref.current.clientWidth);
+      const el = ref.current;
+      if (!el) return;
+      // Guard ref.current inside the callback: React nulls it on unmount, but an already-queued
+      // ResizeObserver callback can still fire (leaving the dashboard resizes the container, which
+      // schedules a notify that lands after teardown) → "Cannot read properties of null (reading
+      // 'clientWidth')". Uncaught, non-crashing, and long tolerated — but it's a real uncaught
+      // TypeError that would surface in production consoles. Observe the captured element, not the ref.
+      const ro = new ResizeObserver(() => { if (ref.current) setCw(ref.current.clientWidth); });
+      ro.observe(el); setCw(el.clientWidth);
       return () => ro.disconnect();
     }, []);
     const colW = (cw - GAP) / COLS;
