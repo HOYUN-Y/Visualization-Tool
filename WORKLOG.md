@@ -19,8 +19,8 @@
 | Branch | **`main`** |
 | Base commit | `1231f15` — merge: 시군구 좌표 오배치 수정(C9) + 네이티브 다이얼로그 교체(C3) |
 | Last checkpoint commit | `1231f15` |
-| Working tree | 배치 1(F1·F2·F6) + 배치 2(E2·E3·E4·E5·E6) + 배치 3(F3·F4·F5) 완료. **실사 백로그 E·F 전부 해소**(F5의 useT는 의도적 보류) |
-| Last verified | **2026-07-18 — Node 359/359 · E2E 67/67 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v293 |
+| Working tree | 배치 1~3(F/E) 완료. **C1은 2026-07-18 시도 후 되돌림**(시스템 변경 판명 — PLAN §12 C1 재스코핑). 코드는 batch3(`ca98521`)과 동일, 이번 세션 변경은 문서뿐 |
+| Last verified | **2026-07-18 — Node 359/359 · E2E 67/67 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v293 (배치 3 기준, C1 되돌림으로 코드 불변) |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -92,6 +92,41 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-18 (C1 시도 → 되돌림. "10줄"이 아니라 시스템 변경)
+
+**결론 먼저: C1은 되돌렸다. 코드는 배치 3(`ca98521`)과 동일하다.** 조사가 값진 산출물 — 잘못 추정된 백로그를 정확히 스코핑했다.
+
+### 시도한 것
+
+`useStore(sel)`가 selector 비교 없이 모든 `setState`에 전 구독 컴포넌트를 `force()`. React 18 `useSyncExternalStore`로 교체 → selector 결과 Object.is 비교로 **바뀐 슬라이스만 리렌더**. 프로브 컴포넌트 렌더카운트로 최적화 자체는 실증됐다(무관 업데이트 시 스킵).
+
+### 왜 되돌렸나 — 전역 리렌더가 두 종류의 은닉 의존성을 가리고 있었다
+
+`useSyncExternalStore`로 바꾸자 **파생/전역 데이터를 읽지만 그 의존 슬라이스를 구독 안 하던 컴포넌트가 stale**해졌다:
+
+1. **파생 읽기**: `derive.getActiveData(id)`는 `state.clean[id]` 의존. `dataMode`만 `useStore(s => s.clean[s.activeId])` 구독하고 **나머지 7개 모드(clean/viz/stats/ml/map/pivot/dash)는 미구독**. 전역 리렌더 시절엔 아무 setState나 전부 리렌더시켜 우연히 최신이었다. → **전체 E2E가 `mapCleanPipeline` 실패로 잡음**: Clean 단계가 지도 리더보드에 반영 안 됨(MapPanel이 `s.tweaks`·`s.dash.cross`·`s.ui.mapMetric`만 구독, `s.clean` 미구독).
+2. **비반응 전역 읽기**: `NODE.datasets`(모듈 배열)를 읽는 컴포넌트는 `registerDataset`/`removeDataset`의 setState에 의존.
+
+### 두 번째 함정 — pivot 무한 루프 (dev-invisible, verify:dist가 잡음)
+
+첫 안전 감사에서 **인라인 selector만 보고 명명된 selector를 놓쳤다.** `pivotMode:8` `pvState = (s) => ({ rows:[], ...sheet })`가 매 호출 새 객체 반환 → Object.is 항상 false → 무한 리렌더. **dev에선 안 보이고 dist에서만 React #185**. dev E2E는 전부 통과, `verify:dist`가 pivot 부팅에서 잡았다.
+
+### 판단
+
+부분 수정(map만, 또는 눈에 보이는 것만)은 **분석 도구에서 조용한 stale 데이터**를 남긴다 — 성능 비용(getActiveData 메모가 이미 완화)보다 나쁘다. 안전한 C1은 (a) 전 파생-읽기 컴포넌트에 `s.clean` 구독 (b) 전 `NODE.datasets`-읽기 컴포넌트에 생명주기 구독 (c) **mid-mount staleness E2E 커버리지**(현재 map만 우연히 존재) (d) fresh-object selector 금지 — 를 요구하는 **정식 스코프 작업**이지 세션 add-on이 아니다. C1은 애초에 T2~T3(대용량 사용 트리거)로 미뤄져 있었고, 지금 로컬 규모엔 실질 문제가 없다.
+
+### 교훈 (다음 시도 전 필독)
+
+- **이 버그 클래스는 dev 테스트로 못 잡는다** — dev React가 무한 루프·과잉 리렌더를 관대하게 넘긴다. `verify:dist`(production React)가 유일한 신뢰 게이트. store/selector 변경 시 필수.
+- 전역 리렌더는 **파생/전역 읽기의 무효화 크러치**였다. 제거하려면 모든 파생 읽기가 의존성을 명시 구독해야 한다.
+- selector 감사는 **인라인 + 명명 둘 다**.
+
+### 상태
+
+코드 완전 원복(HEAD=`ca98521`과 diff 0). 이번 세션 변경은 **문서 2개뿐**(PLAN §12 C1 재스코핑, 이 기록). Node 359 · E2E 67 · verify:dist 9모드 (배치 3 기준 그대로).
+
+---
 
 ## 세션 기록 — 2026-07-18 (배치 3 — F3·F4·F5 구조 부채)
 

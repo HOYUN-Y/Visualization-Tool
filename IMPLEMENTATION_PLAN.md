@@ -470,7 +470,7 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 
 | ID | 항목 | 확인된 현재 상태 (2026-07-17) | 티어 | 완화책 |
 |---|---|---|---|---|
-| **C1** | 전역 리렌더 store | ❌ 잔존 — `store.jsx:158` `useStore(sel)`가 **selector 결과 비교 없이** 모든 `setState`에 전 구독 컴포넌트 `force()` | T2~T3 | selector 결과 얕은 비교 후 skip(10줄 내). 장기: 그리드 가상화 |
+| **C1** | 전역 리렌더 store | ⚠️ **2026-07-18 시도 → 되돌림. "10줄"이 아니라 시스템 변경임이 판명.** `useStore`를 `useSyncExternalStore`로 바꾸면 selector 비교로 리렌더는 줄지만, **전역 리렌더가 두 종류의 은닉 의존성을 가리고 있었다**: ① 파생 읽기(`getActiveData`/`seedRows`)는 `s.clean` 의존인데 `dataMode`만 구독(나머지 7개 모드 미구독 → clean 변경 시 stale) ② `NODE.datasets`(비반응 전역) 읽기는 `registerDataset`/`removeDataset` 의존. `verify:dist`가 pivot `pvState` 무한 루프(fresh-object selector, **dev-invisible/dist서 React #185**)를 잡았고, 전체 E2E가 map 리더보드 stale(①의 실증)을 잡았다. **부분 수정은 분석 도구에서 조용한 stale 데이터 리스크** | T2~T3 | **선행 필요**: (a) `getActiveData` 읽는 전 컴포넌트에 `s.clean` 구독 추가 (b) `NODE.datasets` 읽는 컴포넌트에 데이터셋 생명주기 구독 (c) **mid-mount 변경 staleness E2E 커버리지**(현재 map만 우연히 있음) (d) 명명·인라인 selector 모두 fresh-object 금지. 그 후 `useSyncExternalStore`. 검증 게이트는 반드시 `verify:dist`(production React) |
 | ~~**C3**~~ | ~~`alert()`/`confirm()` 네이티브 다이얼로그~~ | ✅ **해소 (2026-07-17)** — `js/ui.jsx`(`window.UI`) 신규: 토스트 + promise 기반 `alert`/`confirm`/`prompt`. 네이티브 호출 **20곳 전부 교체**(alert 14·confirm 2·prompt 4). 계약은 네이티브와 동일(`confirm`→bool, `prompt`→string\|null)이라 호출부 로직 불변. Escape 취소·Enter 제출·자동 포커스. E2E `uiDialogs` 7 — **실제 rename/delete 플로우에서 네이티브 다이얼로그 미발화를 명시 검증** | — | — |
 | **C6** | 접근성 부재 | ❌ 잔존 — aria 속성 **1개**, 포커스 트랩·키보드 내비 없음 | T3 | 개인 도구론 범위 밖 명시. 신규 모달부터 포커스 트랩 관례 |
 | **C7** | 라이트 테마 검증 공백 | 미변경 — 최근 기능이 다크에서만 검증 | T3 | E2E에 라이트 테마 스크린샷 1패스 |
@@ -516,7 +516,7 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 - **공유·링크·배포 결정 시**: A2(dev 빌드) → A4(HTTPS) → A6(저장 한계 고지) → C3(다이얼로그). *A1(수식 코드실행)은 ✅ 해소 — 공유링크 보안 선행 완료.*
 - **통계 결과를 남에게 보여줄 때**: ✅ **E1~E6 전부 해소** — 공선성·컬럼 절단·왜도 불일치·ACF 결측·로지스틱 수렴·LIKE 이스케이프. 남은 정확성 리스크는 없음(2026-07-17 배치 2 기준).
 - **Map에서 Clean 결과를 쓸 때**: ✅ F1 해소 — 이제 Clean이 지도에 반영된다.
-- **XLSX 대용량 사용 시작 시**: D1 → B4 → C1.
+- **XLSX 대용량 사용 시작 시**: D1(인메모리 복제 가드) → B4(undo 스택 상한) → C1(전역 리렌더 — 2026-07-18 시도했으나 시스템 변경이라 되돌림, 위 스코프 참조).
 - **팀·다중 기기 사용 시작 시**: B1 → A6. *B2(언로드 플러시)는 ✅ 해소.*
 - **오프라인 보장 필요 시**: A3′(DuckDB 벤더링).
 
