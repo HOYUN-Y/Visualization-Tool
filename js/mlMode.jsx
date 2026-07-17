@@ -1,6 +1,6 @@
 /* NØDE/Insight — ML Studio (JMP-enhanced): regression, k-NN, KMeans + model comparison */
 (function () {
-  const { useStore, actions, derive, stat } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive, stat } = window.Store;
   const Icon = window.Icon, NODE = window.NODE, Charts = window.Charts;
   const EChart = Charts.EChart;
   const IE = window.IE;
@@ -537,7 +537,7 @@
     const cfgS = useStore((s) => s.ui.ml);
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
-    const { columns, rows } = derive.getActiveData(activeId);
+    const { columns, rows } = useActiveData(activeId);
     const numCols = mlNums(columns);
     const catCols = mlCats(columns);
     const cfg = mlResolveCfg(cfgS, columns);

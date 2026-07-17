@@ -1,7 +1,7 @@
 /* insight Analytics — Combine datasets modal (Union / Join) → window.CombineModal
    Uses the pure window.DataOps engine; materializes results via Store.actions.registerDataset. */
 (function () {
-  const { useStore, actions } = window.Store;
+  const { useStore, useDatasets, actions } = window.Store;
   const Icon = window.Icon;
 
   function uniqueId(base) {
@@ -18,7 +18,7 @@
   }
 
   function CombineModal() {
-    useStore((s) => s.activeId); // re-render when datasets/active change
+    const datasets = useDatasets(); // re-render on import/remove — replaces the old activeId proxy (PLAN §12 C1)
     const [open, setOpen] = React.useState(false);
     const [op, setOp] = React.useState("union");
     const [picked, setPicked] = React.useState({});     // union: {id:true}
@@ -30,7 +30,6 @@
     const [name, setName] = React.useState("");
     const [error, setError] = React.useState("");
 
-    const datasets = window.NODE.datasets || [];
     const byId = (id) => datasets.find((d) => d.id === id);
 
     const reset = React.useCallback(() => {

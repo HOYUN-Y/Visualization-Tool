@@ -1,11 +1,15 @@
 /* insight Analytics — Pivot mode: drag Rows/Columns/Values/Filters → cross-tab table */
 (function () {
-  const { useStore, actions, derive } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive } = window.Store;
   const Icon = window.Icon, NODE = window.NODE;
 
   const AGGS = ["sum", "avg", "count", "countd", "min", "max", "median"];
   const curPivotSheet = (s) => (s.pivotSheets || []).find((x) => x.id === s.pivotActive) || (s.pivotSheets || [])[0];
-  const pvState = (s) => ({ rows: [], columns: [], values: [], filters: [], ...(curPivotSheet(s) || {}) });
+  // Merge the active pivot sheet onto empty defaults. Takes a SHEET, NOT store state — it must not be a
+  // useStore selector: building a fresh object inside a selector loops forever under useSyncExternalStore
+  // (dev-invisible, React #185 in production; PLAN §12 C1). Call sites select the stable curPivotSheet
+  // reference and derive this in a useMemo keyed on it.
+  const pvSpec = (sheet) => ({ rows: [], columns: [], values: [], filters: [], ...(sheet || {}) });
   const readField = (e) => { try { return JSON.parse(e.dataTransfer.getData("application/node-field")); } catch (x) { return null; } };
   const fmt = (v) => (v == null ? "—" : typeof v === "number" ? NODE.fmtNum(v, 1) : String(v));
   const colLabel = (columns, key) => (columns.find((c) => c.key === key) || {}).label || key;
@@ -36,7 +40,7 @@
     const active = useStore((s) => s.pivotActive);
     const globalActive = useStore((s) => s.activeId);
     const activeSheet = sheets.find((x) => x.id === active) || sheets[0];
-    const datasets = NODE.datasets;
+    const datasets = useDatasets();
     const tail = (
       <React.Fragment>
         <div className="spacer" />
@@ -56,11 +60,12 @@
   }
 
   function PivotPanel() {
-    const pv = useStore(pvState);
+    const sheet = useStore(curPivotSheet);
+    const pv = React.useMemo(() => pvSpec(sheet), [sheet]);
     const activeId = useStore((s) => s.activeId);
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
-    const { columns } = derive.getActiveData(activeId);
+    const { columns } = useActiveData(activeId);
     const setP = actions.setPivot;
 
     const addDim = (shelf) => (f) => { if (!pv[shelf].includes(f.key)) setP({ [shelf]: [...pv[shelf], f.key] }); };
@@ -98,15 +103,15 @@
 
   function PivotCenter() {
     const activeId = useStore((s) => s.activeId);
-    const pv = useStore(pvState);
     const sheet = useStore(curPivotSheet);
+    const pv = React.useMemo(() => pvSpec(sheet), [sheet]);
     // Keep this tab's remembered dataset in sync with the active dataset.
     React.useEffect(() => {
       if (sheet && sheet.datasetId !== activeId) actions.setPivotSheetDataset(sheet.id, activeId);
     }, [activeId, sheet && sheet.id]);
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
-    const { ds, rows, columns } = derive.getActiveData(activeId);
+    const { ds, rows, columns } = useActiveData(activeId);
     const [name, setName] = React.useState("");
 
     const spec = { rows: pv.rows, columns: pv.columns, values: pv.values, filters: pv.filters };

@@ -154,10 +154,27 @@ js/
 Tiny redux-like store. **Read with the `useStore(selector)` hook; mutate only through `actions`.**
 
 ```js
-const { useStore, getState, setState, subscribe, actions, derive, stat, aggFn } = window.Store;
+const { useStore, useActiveData, useDatasets, getState, setState, subscribe, actions, derive, stat, aggFn } = window.Store;
 const mode = useStore(s => s.mode);          // subscribes & re-renders on change
 actions.setMode("visualize");                 // never setState directly from components
 ```
+
+**`useStore` is `useSyncExternalStore` (PLAN §12 C1)** — it re-renders a component ONLY when its selector
+result changes (Object.is), not on every `setState`. Two rules fall out of this, and breaking either is
+**dev-invisible — only `npm run verify:dist` (production React) catches it**:
+
+1. **A selector must return a primitive or a STABLE state reference — never a freshly-built object/array.**
+   `useStore(s => ({ ...x }))` loops forever (React #185 in prod). Derive wrapper objects in the component
+   body with `useMemo`, not in the selector. Applies to named selectors too.
+2. **Don't read derived data or the dataset list directly in render.** `derive.getActiveData(id)` and
+   `NODE.datasets` do NOT re-render on their own now. Use the hooks:
+   - `useActiveData(id?)` → `{ ds, rows, columns, steps, cursor }`, and subscribes to `state.clean[id]` +
+     the dataset-list revision so the component refreshes on a clean step / import. `id` omitted = active
+     dataset; a missing id returns an empty shape (no throw).
+   - `useDatasets()` → `NODE.datasets`, subscribing to the `datasetsRev` signal (bumped by
+     register/remove/hydrate). Use it anywhere a component renders the dataset *list*.
+   Reading `derive.getActiveData`/`NODE.datasets` directly is fine ONLY in event handlers/callbacks
+   (executed on demand, not during render).
 
 ### State shape
 ```js

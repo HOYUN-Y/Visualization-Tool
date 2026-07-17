@@ -130,6 +130,10 @@
     pivotActive: "pivot-1",
     dash: { sheets: [mkDashSheet("대시보드 1", "dash-1")], active: "dash-1", cross: null, edit: false, selectedWidgetId: null },
     tweaks: { layout: "classic", sidebar: "rail", tone: "cool", density: "compact" },
+    // Reactivity signal for NODE.datasets, which is a non-reactive module array (window.NODE.datasets),
+    // not part of state. registerDataset/removeDataset/hydrateProject bump this so components that read
+    // the dataset LIST (via useDatasets) re-render when the list changes (PLAN §12 C1). Not persisted.
+    datasetsRev: 0,
   };
 
   const initialDatasets = JSON.parse(JSON.stringify(D));
@@ -155,11 +159,45 @@
     return () => listeners.delete(listener);
   }
 
+  // Subscribe to a slice of the store (PLAN §12 C1). React 18's useSyncExternalStore re-runs the
+  // selector on each store notification, compares with Object.is, and re-renders ONLY when the result
+  // changed — so an unrelated setState (a panel-resize mousemove, an AI-drawer toggle) no longer
+  // re-renders every subscriber. It also closes a latent bug the old useEffect-subscribe had (a setState
+  // between render and effect-attach was silently missed).
+  //
+  // SAFETY CONTRACT — READ BEFORE ADDING A SELECTOR OR A DERIVED READ:
+  //  1. A selector must return a PRIMITIVE or a STABLE state reference — never a freshly-built
+  //     object/array. `s => ({ ...x })` loops forever (Object.is always false). This is DEV-INVISIBLE
+  //     and only crashes the production build (React #185); `npm run verify:dist` is the gate. Applies to
+  //     NAMED selectors too, not just inline arrows.
+  //  2. Reading DERIVED data (getActiveData) or the non-reactive dataset LIST (NODE.datasets) does NOT
+  //     re-render on its own. The old global-re-render masked this. Read them through useActiveData /
+  //     useDatasets below, which subscribe to the right dependencies. Do NOT call derive.getActiveData
+  //     or NODE.datasets directly in a component's render path.
   function useStore(sel) {
     const select = sel || ((s) => s);
-    const [, force] = React.useReducer((x) => x + 1, 0);
-    React.useEffect(() => subscribe(force), []);
-    return select(state);
+    return React.useSyncExternalStore(subscribe, () => select(state));
+  }
+
+  // Reactive read of a dataset's post-cleaning view. Subscribes to the dataset's cleaning pipeline
+  // (state.clean[id]) AND the dataset-list revision, so the component re-renders when either changes —
+  // which plain derive.getActiveData(id) does NOT do under fine-grained subscriptions. `id` omitted =
+  // the active dataset. Absent id (deleted / custom-only project) returns an empty shape rather than
+  // throwing (subsumes mapMode's old seedRows guard).
+  function useActiveData(id) {
+    const activeId = useStore((s) => s.activeId);
+    const rid = id || activeId;
+    useStore((s) => s.clean[rid]);
+    useStore((s) => s.datasetsRev);
+    if (!D.some((d) => d.id === rid)) return { ds: null, rows: [], columns: [], steps: [], cursor: 0 };
+    return getActiveData(rid);
+  }
+
+  // Reactive read of the dataset LIST. NODE.datasets is a plain module array (not state), so mutations
+  // via register/remove/hydrate only reach the UI through the datasetsRev signal.
+  function useDatasets() {
+    useStore((s) => s.datasetsRev);
+    return D;
   }
 
   // ---------- stats ----------
@@ -483,6 +521,8 @@
       }
       delete next.dash.widgets;
       if (!next.dash.sheets.some((x) => x.id === next.dash.active)) next.dash.active = next.dash.sheets[0].id;
+      // Bump past the old value (initial=0 would 0→0 and leave dataset-list subscribers stale after load).
+      next.datasetsRev = (state.datasetsRev || 0) + 1;
       state = next;
 
       const analysis = bundle.analysis || {};
@@ -503,8 +543,8 @@
       D.push(next);
       const activate = !options || options.activate !== false;
       setState((s) => activate
-        ? { ...s, activeId: next.id, ui: { ...s.ui, selCol: null } }
-        : { ...s });
+        ? { ...s, activeId: next.id, ui: { ...s.ui, selCol: null }, datasetsRev: s.datasetsRev + 1 }
+        : { ...s, datasetsRev: s.datasetsRev + 1 });
       return next;
     },
     removeDataset: (id) => {
@@ -521,6 +561,7 @@
           clean,
           activeId: s.activeId === id ? D[Math.min(index, D.length - 1)].id : s.activeId,
           ui: s.activeId === id ? { ...s.ui, selCol: null } : s.ui,
+          datasetsRev: s.datasetsRev + 1,
         };
       });
       return true;
@@ -704,7 +745,7 @@
   }
 
   window.Store = {
-    useStore, getState, setState, subscribe, actions, getDefaultProjectSnapshot,
+    useStore, useActiveData, useDatasets, getState, setState, subscribe, actions, getDefaultProjectSnapshot,
     derive: { getDataset, getActiveData, getClean, aggregate, colStats, applySteps }, stat, aggFn,
   };
 })();

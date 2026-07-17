@@ -1,6 +1,6 @@
 /* NØDE — Dashboard Builder: widget grid, KPIs, charts, cross-filtering */
 (function () {
-  const { useStore, actions, derive, stat, aggFn } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive, stat, aggFn } = window.Store;
   const Icon = window.Icon, NODE = window.NODE, Charts = window.Charts;
   const EChart = Charts.EChart;
 
@@ -142,7 +142,7 @@
     const activeId = useStore((s) => s.activeId);
     const dash = useStore((s) => s.dash);
     const theme = useStore((s) => s.theme);
-    const { rows, columns, ds } = derive.getActiveData(activeId);
+    const { rows, columns, ds } = useActiveData(activeId);
     const sheet = (dash.sheets || []).find((x) => x.id === dash.active) || (dash.sheets || [])[0];
     const widgets = (sheet && sheet.widgets) || defaultWidgets(columns);
     // First-ever dashboard (null widgets) auto-fills a starter; new tabs start blank ([]).
@@ -354,7 +354,7 @@
     const T = (k) => window.I18N.t(lang, k);
     const dash = useStore((s) => s.dash);
     const activeId = useStore((s) => s.activeId);
-    const { columns } = derive.getActiveData(activeId);
+    const { columns } = useActiveData(activeId);
     const sheet = (dash.sheets || []).find((x) => x.id === dash.active) || (dash.sheets || [])[0];
     const widgets = (sheet && sheet.widgets) || defaultWidgets(columns);
     const add = (wd) => actions.setDashWidgets([...widgets, { ...wd, id: "w" + Date.now(), x: 0, y: 99 }]);

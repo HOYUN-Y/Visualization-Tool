@@ -437,7 +437,10 @@
   }
 
   function StatusBar() {
-    const { ds, rows } = window.Store.derive.getActiveData(useStore((s) => s.activeId));
+    // Row/col counts must reflect cleaning → useActiveData (subscribes to clean + dataset list), not
+    // plain getActiveData which wouldn't re-render on a clean step (PLAN §12 C1).
+    const activeId = useStore((s) => s.activeId);
+    const { ds, rows } = window.Store.useActiveData(activeId);
     const mode = useStore((s) => s.mode);
     return (
       <div className="statusbar">

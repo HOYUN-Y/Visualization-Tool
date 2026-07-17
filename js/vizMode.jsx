@@ -1,6 +1,6 @@
 /* NØDE — Visualization Builder: shelves + Show Me + ECharts canvas */
 (function () {
-  const { useStore, actions, derive, stat, aggFn } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive, stat, aggFn } = window.Store;
   const Icon = window.Icon, NODE = window.NODE, Charts = window.Charts;
   const { isNumType, Popover } = window;
   const EChart = Charts.EChart;
@@ -166,7 +166,7 @@
     const active = useStore((s) => s.vizActive);
     const globalActive = useStore((s) => s.activeId);
     const activeSheet = sheets.find((x) => x.id === active) || sheets[0];
-    const datasets = window.NODE.datasets;
+    const datasets = useDatasets();
     const tail = (
       <React.Fragment>
         <div className="spacer" />
@@ -199,7 +199,7 @@
     const theme = useStore((s) => s.theme);
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
-    const { rows, columns } = derive.getActiveData(activeId);
+    const { rows, columns } = useActiveData(activeId);
     const measures = viz.rows;
     const colsChips = viz.cols.map((c) => (
       <span key={c.key} className="chip dim">
@@ -644,7 +644,7 @@
     const vizActive = useStore((s) => s.vizActive);
     const activeId = useStore((s) => s.activeId);
     const viz = vizSheets.find((x) => x.id === vizActive) || vizSheets[0];
-    const { columns, rows } = derive.getActiveData(activeId);
+    const { columns, rows } = useActiveData(activeId);
     const nDim = viz.cols.length, nMeas = viz.rows.length;
     const hasOHLC = ["open", "high", "low", "close"].every((k) => columns.some((c) => c.key === k));
 

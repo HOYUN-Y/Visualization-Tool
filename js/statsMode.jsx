@@ -1,6 +1,6 @@
 /* NØDE/Insight — Statistical Analysis Studio (JMP-enhanced) */
 (function () {
-  const { useStore, actions, derive, stat } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive, stat } = window.Store;
   const Icon = window.Icon, NODE = window.NODE, Charts = window.Charts, SM = window.SM;
   const EChart = Charts.EChart;
   const IE = window.IE;
@@ -624,7 +624,7 @@
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const theme = useStore((s) => s.theme);
     const cfgS = useStore((s) => s.ui.stats);
-    const { rows, columns } = derive.getActiveData(activeId);
+    const { rows, columns } = useActiveData(activeId);
     const numCols = numsOf(columns);
     const catCols = catsOf(columns);
     const cfg = resolveCfg(cfgS, columns, rows);
@@ -848,7 +848,7 @@
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
     const cfgS = useStore((s) => s.ui.stats);
-    const { columns, rows } = derive.getActiveData(activeId);
+    const { columns, rows } = useActiveData(activeId);
     const cfg = resolveCfg(cfgS, columns, rows);
     const set = (patch) => actions.setUI({ stats: { ...cfg, ...patch } });
     const numCols = numsOf(columns);

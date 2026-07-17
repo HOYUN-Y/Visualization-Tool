@@ -1,6 +1,6 @@
 /* NØDE — Data mode: Explorer (left), Preview/Profiling (center), Column profile (right) */
 (function () {
-  const { useStore, actions, derive, stat } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive, stat } = window.Store;
   const Icon = window.Icon, NODE = window.NODE, DataGrid = window.DataGrid;
   const { typeShort, isNumType } = window;
 
@@ -8,6 +8,7 @@
   function DatasetTree() {
     const activeId = useStore((s) => s.activeId);
     const selCol = useStore((s) => s.ui.selCol);
+    const datasets = useDatasets(); // reactive dataset list (re-renders on import/remove; PLAN §12 C1)
     const [open, setOpen] = React.useState(() => ({ [activeId]: true }));
     const [q, setQ] = React.useState("");
     const lang = useStore((s) => s.tweaks.lang) || "ko";
@@ -19,9 +20,9 @@
           <div className="search"><Icon name="search" /><input placeholder={T("dSearchDs")} value={q} onChange={(e) => setQ(e.target.value)} /></div>
         </div>
         <div className="sect-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>{T("dDatasets")}</span><span className="mono" style={{ color: "var(--tx-faint)" }}>{NODE.datasets.length}</span>
+          <span>{T("dDatasets")}</span><span className="mono" style={{ color: "var(--tx-faint)" }}>{datasets.length}</span>
         </div>
-        {NODE.datasets.map((ds) => {
+        {datasets.map((ds) => {
           const isOpen = open[ds.id];
           const active = ds.id === activeId;
           const dims = ds.columns.filter((c) => c.role === "dimension");
@@ -95,7 +96,7 @@
     const [editMode, setEditMode] = React.useState(false);
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
-    const { rows, columns } = derive.getActiveData(activeId);
+    const { rows, columns } = useActiveData(activeId);
 
     const editHandlers = window.makeEditHandlers(columns); // shared with cleanMode (grid.jsx, PLAN §12 F5)
     const nSteps = cl ? cl.cursor : 0;
@@ -196,7 +197,7 @@
   function ColumnProfile() {
     const activeId = useStore((s) => s.activeId);
     const selCol = useStore((s) => s.ui.selCol);
-    const { rows, columns } = derive.getActiveData(activeId);
+    const { rows, columns } = useActiveData(activeId);
     const col = columns.find((c) => c.key === selCol);
     if (!col) return (
       <div className="empty"><Icon name="info" /><div className="t">No column selected</div><div className="s">Click a column header or a profiling card to inspect its distribution and statistics.</div></div>

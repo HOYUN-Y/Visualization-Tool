@@ -19,8 +19,8 @@
 | Branch | **`main`** |
 | Base commit | `1231f15` — merge: 시군구 좌표 오배치 수정(C9) + 네이티브 다이얼로그 교체(C3) |
 | Last checkpoint commit | `1231f15` |
-| Working tree | 배치 1~3(F/E) 완료. **C1은 2026-07-18 시도 후 되돌림**(시스템 변경 판명 — PLAN §12 C1 재스코핑). 코드는 batch3(`ca98521`)과 동일, 이번 세션 변경은 문서뿐 |
-| Last verified | **2026-07-18 — Node 359/359 · E2E 67/67 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v293 (배치 3 기준, C1 되돌림으로 코드 불변) |
+| Working tree | 배치 1~3(F/E) + **C1(전역 리렌더) 해소 — 2차, 선행조건 갖춰 재시도**. 실사 백로그에서 남은 건 조건부 대기 항목(T1 배포·T2 규모·T3 품질)뿐 |
+| Last verified | **2026-07-18 — Node 359/359 · E2E 71/71 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v294 |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -93,7 +93,46 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
 
-## 세션 기록 — 2026-07-18 (C1 시도 → 되돌림. "10줄"이 아니라 시스템 변경)
+## 세션 기록 — 2026-07-18 (C1 — 전역 리렌더 해소, 2차: 선행조건 갖춰 재시도)
+
+1차(바로 아래)가 되돌린 뒤, 그때 밝혀낸 은닉 의존성 2종을 **아키텍처로 봉합**하고 재시도해 완료.
+
+### 접근 — 구독을 흩뿌리지 않고 훅으로 캡슐화
+
+전역 리렌더가 가리던 두 의존성:
+1. **파생 읽기** `getActiveData(id)` → `state.clean[id]` + 데이터셋 목록 의존.
+2. **비반응 전역** `NODE.datasets` → `registerDataset`/`removeDataset`/`hydrateProject` 의존.
+
+컴포넌트마다 `useStore(s=>s.clean)`를 흩뿌리는 대신 **두 훅**을 신설(store.jsx):
+- `useActiveData(id)` — `activeId`·`clean[rid]`·`datasetsRev` 구독 후 `getActiveData(rid)` 반환. 부재 시 빈 shape(mapMode의 옛 seedRows 가드 흡수).
+- `useDatasets()` — `datasetsRev` 구독 후 `NODE.datasets` 반환.
+- **`datasetsRev` 신호 신설**: `NODE.datasets`는 state가 아니라 모듈 배열이므로, register/remove/hydrate가 이 카운터를 bump해야 목록 읽기가 리렌더된다. 비영속(STATE_KEYS 밖).
+
+`useStore`는 `useSyncExternalStore`로 교체(Object.is 비교 + effect-subscribe 누락 버그 해소).
+
+### 전수 교체 (13파일)
+
+render-path만 교체하고 **콜백은 유지**(실행 시점 읽기라 반응성 불필요):
+- `getActiveData(activeId)` **18곳** → `useActiveData(activeId)` (data·clean·viz·stats·ml·pivot·dash·aiDrawer·map·shell StatusBar).
+- mapMode `seedRows(id)` **9곳** → `useSeedRows(id)`(= `useActiveData(id).rows`). 헬퍼가 이제 훅.
+- `NODE.datasets` render 읽기 **5곳** → `useDatasets()` (dataMode 트리·pivot/viz 탭·sql 스키마칩·combineModal). 유지: shell exportCSV·sql runQuery·pivot saveAsDataset·combineModal uniqueId 등 콜백.
+- pivot `pvState` fresh-object selector → `pvSpec(sheet)`+`useMemo([sheet])` (1차 함정 재발 방지).
+
+### 검증 — staleness를 양방향 실증
+
+- `cleanReactivity` E2E **3 신규** — ① clean 모드가 자기 addStep 반영(showstopper) ② 비-clean 모드(stats)에서도 StatusBar 행수 갱신 ③ `registerDataset`(activate:false)에 데이터셋 트리 +1. **StatusBar를 옛 getActiveData로 되돌리면 ②가 정확히 실패**함을 실증(회귀망 유효).
+- `mapCleanPipeline` — **1차가 잡았던 바로 그 회귀**가 이제 통과.
+- `storeRerender` 1 — 무관 업데이트 시 리렌더 스킵을 프로브 렌더카운트로 실증.
+- **verify:dist가 핵심 게이트**(dev-invisible한 fresh-object 무한루프·훅위반은 여기서만 잡힘) — 9모드 전수·콘솔 에러 0.
+- 전체: **Node 359/359 · E2E 71/71**(67→71) · asset v294.
+
+### 왜 1차와 달랐나
+
+1차는 "10줄"로 보고 useStore만 바꿔 은닉 의존성이 stale로 터졌다. 2차는 **의존성을 먼저 매핑→훅으로 캡슐화→render-path 전수 교체→staleness 커버리지**를 갖춘 뒤 스위치를 내렸다. 조사(1차)가 재시도(2차)의 설계였다.
+
+---
+
+## 세션 기록 — 2026-07-18 (C1 1차 시도 → 되돌림. "10줄"이 아니라 시스템 변경)
 
 **결론 먼저: C1은 되돌렸다. 코드는 배치 3(`ca98521`)과 동일하다.** 조사가 값진 산출물 — 잘못 추정된 백로그를 정확히 스코핑했다.
 

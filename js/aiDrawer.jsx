@@ -1,6 +1,6 @@
 /* NØDE — Ask Insight: schema-agnostic analytics assistant (works on any dataset) */
 (function () {
-  const { useStore, actions, derive, stat } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive, stat } = window.Store;
   const Icon = window.Icon, NODE = window.NODE;
   const IE = window.IE;
 
@@ -101,7 +101,7 @@
     const T = (k) => window.I18N.t(lang, k);
     const open = useStore((s) => s.ui.aiOpen);
     const activeId = useStore((s) => s.activeId);
-    const { rows, columns, ds } = derive.getActiveData(activeId);
+    const { rows, columns, ds } = useActiveData(activeId);
     const [log, setLog] = React.useState([]);
     const [input, setInput] = React.useState("");
     const insights = React.useMemo(() => { try { return buildInsights(rows, columns); } catch (_) { return []; } }, [activeId, rows]);

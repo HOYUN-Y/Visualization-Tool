@@ -1,6 +1,6 @@
 /* NØDE — Data Cleaning Studio: issues bar, live grid, operations + history */
 (function () {
-  const { useStore, actions, derive, stat } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive, stat } = window.Store;
   const Icon = window.Icon, NODE = window.NODE, DataGrid = window.DataGrid;
   const { isNumType, typeShort } = window;
 
@@ -45,7 +45,7 @@
     const selCol = useStore((s) => s.ui.selCol);
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
-    const { ds, rows, columns, steps, cursor } = derive.getActiveData(activeId);
+    const { ds, rows, columns, steps, cursor } = useActiveData(activeId);
 
     // Direct grid editing — same non-destructive step pipeline as Data mode,
     // so column add/delete/insert/rename/type + row add/delete live in the "…" menu.
@@ -141,7 +141,7 @@
     const activeId = useStore((s) => s.activeId);
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
-    const { ds, rows, columns, steps, cursor } = derive.getActiveData(activeId);
+    const { ds, rows, columns, steps, cursor } = useActiveData(activeId);
     const [col, setCol] = React.useState(columns[0] ? columns[0].key : "");
     const selCol = columns.find((c) => c.key === col) || columns[0];
     const [renameVal, setRenameVal] = React.useState("");

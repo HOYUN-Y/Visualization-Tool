@@ -1,6 +1,6 @@
 /* NØDE/Insight — SQL Workspace: pragmatic local SQL engine over datasets */
 (function () {
-  const { useStore, actions, derive, stat, aggFn } = window.Store;
+  const { useStore, useActiveData, useDatasets, actions, derive, stat, aggFn } = window.Store;
   const Icon = window.Icon, NODE = window.NODE, DataGrid = window.DataGrid;
 
   // The hand-written JS SQL engine (DuckDB fallback) lives in js/sqlFallback.js (window.SQLFallback,
@@ -131,6 +131,7 @@ LIMIT 10`;
     const lang = useStore((s) => s.tweaks.lang) || "ko";
     const T = (k) => window.I18N.t(lang, k);
     const activeId = useStore((s) => s.activeId);
+    const datasets = useDatasets(); // schema chips list — reactive to import/remove (PLAN §12 C1)
     const ds = derive.getDataset(activeId);
     const examples = [{ t: "현재 데이터 · " + (ds ? ds.short : "active"), q: defaultSql(ds) }, ...EXAMPLES];
     return (
@@ -147,7 +148,7 @@ LIMIT 10`;
         </div>
         <div className="cp-block">
           <div className="cp-blocktitle">{T("sqlTables")}</div>
-          {NODE.datasets.map((ds) => (
+          {datasets.map((ds) => (
             <div key={ds.id} className="sql-table">
               <div className="sql-table-h"><Icon name={ds.icon} size={13} /><span className="mono">{ds.id}</span><span className="sql-tn mono">{ds.rows.length}</span></div>
               <div className="sql-cols">{ds.columns.map((c) => <span key={c.key} className="sql-col mono" title={c.type}>{c.key}</span>)}</div>
