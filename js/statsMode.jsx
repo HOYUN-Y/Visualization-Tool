@@ -194,7 +194,6 @@
 
     const histBins = ds.hist.bins;
     const histOpt = {
-      animation: false,
       grid: { left: 8, right: 8, top: 8, bottom: 28, containLabel: true },
       tooltip: { trigger: "item", backgroundColor: c.tooltipBg, borderColor: c.axis, textStyle: { color: c.textHi, fontSize: 11 },
         formatter: (p) => `${NODE.fmtCompact(histBins[p.dataIndex] ? histBins[p.dataIndex].x0 : 0)}–${NODE.fmtCompact(histBins[p.dataIndex] ? histBins[p.dataIndex].x1 : 0)}: <b>${p.value}</b>` },
@@ -207,7 +206,6 @@
 
     const outlierVals = rows.map((r) => r[colKey]).filter((v) => v != null && !isNaN(v) && (v < ds.q1 - 1.5 * ds.iqr || v > ds.q3 + 1.5 * ds.iqr));
     const boxOpt = {
-      animation: false,
       grid: { left: 8, right: 8, top: 8, bottom: 22, containLabel: true },
       tooltip: { trigger: "item", backgroundColor: c.tooltipBg, borderColor: c.axis, textStyle: { color: c.textHi, fontSize: 11 },
         formatter: (p) => p.seriesType === "boxplot"
@@ -818,7 +816,7 @@
     const c = Charts.themeColors(), pal = Charts.palette();
     const data = []; m.forEach((row, i) => row.forEach((v, j) => data.push([j, i, v == null ? "-" : +v.toFixed(2)])));
     const labels = cols.map((x) => x.label);
-    const option = { animation: false, grid: { left: 8, right: 20, top: 10, bottom: 90, containLabel: true },
+    const option = { grid: { left: 8, right: 20, top: 10, bottom: 90, containLabel: true },
       tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item", formatter: (p) => `${labels[p.value[1]]} × ${labels[p.value[0]]}<br/>r = <b>${p.value[2]}</b>` },
       xAxis: { type: "category", data: labels, axisLabel: { color: c.text, fontSize: 9, rotate: 40 } },
       yAxis: { type: "category", data: labels, axisLabel: { color: c.text, fontSize: 9 } },

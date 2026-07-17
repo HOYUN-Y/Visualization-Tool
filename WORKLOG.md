@@ -19,8 +19,8 @@
 | Branch | **`main`** |
 | Base commit | `1231f15` — merge: 시군구 좌표 오배치 수정(C9) + 네이티브 다이얼로그 교체(C3) |
 | Last checkpoint commit | `1231f15` |
-| Working tree | 배치 1(F1·F2·F6) + 배치 2(E2·E3·E4·E5·E6) 완료. **다음: 배치 3(구조 — F3·F4·F5)** |
-| Last verified | **2026-07-17 — Node 359/359 · E2E 62/62 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v292 |
+| Working tree | 배치 1(F1·F2·F6) + 배치 2(E2·E3·E4·E5·E6) + 배치 3(F3·F4·F5) 완료. **실사 백로그 E·F 전부 해소**(F5의 useT는 의도적 보류) |
+| Last verified | **2026-07-18 — Node 359/359 · E2E 67/67 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v293 |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -92,6 +92,39 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-18 (배치 3 — F3·F4·F5 구조 부채)
+
+순수 리팩터라 "아무것도 안 바뀌었음을 증명"이 핵심. 세 항목 모두 **동작 보존을 실측으로 잠근 뒤** 진행.
+
+### F3 — vizMode 460+170줄을 vizOptions.js로 추출 (동작 보존 이동)
+
+사용자 승인대로 **DI/Node테스트가 아니라 동작 보존 이동**. `buildOption`(460줄)·`applyFormat`(170줄)·헬퍼를 `js/vizOptions.js`로 옮기고 `window.buildVizOption`/`applyVizFormat` 노출. **vizMode 1431→776줄.**
+
+**함정 3개:**
+- 순수 함수 블록이 연속적이지 않다 — 사이에 React 컴포넌트 `FacetGrid`가 끼어 있어 3블록으로 분할 이동.
+- `rgbToHex`는 FormatPanel(vizMode 잔류)도 쓰므로 **이동 대상 아님**. `stableJitter`는 죽은 코드였다.
+- `vizOptions.js`는 plain JS지만 `window.Store.derive`를 IIFE 로드시 캡처 → projectStore.js식 **deferred-babel 로더**로 store·charts 이후 실행. 처음엔 HTML 주석에 "text/babel" 문자열을 넣었다가 build.mjs의 무딘 전체문서 검사에 걸림(주석 문구 교체).
+
+**검증**: 추출 **전** 20개 차트 타입 출력을 캡처 → 추출 후 재캡처 → **바이트 단위 동일** 확인. E2E `vizOptions` 2(20타입 전수 + 실제 Chart 렌더).
+
+### F4 — animation:false 복붙 18곳 → EChart 단일 강제
+
+`setOption(_, true)`가 통째 교체라 baseGrid 안 쓰는 옵션은 손수 재선언했다. 모든 차트가 지나는 **단일 병목** `EChart`의 setOption에서 `{ ...option, animation:false }`로 중앙 강제 → baseGrid 1개만 남기고 17개 제거. **새 차트가 빠뜨려도 회귀 불가**가 됨. 의도적 `animation:true` 없음 확인. 20타입 출력이 animation 키 외 완전 동일함을 실측(financial 3개는 키가 빠지고 EChart가 주입, bar 등 17개는 baseGrid 경유로 키 유지 — 렌더 동작은 셋 다 불변).
+
+### F5 — 중복 2/3 해소
+
+- **탭바 3벌 → `window.SheetTabs` 1개**(shell.jsx): VizTabs/PivotTabs/DashTabs가 selector·액션명·아이콘·라벨·dataset picker 유무만 달랐다. 전부 prop화하고 dataset picker는 `tail` prop(dash는 없음). ~120줄 감소. E2E `sheetTabs` 3 — 3개 모드에서 add/rename/dup/close가 **각자의 store slice**를 구동하는지(공유 컴포넌트에서 prop 오배선이 숨을 자리) 검증.
+- **editHandlers 2벌 → `window.makeEditHandlers(columns)` 1개**(grid.jsx): dataMode:105 ≡ cleanMode:57 (uniqKey 헬퍼까지 13줄 동일). E2E `cellEdit` 무회귀.
+- **`const T` 40+회는 의도적 보류**: 두 줄 관용구라 46곳·13파일 churn 대비 이득이 낮고, `useT` 훅은 useStore·로드순서 제약이 있다. 남기는 게 낫다고 판단(사용자에게 사전 고지).
+
+### 검증
+
+- 신규 E2E: `vizOptions` 2 · `sheetTabs` 3. 신규 헬퍼 `tests/e2e/_vizTypes.mjs`(spec 아님, 수집 제외).
+- 전체: **Node 359/359**(변동 없음 — 순수 리팩터) · **E2E 67/67**(62→67) · `verify:dist` 9개 모드 전수·콘솔 에러 0 · asset v293.
+- **실사 백로그 E·F 전부 종료**(F5 useT 보류 1건 제외).
+
+---
 
 ## 세션 기록 — 2026-07-17 (배치 2 — E2·E3·E4·E5·E6 분석 정직성)
 

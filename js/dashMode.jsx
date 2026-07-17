@@ -128,37 +128,11 @@
     const dash = useStore((s) => s.dash);
     const sheets = dash.sheets || [];
     const active = dash.active;
-    const [editId, setEditId] = React.useState(null);
-    const [draft, setDraft] = React.useState("");
-    const commit = () => { if (editId) actions.renameDashSheet(editId, draft.trim()); setEditId(null); };
-    return (
-      <div className="viz-tabs">
-        <div className="viz-tabs-scroll">
-          {sheets.map((sh) => (
-            <div key={sh.id} className={"viz-tab" + (sh.id === active ? " on" : "")}
-              onClick={() => sh.id !== active && actions.setDashActive(sh.id)}
-              onDoubleClick={() => { setEditId(sh.id); setDraft(sh.name); }} title="더블클릭해서 이름 변경">
-              <Icon name="dashboard" size={12} style={{ opacity: 0.6 }} />
-              {editId === sh.id
-                ? <input autoFocus className="viz-tab-edit" value={draft}
-                    onChange={(e) => setDraft(e.target.value)} onBlur={commit}
-                    onKeyDown={(e) => { if (e.key === "Enter") commit(); else if (e.key === "Escape") setEditId(null); }}
-                    onClick={(e) => e.stopPropagation()} />
-                : <span className="viz-tab-nm">{sh.name}</span>}
-              {sh.id === active && (
-                <span className="viz-tab-dup" title="대시보드 복제"
-                  onClick={(e) => { e.stopPropagation(); actions.duplicateDashSheet(sh.id); }}><Icon name="duplicate" size={11} /></span>
-              )}
-              {sheets.length > 1 && (
-                <span className="viz-tab-x" title="대시보드 닫기"
-                  onClick={(e) => { e.stopPropagation(); actions.removeDashSheet(sh.id); }}><Icon name="x" size={11} /></span>
-              )}
-            </div>
-          ))}
-          <button className="viz-tab-add" title="새 대시보드" onClick={() => actions.addDashSheet()}><Icon name="plus" size={13} /></button>
-        </div>
-      </div>
-    );
+    // Dashboards have no per-sheet dataset picker, so no `tail`.
+    return <window.SheetTabs sheets={sheets} active={active} icon="dashboard"
+      onActivate={actions.setDashActive} onRename={actions.renameDashSheet}
+      onDuplicate={actions.duplicateDashSheet} onRemove={actions.removeDashSheet} onAdd={actions.addDashSheet}
+      dupTitle="대시보드 복제" closeTitle="대시보드 닫기" addTitle="새 대시보드" />;
   }
 
   // ---------- Canvas ----------

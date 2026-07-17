@@ -97,25 +97,7 @@
     const T = (k) => window.I18N.t(lang, k);
     const { rows, columns } = derive.getActiveData(activeId);
 
-    const uniqKey = (base) => {
-      const keys = new Set(columns.map((c) => c.key)); let k = base, i = 1;
-      while (keys.has(k)) k = base + "_" + (++i);
-      return k;
-    };
-    const editHandlers = {
-      onCell: (rid, key, val) => actions.editCell(rid, key, val),
-      onDeleteRows: (rids) => actions.deleteRows(rids),
-      onAddRow: () => actions.addRow({}),
-      onAddCol: () => actions.addColumn({ key: uniqKey("new_col"), type: "string" }),
-      onInsertCol: (at) => actions.addColumn({ key: uniqKey("new_col"), type: "string", at }),
-      onRename: (key, to) => actions.addStep({ op: "rename", col: key, params: { to } }),
-      onChangeType: (key, t) => actions.addStep({ op: "change_type", col: key, params: { to: t } }),
-      onDeleteCol: (key) => actions.addStep({ op: "drop_col", col: key }),
-      onReorder: (order) => actions.reorderCols(order),
-      onCells: (cells) => actions.editCells(cells),
-      onUndo: () => actions.undo(),
-      onRedo: () => actions.redo(),
-    };
+    const editHandlers = window.makeEditHandlers(columns); // shared with cleanMode (grid.jsx, PLAN §12 F5)
     const nSteps = cl ? cl.cursor : 0;
 
     return (

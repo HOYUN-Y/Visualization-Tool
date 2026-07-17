@@ -125,12 +125,17 @@ js/
   # vizMode.jsx: FormatPanel (title/legend/labels/axis/grid/bg/text/series/size), applyFormat post-processor,
   #   chart resize handles, legend/title free-drag, Export menu (PNG/SVG/clipboard/PPTX). viz.format holds all overrides.
   # ML mode wires Logistic/PCA/DBSCAN/Hierarchical; Stats mode wires Q-Q/Time Series/SPC
-  charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors
-  grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap
-  shell.jsx                # window.TopBar, Rail, StatusBar, Workspace, MODES
+  charts.jsx               # window.Charts — ECharts wrapper + CSS-var→rgb resolver + theme colors.
+                           #   EChart forces animation:false centrally at setOption (PLAN §12 F4) — no
+                           #   chart option needs to declare it; a forgotten one can't regress.
+  vizOptions.js            # window.buildVizOption + window.applyVizFormat — PURE ECharts option builder
+                           #   (20 types) + format post-processor, extracted from vizMode (PLAN §12 F3).
+                           #   Loaded as deferred-babel so it runs after store.jsx/charts.jsx.
+  grid.jsx                 # window.DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap, makeEditHandlers
+  shell.jsx                # window.TopBar, Rail, StatusBar, Workspace, MODES, SheetTabs (shared sheet tab bar)
   dataMode.jsx             # window.DatasetTree, DataCenter, ColumnProfile
   cleanMode.jsx            # window.CleanMode
-  vizMode.jsx              # window.VizMode, window.buildVizOption (reused by dashboard), window.VizAddField
+  vizMode.jsx              # window.VizMode, window.VizAddField (buildOption/applyFormat now in vizOptions.js)
   dashMode.jsx             # window.DashMode
   sqlMode.jsx              # window.SqlMode (+ internal runSQL engine)
   mapMode.jsx              # window.MapMode
@@ -357,7 +362,7 @@ These are demo/customization toggles, not persisted.
 
 ## 13. Quick orientation for a new contributor
 
-- Want to **add a chart type**? → `vizMode.jsx` `CHART_GROUPS` + a branch in `buildOption`.
+- Want to **add a chart type**? → `vizMode.jsx` `CHART_GROUPS` + a branch in `buildOption` (now in `js/vizOptions.js`). You do NOT need to add `animation:false` — `EChart` forces it centrally (PLAN §12 F4). Add the type id to `tests/e2e/_vizTypes.mjs` so the render smoke covers it.
 - Add a **cleaning op**? → `applySteps` case (store) + button (`CleanPanel`) + `stepLabel`.
 - Add a **stat test**? → math in `statsMath.js`, test fn + center render + config in `statsMode.jsx`, entry in `TESTS`.
 - Add a **dashboard widget type**? → renderer in `dashMode.jsx` + Add-widget tile.

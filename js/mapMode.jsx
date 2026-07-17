@@ -85,7 +85,7 @@
 
     let option;
     if (view === "choropleth" && geo === "ok") {
-      option = { animation: false, tooltip, visualMap,
+      option = { tooltip, visualMap,
         series: [{ type: "map", map: "seoul", roam: true, scaleLimit: { min: 1, max: 6 },
           data, label: { show: true, color: c.text, fontSize: 9, fontFamily: "IBM Plex Sans" },
           itemStyle: { borderColor: c.bg, borderWidth: 1 },
@@ -97,7 +97,7 @@
       const sizes = data.map((d) => d.value); const smin = Math.min(...sizes), smax = Math.max(...sizes);
       const sz = (v) => 14 + ((v - smin) / (smax - smin || 1)) * 42;
       const scatterData = data.map((d) => ({ name: d.name, value: useGeo ? [d.lon, d.lat, d.value] : [d.lon, d.lat, d.value] }));
-      option = { animation: false, tooltip, visualMap: { ...visualMap, dimension: 2 },
+      option = { tooltip, visualMap: { ...visualMap, dimension: 2 },
         geo: useGeo ? { map: "seoul", roam: true, itemStyle: { areaColor: Charts.resolveVar("--bg-2"), borderColor: c.split }, emphasis: { disabled: true } } : undefined,
         grid: useGeo ? undefined : { left: 30, right: 20, top: 20, bottom: 30, containLabel: true },
         xAxis: useGeo ? undefined : { type: "value", min: 126.76, max: 127.18, axisLabel: { color: c.faint, fontSize: 9, formatter: (v) => v.toFixed(2) }, splitLine: { lineStyle: { color: c.split } }, name: "lon" },
@@ -352,7 +352,6 @@
 
     // Province choropleth option
     const provOption = provGeo === "ok" ? {
-      animation: false,
       tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
         formatter: (p) => {
           const row = provRows.find((r) => r.name === p.name);
@@ -391,7 +390,6 @@
     const sz = (v) => 8 + ((v - sMin) / (sMax - sMin + 1)) * 28;
 
     const munOption = provGeo === "ok" ? {
-      animation: false,
       tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
         formatter: (p) => {
           const row = munPlaced[p.dataIndex] && munPlaced[p.dataIndex].row;
@@ -436,7 +434,6 @@
       const strCols = (activeDs.columns || []).filter((c) => c.type === "string");
       const labelKey = customLabelCol || strCols[0]?.key || null;
       return {
-        animation: false,
         tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
           formatter: (p) => {
             const r = validRows[p.dataIndex]; if (!r) return p.name;
@@ -648,14 +645,14 @@
     const mapData = rows.map((r) => ({ name: r.country, value: r[metric] }));
 
     const option = geoW === "ok"
-      ? { animation: false, tooltip, visualMap,
+      ? { tooltip, visualMap,
           series: [{ type: "map", map: "world", roam: true, scaleLimit: { min: 1, max: 8 },
             data: mapData,
             label: { show: false },
             emphasis: { label: { show: true, color: c.textHi, fontSize: 10 }, itemStyle: { areaColor: pal[0] } },
             itemStyle: { borderColor: c.bg, borderWidth: 0.5 },
             select: { itemStyle: { areaColor: Charts.resolveVar("--accent-hi") } } }] }
-      : { animation: false,
+      : {
           tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
             formatter: (p) => { const r = rows.find((x) => x.country === p.name); return r ? `<b>${r.country}</b><br/>${m.label}: <b>${m.fmt(r[metric])}</b>` : p.name; } },
           geo: { map: "world", roam: true, itemStyle: { areaColor: Charts.resolveVar("--bg-2"), borderColor: c.split }, emphasis: { disabled: true } },
@@ -824,7 +821,6 @@
     const sz = vals.length ? (v) => 6 + ((v - vMin) / (vMax - vMin || 1)) * 30 : () => 10;
 
     const pointsOption = (mapState === "ok" && valid.length) ? {
-      animation: false,
       tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
         formatter: (p) => {
           const r = valid[p.dataIndex]; if (!r) return "";
@@ -850,7 +846,6 @@
     const cMin = cVals.length ? Math.min(...cVals) : 0, cMax = cVals.length ? Math.max(...cVals) : 1;
     const valLabel = valCol ? valCol : "건수";
     const choroOption = (choro && choro.data.length) ? {
-      animation: false,
       tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
         formatter: (p) => `<b>${p.name}</b><br/>${valLabel}: <b>${p.value != null && !isNaN(p.value) ? NODE.fmtNum(p.value, 1) : "—"}</b>` },
       visualMap: { min: cMin, max: cMax, calculable: true, left: 12, bottom: 18, orient: "vertical",

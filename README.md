@@ -12,7 +12,7 @@
 ![Status](https://img.shields.io/badge/v2.0.0-Core%20Product%20v2-brightgreen)
 ![Stack](https://img.shields.io/badge/Stack-React%2018%20%2B%20ECharts%205%20%2B%20DuckDB--WASM-blue)
 ![No Build](https://img.shields.io/badge/Build-None%20(Browser--only)-lightgrey)
-![Tests](https://img.shields.io/badge/tests-343%20unit%20%2B%2056%20E2E-success)
+![Tests](https://img.shields.io/badge/tests-359%20unit%20%2B%2067%20E2E-success)
 
 ---
 
@@ -195,8 +195,8 @@ npm run preview       # 빌드 후 dist/를 :8743에 서빙해 눈으로 확인
 
 ```bash
 npm install       # 테스트·빌드 도구만 설치 (앱 실행에는 불필요)
-npm test          # Node 유닛 343개
-npm run test:e2e  # Playwright E2E 56개 (시스템 Chrome 사용 — 브라우저 다운로드 없음)
+npm test          # Node 유닛 359개
+npm run test:e2e  # Playwright E2E 67개 (시스템 Chrome 사용 — 브라우저 다운로드 없음)
 npm run bump      # 자산 캐시버스트 ?v= 일괄 갱신
 ```
 

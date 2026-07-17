@@ -550,5 +550,32 @@
     );
   }
 
-  Object.assign(window, { DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap });
+  // Shared DataGrid edit-handler factory (PLAN §12 F5). dataMode and cleanMode both wire the grid's
+  // edit callbacks to Store actions with an identical 13-line object (right down to the uniqKey helper).
+  // Centralize it so the two can't drift. `columns` is the only per-caller input (uniqKey needs the
+  // current column keys to avoid collisions); actions come from the global Store.
+  function makeEditHandlers(columns) {
+    const actions = window.Store.actions;
+    const uniqKey = (base) => {
+      const keys = new Set((columns || []).map((c) => c.key)); let k = base, i = 1;
+      while (keys.has(k)) k = base + "_" + (++i);
+      return k;
+    };
+    return {
+      onCell: (rid, key, val) => actions.editCell(rid, key, val),
+      onDeleteRows: (rids) => actions.deleteRows(rids),
+      onAddRow: () => actions.addRow({}),
+      onAddCol: () => actions.addColumn({ key: uniqKey("new_col"), type: "string" }),
+      onInsertCol: (at) => actions.addColumn({ key: uniqKey("new_col"), type: "string", at }),
+      onRename: (key, to) => actions.addStep({ op: "rename", col: key, params: { to } }),
+      onChangeType: (key, t) => actions.addStep({ op: "change_type", col: key, params: { to: t } }),
+      onDeleteCol: (key) => actions.addStep({ op: "drop_col", col: key }),
+      onReorder: (order) => actions.reorderCols(order),
+      onCells: (cells) => actions.editCells(cells),
+      onUndo: () => actions.undo(),
+      onRedo: () => actions.redo(),
+    };
+  }
+
+  Object.assign(window, { DataGrid, Popover, fmtCell, typeShort, isNumType, colorMap, makeEditHandlers });
 })();

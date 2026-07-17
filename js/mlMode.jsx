@@ -326,7 +326,7 @@
     } else if (["clf", "dt", "nb"].includes(res.kind)) {
       const data = []; res.cm.forEach((row, i) => row.forEach((v, j) => data.push([j, i, v])));
       const maxV = Math.max(...res.cm.flat(), 1);
-      option = { animation: false, grid: { left: 8, right: 60, top: 10, bottom: 60, containLabel: true },
+      option = { grid: { left: 8, right: 60, top: 10, bottom: 60, containLabel: true },
         tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item", formatter: (p) => `actual <b>${res.classes[p.value[1]]}</b><br/>pred <b>${res.classes[p.value[0]]}</b>: ${p.value[2]}` },
         xAxis: { type: "category", data: res.classes, name: "predicted", axisLabel: { color: c.text, fontSize: 10, rotate: 20 }, splitArea: { show: true } },
         yAxis: { type: "category", data: res.classes, name: "actual", axisLabel: { color: c.text, fontSize: 10 } },
@@ -346,7 +346,7 @@
     } else if (res.kind === "pca") {
       const ratios = res.scree.map((s) => NODE.round(s.ratio * 100, 1));
       const cum = res.scree.map((s) => NODE.round(s.cumulative * 100, 1));
-      option = { animation: false, grid: { left: 8, right: 40, top: 26, bottom: 26, containLabel: true },
+      option = { grid: { left: 8, right: 40, top: 26, bottom: 26, containLabel: true },
         legend: { top: 0, textStyle: { color: c.text, fontSize: 10 } },
         tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "axis", valueFormatter: (v) => v + "%" },
         xAxis: { type: "category", data: res.scree.map((s) => "PC" + s.pc), axisLabel: { color: c.text, fontSize: 10 }, axisLine: { lineStyle: { color: c.axis } } },

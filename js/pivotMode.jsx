@@ -35,38 +35,10 @@
     const sheets = useStore((s) => s.pivotSheets);
     const active = useStore((s) => s.pivotActive);
     const globalActive = useStore((s) => s.activeId);
-    const [editId, setEditId] = React.useState(null);
-    const [draft, setDraft] = React.useState("");
-    const commit = () => { if (editId) actions.renamePivotSheet(editId, draft.trim()); setEditId(null); };
     const activeSheet = sheets.find((x) => x.id === active) || sheets[0];
     const datasets = NODE.datasets;
-    return (
-      <div className="viz-tabs">
-        <div className="viz-tabs-scroll">
-          {sheets.map((sh) => (
-            <div key={sh.id} className={"viz-tab" + (sh.id === active ? " on" : "")}
-              onClick={() => sh.id !== active && actions.setPivotActive(sh.id)}
-              onDoubleClick={() => { setEditId(sh.id); setDraft(sh.name); }}
-              title="더블클릭해서 이름 변경">
-              <Icon name="grid" size={12} style={{ opacity: 0.6 }} />
-              {editId === sh.id
-                ? <input autoFocus className="viz-tab-edit" value={draft}
-                    onChange={(e) => setDraft(e.target.value)} onBlur={commit}
-                    onKeyDown={(e) => { if (e.key === "Enter") commit(); else if (e.key === "Escape") setEditId(null); }}
-                    onClick={(e) => e.stopPropagation()} />
-                : <span className="viz-tab-nm">{sh.name}</span>}
-              {sh.id === active && (
-                <span className="viz-tab-dup" title="탭 복제"
-                  onClick={(e) => { e.stopPropagation(); actions.duplicatePivotSheet(sh.id); }}><Icon name="duplicate" size={11} /></span>
-              )}
-              {sheets.length > 1 && (
-                <span className="viz-tab-x" title="탭 닫기"
-                  onClick={(e) => { e.stopPropagation(); actions.removePivotSheet(sh.id); }}><Icon name="x" size={11} /></span>
-              )}
-            </div>
-          ))}
-          <button className="viz-tab-add" title="새 피벗 탭" onClick={() => actions.addPivotSheet()}><Icon name="plus" size={13} /></button>
-        </div>
+    const tail = (
+      <React.Fragment>
         <div className="spacer" />
         <div className="viz-tab-ds" title="이 탭의 데이터셋">
           <Icon name="layers" size={12} style={{ opacity: 0.6 }} />
@@ -75,8 +47,12 @@
             {datasets.map((d) => <option key={d.id} value={d.id}>{d.short}</option>)}
           </select>
         </div>
-      </div>
+      </React.Fragment>
     );
+    return <window.SheetTabs sheets={sheets} active={active} icon="grid"
+      onActivate={actions.setPivotActive} onRename={actions.renamePivotSheet}
+      onDuplicate={actions.duplicatePivotSheet} onRemove={actions.removePivotSheet} onAdd={actions.addPivotSheet}
+      dupTitle="탭 복제" closeTitle="탭 닫기" addTitle="새 피벗 탭" tail={tail} />;
   }
 
   function PivotPanel() {

@@ -510,5 +510,46 @@
     );
   }
 
-  Object.assign(window, { TopBar, Rail, StatusBar, Workspace, MODES });
+  // Shared sheet/worksheet tab bar (PLAN §12 F5). VizTabs / PivotTabs / DashTabs were three near-identical
+  // ~40-line components — same markup, same dbl-click-rename with editId/draft/commit, same dup/close/add
+  // buttons — differing only in the store selectors, action names, icon, Korean tooltips, and whether a
+  // per-sheet dataset picker trails the row. Parameterize all of that; callers pass their sheets/active,
+  // handlers, and an optional `tail` (the dataset picker JSX; dashboards have none).
+  function SheetTabs({ sheets, active, icon, onActivate, onRename, onDuplicate, onRemove, onAdd, dupTitle, closeTitle, addTitle, tail }) {
+    const [editId, setEditId] = React.useState(null);
+    const [draft, setDraft] = React.useState("");
+    const commit = () => { if (editId) onRename(editId, draft.trim()); setEditId(null); };
+    return (
+      <div className="viz-tabs">
+        <div className="viz-tabs-scroll">
+          {sheets.map((sh) => (
+            <div key={sh.id} className={"viz-tab" + (sh.id === active ? " on" : "")}
+              onClick={() => sh.id !== active && onActivate(sh.id)}
+              onDoubleClick={() => { setEditId(sh.id); setDraft(sh.name); }}
+              title="더블클릭해서 이름 변경">
+              <Icon name={icon} size={12} style={{ opacity: 0.6 }} />
+              {editId === sh.id
+                ? <input autoFocus className="viz-tab-edit" value={draft}
+                    onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+                    onKeyDown={(e) => { if (e.key === "Enter") commit(); else if (e.key === "Escape") setEditId(null); }}
+                    onClick={(e) => e.stopPropagation()} />
+                : <span className="viz-tab-nm">{sh.name}</span>}
+              {sh.id === active && (
+                <span className="viz-tab-dup" title={dupTitle}
+                  onClick={(e) => { e.stopPropagation(); onDuplicate(sh.id); }}><Icon name="duplicate" size={11} /></span>
+              )}
+              {sheets.length > 1 && (
+                <span className="viz-tab-x" title={closeTitle}
+                  onClick={(e) => { e.stopPropagation(); onRemove(sh.id); }}><Icon name="x" size={11} /></span>
+              )}
+            </div>
+          ))}
+          <button className="viz-tab-add" title={addTitle} onClick={onAdd}><Icon name="plus" size={13} /></button>
+        </div>
+        {tail || null}
+      </div>
+    );
+  }
+
+  Object.assign(window, { TopBar, Rail, StatusBar, Workspace, MODES, SheetTabs });
 })();

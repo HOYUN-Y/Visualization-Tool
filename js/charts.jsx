@@ -86,7 +86,13 @@
     React.useEffect(() => {
       if (!inst.current) return;
       Charts.lastInst = inst.current;
-      inst.current.setOption(option, true);
+      // Enforce animation:false HERE, at the one setOption every chart in the app passes through
+      // (PLAN §12 F4). The rule (README §개발 규칙 3) is a blanket "no animation" — animating charts
+      // capture blank in iframe/Preview/screenshot contexts. It used to be re-declared by hand at ~18
+      // sites because setOption(_, true) replaces wholesale, so any option not spread from baseGrid had
+      // to repeat it — and a new chart that forgot would silently regress. Overriding it centrally makes
+      // that impossible; the per-site copies are now redundant (harmless). No chart sets animation:true.
+      inst.current.setOption({ ...option, animation: false }, true);
       if (onEvents) {
         inst.current.off("click");
         for (const ev in onEvents) { inst.current.off(ev); inst.current.on(ev, onEvents[ev]); }
