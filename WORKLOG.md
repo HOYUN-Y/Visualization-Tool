@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v5` — Core v2 완료(`v2.0.0`), 잔여는 `IMPLEMENTATION_PLAN.md` §12 **하드닝 백로그** |
-| Current milestone | **T1 하드닝 배치 완료** (A2·A4·A6·B1 + 배포 빌드 + C9·C3). 배포 대상: 우선 http → 향후 Cloudflare/AWS + HTTPS + 공개 서비스 |
-| Status | **1순위 원칙: 로컬 단독 사용.** T1 잔여 = A3′(DuckDB 벤더링)·A5(CSS 하한)·C3(다이얼로그)·B1 잠금. 로그인·회원관리는 §13에 구상만(미결정) |
+| Current milestone | **T1 하드닝 배치 완료** (A2·A4·A6·B1 + 배포 빌드 + C9·C3) + **E1 회귀 공선성 수정**(2026-07-17). 배포 대상: 우선 http → 향후 Cloudflare/AWS + HTTPS + 공개 서비스 |
+| Status | **1순위 원칙: 로컬 단독 사용.** T1 잔여 = A3′(DuckDB 벤더링)·A5(CSS 하한)·B1 잠금. 로그인·회원관리는 §13에 구상만(미결정) |
 | Branch | **`main`** |
-| Base commit | `3f4b505` — merge: 계획 문서 일원화 |
-| Last checkpoint commit | `3f4b505` |
-| Working tree | T1 하드닝 배치 작업 중 |
-| Last verified | **2026-07-17 — Node 329/329 · E2E 53/53 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v288 |
+| Base commit | `1231f15` — merge: 시군구 좌표 오배치 수정(C9) + 네이티브 다이얼로그 교체(C3) |
+| Last checkpoint commit | `1231f15` |
+| Working tree | 문서 일원화(CHANGELOG→WORKLOG) + HANDOFF 드리프트 수정 + E1 공선성 수정 |
+| Last verified | **2026-07-17 — Node 343/343 · E2E 56/56 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v289 |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -92,6 +92,60 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-17 (코드 실사 + 문서 일원화 + E1 회귀 공선성 수정)
+
+전수 코드 실사(코어 상태·UI 모드·분석 엔진 3개 계층)를 돌리고, 그 결과로 문서 정리와 최상위 정확성 버그 1건을 수정했다.
+
+### 1. 문서 일원화 — `CHANGELOG.md` → `WORKLOG.md` 통합 후 삭제
+
+릴리스 이력과 세션 로그가 갈려 한쪽만 갱신되는 드리프트가 반복됐다(이 저장소는 07-17에 이미 한 번 드리프트 사고를 겪었다 — 상단 경고 참조). 두 문서 모두 "무엇이 언제 바뀌었나"를 기록하므로 하나로 합쳤다.
+- `CHANGELOG.md` 전문(334줄, 버전 앵커 11개)을 이 파일 하단 **`# 릴리스 이력`** 절로 이동. 헤딩 레벨만 한 단계 낮추고 **내용은 무손실**(대조 검증: 누락 0줄).
+- 참조 갱신: `README.md` 프로젝트 구조, `IMPLEMENTATION_PLAN.md` 문서 지도 §2·세션 시작 절차. 과거 세션 기록 안의 `CHANGELOG` 언급은 **당시 사실이므로 보존**(역사 기록이지 지시가 아님).
+- **앞으로:** 릴리스 단위 = 하단 `릴리스 이력`, 세션 단위 = 이 `세션 기록`.
+
+### 2. HANDOFF 드리프트 3건 수정 (코드가 문서를 앞서 있었음)
+
+| 위치 | 문서 주장 | 실제 |
+|---|---|---|
+| §1 TL;DR | "8 workspace modes" | **9개** — Pivot 누락(`shell.jsx:6-16`·`verify-dist.mjs:62` 모두 9개). ML 설명도 3종→**9종**으로 갱신 |
+| §8 StatusBar | DuckDB 라벨은 "aspirational, 런타임은 여전히 손수 만든 JS 엔진" | **이미 전환 완료** — `shell.jsx:444`가 `DuckDB.status`를 읽어 실제 엔진을 표시 |
+| §9 SQL | "No JOIN/subquery/window yet" | **DuckDB-WASM이 전부 지원.** 2엔진 구조(주경로 DuckDB / 인스턴스화 실패 시에만 JS 폴백, per-query 폴백 아님)와 폴백의 실제 한계를 명기 |
+
+### 3. E1 — 회귀분석이 완전 공선성에서 조용히 오답을 내던 문제 (정확성 P0)
+
+**증상:** `js/statsMath.js`의 `matInverse`가 `const piv = A[c][c] || 1e-9;` — 0 피벗을 1e-9로 **몰래 대체**하고 거대한 유한 쓰레기 역행렬을 반환했다. 오류도 null도 NaN도 아니라 **호출부가 진짜 답과 구별할 수 없다.** `regression()`은 이 `(XtX)⁻¹`를 표준오차에 그대로 먹이므로 결과는:
+
+```
+se ≈ 1e7  →  t ≈ 0  →  p ≈ 1   ("이 변수는 유의하지 않습니다")
+```
+
+즉 **모형이 애초에 식별조차 못 하는 변수를 두고 "유의하지 않다"고 확신에 차서 보고**한다. 오답이 오류보다 나쁜 전형적 사례.
+
+**도달 경로는 실재한다 (이론이 아님):** Clean의 `dummy_encode`가 기준 범주를 빼지 않고 **모든 수준**을 만들고(`store.jsx:233`), `regression()`은 절편을 앞에 붙인다(`statsMode.jsx:88`). 더미 전 수준을 예측변수로 넣으면 더미 합 = 절편 열 → `XtX`가 정확히 특이행렬. 고전적인 **더미 변수 함정**이다. 실측 재현(60행·3수준):
+
+```
+t_아파트 계수 = 6144  (실제 효과 2000) ·  Ainv[0][0] = 1.4e+14 → p ≈ 1
+```
+
+**왜 지금까지 안 걸렸나:** `statsMath.js`는 **dual-mode export가 없는 2개 파일 중 하나**였다(`window.SM =`만 있고 `module.exports` 없음). 그래서 Node에서 `require()`가 불가능 → **테스트가 0개**. 앱의 모든 p-value(t/F/χ²)를 먹여살리는 파일이 저위험이라서가 아니라 **테스트할 수 없어서** 방치됐다. 같은 저장소의 `outliers.js:40`은 같은 Gauss-Jordan에서 `return null; // singular`로 **올바르게** 처리한다 — 두 파일이 정반대였고, 틀린 쪽에만 테스트가 없었다.
+
+**수정:**
+- `matInverse`가 특이행렬에 **`null` 반환**(`outliers.js`와 동일 규약). 임계값은 **행렬 스케일 상대**(`1e-12 × max|element|`) — 이 앱의 `XtX`는 원 단위 제곱 합산으로 ~1e13까지 가므로 절대 임계값은 영영 발화하지 않고, 반대로 소규모 행렬에선 건강한 피벗을 특이로 오판한다. NaN-safe 비교(`!(|piv| > eps)`).
+- `js/statsMath.js`에 **dual-mode export 추가** → 테스트 가능해짐. 이게 근본 원인이었다.
+- `regression()`이 `Ainv === null`이면 `{ code: "collinear" }` 에러를 **명시적으로 throw**(`statsMode.jsx`).
+- **UI 2경로 모두** 처리: ① 렌더 경로의 기존 catch에 공선성 전용 안내 분기 — 기존 범용 문구("그룹이 2개 이상인 범주 컬럼을 선택했는지 확인하세요")는 공선성에선 **오히려 오해를 부른다**(사용자 컬럼은 멀쩡하고 조합이 문제). ② Analysis Builder는 `onClick`(`runBuilder2`)에서 직접 호출되는데 **React는 이벤트 핸들러의 throw를 잡지 않으므로** 그대로 두면 `set()`이 실행되지 않아 버튼이 죽은 것처럼 보인다 → `runBuilder` 내부에서 catch해 `{type:"unavailable"}` 렌더 가능 결과로 반환(렌더러는 `data` 가드가 이미 있어 안전하게 degrade).
+- i18n 한/영 키 2개 추가(`statCollinearTitle`·`statCollinearDesc`) — 원인과 조치(더미 한 수준 제외)를 사용자 언어로 안내.
+
+**검증 (수정 전 실패 → 수정 후 통과를 양방향 실증):**
+- `tests/statsMath.test.js` **신규 14개** — 이 파일 최초의 테스트. 옛 구현 대상 실행 시 **4개가 정확히 실패**(exactly singular · 더미 함정 XtX · 스케일 상대성 · 영행렬), 나머지 10개(p-value·gammln·왜도/첨도)는 양쪽 통과 = 기존 동작 무회귀.
+- `tests/e2e/statsCollinear.spec.mjs` **신규 3개** — 실제 UI로 dummy_encode→regression을 몰아 **공선성 안내 표시 + 계수표 미렌더(`.coef-table` 0개)** 검증. 옛 구현 대상 실행 시 2개 실패, "정상 다변수 회귀는 계수표를 그대로 낸다"(과잉 차단 방지 가드)는 **양쪽 통과**.
+- 브라우저 실증: `window.SM`이 dual-mode export 후에도 살아있고 `matInverse`가 특이행렬에 null을 내는 것을 실제 Chrome에서 확인(플레인 `<script>` 로드라 `module` 참조가 앱을 깨지 않는지가 실제 리스크였음 — `pca.js`·`spc.js`와 동일 가드).
+- 전체: **Node 343/343**(329→343) · **E2E 56/56**(53→56) · `verify:dist` **9개 모드 전수 통과·콘솔 에러 0** · asset v289.
+
+**남은 것(이번에 안 함):** `dummy_encode`의 drop-first 옵션은 넣지 않았다. 기존 프로젝트의 데이터 의미를 바꾸므로 별도 결정 사항이고, 지금은 회귀가 원인과 조치를 명확히 안내하므로 사용자가 막히지 않는다.
+
+---
 
 ## 세션 기록 — 2026-07-17 (T1 하드닝 배치 — A2·A4·A6·B1 + 배포 빌드)
 
@@ -789,3 +843,441 @@ Visualization-Tool/
 4. **`.fade` CSS는 opacity 애니메이션 금지**: transform만 허용
 5. **하드코딩 컬러 금지**: 반드시 `css/tokens.css` CSS 변수 사용
 6. **`<script>` 순서 변경 금지**: `index.html` 로드 순서가 의존성 순서
+
+---
+
+# 릴리스 이력 (구 `CHANGELOG.md` 통합)
+
+> **2026-07-17 통합.** 릴리스 이력을 별도 `CHANGELOG.md`로 두면 세션 로그(위)와 갱신 시점이 갈려
+> 한쪽만 업데이트되는 드리프트가 반복됐다. 두 문서 모두 "무엇이 언제 바뀌었나"를 기록하므로
+> 이 파일 하나로 합치고 `CHANGELOG.md`는 삭제했다. 아래는 통합 시점까지의 이력 전문(원문 보존, 헤딩 레벨만 조정).
+>
+> **앞으로:** 릴리스 단위 변경은 이 절에, 세션 단위 작업은 위 `세션 기록`에 적는다.
+
+### [Unreleased] — P10 공유 링크 + 보안·품질 (2026-07-16~17)
+
+> FOLLOWUP §5 C4·A1 완료 후, P10 공유 링크 구현. Node 315/315 · E2E 25/25 · tsc 0.
+
+#### Added — PPT 네이티브 차트 매핑 확장 (P10, `feat/p10-pptx-chart-mapping`)
+- **PowerPoint(.pptx) 내보내기가 스택·보조축·콤보 차트를 네이티브(데이터 편집 가능)로 매핑**. 이전엔 단일 막대/라인/영역/파이만 대응 → 이제 렌더된 ECharts 옵션을 읽어 구조를 자동 판별:
+  - **스택**: 시리즈 `stack` 키 → `barGrouping: "stacked"`(막대·영역 모두).
+  - **보조축(secondary axis)**: `yAxisIndex===1` 시리즈 → `secondaryValAxis/secondaryCatAxis` 콤보로 우측 축 보존.
+  - **콤보**: 막대+라인 혼합 → 멀티타입 `addChart([...])`.
+  - **캔들스틱·분산형·박스플롯**: PPT 네이티브 대응 형식이 없어 정직하게 `unsupported` 반환 → 이미지/SVG 폴백 안내(가짜 매핑 없음).
+  - `js/pptxExport.js`: 순수 `planChart(viz, option)`/`extract()`(Node 테스트 가능)로 구조 결정 + 얇은 브라우저 `exportChart()`가 PptxGenJS 구동. **출력 계약 하위호환**(기존 `exportChart` 시그니처 유지).
+  - `tests/pptxExport.test.js`(14: 스택·보조축·콤보·캔들스틱 unsupported 등) + `tests/e2e/pptxExport.spec.mjs`(실 PptxGenJS로 스택·콤보 유효 blob 생성·캔들스틱 폴백).
+
+#### Added — 공유 링크 (P10, `feat/p10-share-link`)
+- **프로젝트 공유 링크**: Projects 메뉴에 **Share link** — 현재 프로젝트(데이터 포함) 전체를 `#p=…` URL fragment로 인코딩해 클립보드 복사. 링크를 열면 데이터·분석이 그대로 재현. **백엔드 불필요**(fragment는 서버로 전송 안 됨 → no-build/local-first 유지).
+  - `js/shareLink.js`(`window.ShareLink`): 이식 번들 ↔ JSON ↔ base64url ↔ fragment. 브라우저 `CompressionStream`(deflate-raw) 압축 + 무압축 폴백, 1자 코덱태그(z/r). 크기 상한 `MAX_PAYLOAD_CHARS`(32k) 초과 시 JSON 파일 폴백 안내.
+  - `projectStore.exportBundle()`(파일 저장 없이 번들 반환), 부팅 시 `#p=` 감지→`importJSON`→`history.replaceState`로 fragment 정리(리로드 재임포트·주소창 노출 방지).
+  - **보안**: A1 안전파서 전제 — 공유 번들의 Formula Column은 `FormulaEval`로 평가되어 코드실행 불가.
+  - `tests/shareLink.test.js`(8) + `tests/e2e/shareLink.spec.mjs`(코덱 왕복 + 실브라우저 열기·fragment 정리).
+
+#### Added — C4 export 대상 명시 (`fix/c4-export-target`)
+- Chart export가 전역 `Charts.lastInst` 대신 **활성 차트 인스턴스**를 명시 대상화(EChart `onInst` 콜백 + export 헬퍼 optional `inst` 인자, 폴백 하위호환). 대시보드 다중차트·차트전환 직후 엉뚱한 차트 export 방지. `tests/e2e/chartExport.spec.mjs`.
+
+#### Security — A1 formula 안전파서 (`fix/a1-formula-safe-parser`)
+- Formula Column의 `new Function("row","Math",expr)` **임의 코드실행 취약점 제거** → `js/formulaEval.js`(`window.FormulaEval`, eval/new Function 없는 재귀하강 파서). `row.*` 읽기 + `Math.*` 화이트리스트만, 프로토타입 체인 차단(`constructor.constructor` 탈출 봉쇄). `tests/formulaEval.test.js`(12) + `tests/e2e/formulaColumn.spec.mjs`.
+
+---
+
+### [Unreleased] — 안전 후속 배치 (2026-07-12, `feat/safe-hardening` → main `9c7c6b3`)
+
+> FOLLOWUP §5 저위험 자율 항목 일괄. 전부 저위험(테스트/인프라·폴백·핸들러·속성). Node 295/295 · E2E 21/21 깨끗 종료 · tsc 0.
+
+#### Added
+- **SQL 폴백 유니코드 식별자** (B3): DuckDB 실패 시 폴백 `runSQL`을 `js/sqlFallback.js`(dual-mode) 로 추출, `[\w]+`→`[\p{L}\p{N}_]+`(u 플래그) — 한글 컬럼/테이블명 조회 가능. `tests/sqlFallback.test.js` +7(한글 GROUP BY·WHERE·LIKE·alias).
+- **계절분해 multiplicative E2E**: `tests/e2e/statsDecomp.spec.mjs` — Stats›Decomposition›multiplicative UI 경로 무크래시 검증(엔진은 기존 Node 테스트).
+- **캐시버스트 자동화** (P12): `scripts/bump-assets.sh` + `npm run bump` — `index.html`의 모든 `?v=`를 단일 번호로 원자적 통일·증가. 드리프트(275/276) → v277 통일.
+
+#### Changed / Fixed
+- **언로드 저장 플러시** (B2): `projectStore` `pagehide`/`beforeunload`에 `saveNow()` — 1초 디바운스 창에서 탭 종료 시 마지막 편집 유실 방지.
+- **ECharts SRI** (A3): `echarts@5.5.1`에 `integrity`(sha384)+`crossorigin` 추가(React/Babel과 동일 보증).
+- **다변량 이상치 카드 컬럼명 툴팁**: Clean 이슈바 이상치 카드에 대상 컬럼명 `title=` 노출.
+- **E2E 인프라 견고화**: `tests/e2e/helpers.mjs`(hydration-safe `bootApp` + `teardownDuckDB`)로 7스펙 통일. **전체 스위트 5분 force-kill 해소** — `playwright.config` `launchOptions(--disable-gpu/--disable-dev-shm-usage/--no-sandbox)` + `workers:1` → 5.5분(kill 2~3) → 2.3분·kill 0.
+
+#### 제외 (별도 결정 필요)
+- C4 차트 export 대상 · A1 formula 안전파서(공유 기능 도입 시) · C2 클릭=선택 UX.
+
+### [Unreleased] — v2.0.0 이후 ML 확장 (2026-07-12, `feat/ml-expansion`)
+
+#### Added — ML 데이터 적격성 (P13) + 신규 모델 (P10)
+- **데이터 적격성 검증**: `mlEligibility`가 데이터로 실행 가능한 태스크만 활성화 — 부적격 태스크 버튼 비활성+사유, target은 적격 컬럼만+클래스수 주석, `alert()` 전면 제거(인라인 안내). 기본 target `id` 회피.
+- **Logistic one-vs-rest**: 다중클래스 대상 + 양성 클래스 선택으로 이진화(2클래스 없는 데이터에서도 사용 가능).
+- **Decision Tree** (CART gini), **Naive Bayes** (Gaussian), **Cross Validation** (k-fold, mean±std) — 순수 엔진 + mlMode 배선. `tests/{decisionTree,naiveBayes,crossVal}.test.js` +35, ML E2E +6.
+
+### [2.0.0] — 2026-07-12 · DuckDB-WASM SQL 엔진
+
+#### Added / Changed
+- **SQL 모드를 DuckDB-WASM으로 전환**: CDN ESM 모듈 island, 전체 데이터셋 테이블 등록(**데이터셋 간 JOIN**), 전체 SQL(subquery·**window**·**CTE**·전체 함수), 한글/특수문자 컬럼 조회. CDN 실패 시 기존 JS 엔진 폴백. Arrow→앱 타입 매핑(Decimal/BigInt/날짜).
+- **Playwright E2E 회귀망**: 모드 전환·DuckDB 로드/쿼리·ML 학습 등 헤드리스 자동 검증(시스템 Chrome).
+- **Fixes**: 모드 전환 크래시(app.jsx 엘리먼트 렌더) · ML 결과 렌더 크래시(§0-0b) · getActiveData 메모이제이션 · 편집 견고성.
+
+### [Unreleased] — Phase 2 (진행 중)
+
+#### 밤샘 자율 작업 — 견고성·테스트·분석 엔진 (2026-07-12, `feat/analytics`)
+> 계획: `docs/OVERNIGHT_PLAN.md`. 매 항목 tsc(TS1xxx 0)+Node 테스트+asset bump 후 커밋. **Node 98 → 217** (+119 테스트).
+
+##### Added — 신규 순수 분석 엔진 (브라우저 단독·결정적·Node 테스트)
+- **`timeSeriesDecomp.js` (window.TSDecomp)**: 고전적 계절분해(중심이동평균 추세·짝수주기 2×period 위상정렬 → 계절지수 → 잔차, additive/multiplicative)
+- **`outliers.js` (window.Outliers)**: 다변량 Mahalanobis 거리 이상치(자기완결 Gauss-Jordan 역행렬 + Wilson-Hilferty χ² 컷오프, alpha/topK, 특이공분산 degrade)
+- **`geoMatch.js` (window.GeoMatch)**: 지역명 정규화·매칭(한국 행정접미사·EN/KO 별칭) — 데이터 기반 단계구분도(choropleth)용
+- **분포 적합 확장(`distributionFit.js`)**: 지수·로그정규 MLE + `compareFits` AIC 랭킹(어떤 분포가 가장 잘 맞나)
+
+##### Fixed — 엔진 엣지케이스 버그 & 모드 크래시 가드
+- **pivotEngine**: null/빈 차원값 그룹의 셀·소계가 0으로 표시되던 정합 버그(버킷키 정규화 불일치) → 소계=총계 복원
+- **clustering**: `hierarchical.labelsAt(k<1)` 크래시 → k 클램프
+- **spc**: 빈 서브그룹 X-bar/R·S Infinity/NaN, p·u 차트 크기0, capability 역전 스펙 음수 → 가드/degrade
+- **distributionFit**: `jarqueBera` n<4 거짓 "정규" → null
+- **모드 견고성 가드**(ANOVA 크래시와 동일 계열): mlMode(특성 0개 회귀 백지화·k-NN 빈투표·scatter Infinity), mapMode(Seoul/World 시드 부재 ds.rows·미매칭 find), statsMode(Builder scatter Infinity), dashMode(인스펙터 measures[0]), vizMode(bubble 5000점 초과 다운샘플)
+
+##### Refactored — 테스트 잠금 (하드코딩-치유/동적생성 로직을 dual-mode 모듈로 추출)
+- `statsCfg.js`·`mlCfg.js`·`dashWidgets.js`·`aiIntent.js`·`sheets.js` — 소비 .jsx는 `window.X`에서 배선, 각각 Node 회귀 테스트 확보
+
+
+
+#### Planned (아직 미구현)
+- SQL JOIN/window 및 DuckDB-WASM 전환
+- Decision Tree, Naive Bayes, Cross Validation, Seasonal Decomposition
+- PPT 네이티브 차트 매핑 확장(스택/보조축/캔들 등)
+
+#### Added — 차트 서식 & 내보내기 (Chart Format & Export, `feat/analytics`)
+> Chart 모드 우측 패널을 **차트 / 서식** 서브탭으로 분리하고, 서식은 PowerPoint식 **카테고리 드롭다운**으로 정리.
+- **복합 차트**: 막대/라인/영역에서 측정값별 마크(막대·라인·영역) 지정 → 자동 combo, 스케일 다른 지표는 **보조축(우측)** 분리
+- **제목**: 텍스트 + 9방향(세로×가로) 위치 + 자유 드래그
+- **범례**: 표시·9방향 위치 + **자유 드래그 배치**(주황 오버레이+핸들+이동완료)
+- **값 레이블**: 표시·형식(Full/Compact)·위치
+- **축**: X/Y min·max 스케일(극적 표현), X/Y 레이블 방향(자동/가로/45°/세로)
+- **격자·보조선**: 표시(투명)·굵기·색상·빈도
+- **배경색** · **텍스트**(색·크기·굵게·기울임)
+- **계열(다중선택 리스트)**: 계열 선택 후 공통(색·파이 조각분리) 일괄 / 개별(이름·라인 굵기는 단일·동일타입 선택 시). 파이 조각별 색·굵기(도넛)·분리, 막대 간격, 계열별 선 굵기
+- **크기 조절**: 프리셋(Auto/S/M/L/XL) + **네 모서리 드래그 리사이즈**(각 모서리는 자기 변만 이동, 반대편 고정) + **리사이즈 대상 전체/플롯만** 선택
+- **내보내기 메뉴**: 클립보드 복사(PPT에 Ctrl+V) · PNG(현재/흰색/투명 배경) · **SVG 벡터** · **PowerPoint .pptx(데이터 편집 가능, PptxGenJS 벤더링)**
+- **버그수정**: 차트 전체 빈화면(oklch→canvas 폴백), PNG/Save-to-dashboard 죽은 버튼 연결
+
+#### Documentation
+- 현재 코드 기준으로 기능 현황 동기화: 차트 20종, 기본 데이터셋 7종, Map 3개 탭, Import/Export 지원 범위
+- 이미 구현된 Confusion Matrix, 클래스별 Precision/Recall/F1, OLS Feature Importance, Dashboard Cross Filtering을 예정 목록에서 분리
+- README 브랜드 자산 및 Brand Spec 링크를 현재 파일 경로로 수정
+
+#### Added — Core v2 Milestone 1 (기능 브랜치)
+- IndexedDB `insight-workbench`에 다중 프로젝트, 데이터셋, 마지막 프로젝트 설정 저장
+- Store 변경 후 1초 debounce 자동저장과 `visibilitychange` flush
+- 프로젝트 생성·열기·이름 변경·복제·삭제 및 `Saved / Saving / Unsaved / Error` 상태 표시
+- schema version 1 portable JSON 백업·복원, 미래 schema 명시적 거부, 동일 ID import 복제
+- Store hydration과 데이터셋 등록·삭제 API 중앙화, 복원된 최대 `__rid` 이후 행 ID 연속성 보장
+- Node 기본 테스트 러너 기반 persistence/schema 회귀 테스트 추가
+
+#### Added — Core v2 Milestone 2 (기능 브랜치)
+- SheetJS CE 0.20.3 standalone build를 로컬 vendoring하고 Apache-2.0 라이선스와 SHA-256 기록
+- CSV/TSV/JSON/XLSX 공통 `window.ImportEngine`과 결정적 타입 추론 추가
+- CSV 선행 0 코드 보존, 멀티라인/escaped quote, JSON 키 합집합, XLSX 날짜 셀 처리
+- Workbook 시트 범위·행/열 수·첫 20행 Preview, 복수 시트 선택, 컬럼별 타입 override UI
+- TopBar와 Data Explorer Drop 영역을 동일 Import 흐름으로 통합하고 완료 후 프로젝트 즉시 저장
+- Node import 회귀 테스트와 no-build 브라우저 `tests/runner.html` 추가
+
+#### Added — Core v2 Milestone 3 (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.DataOps` — Union/Join 엔진 (부수효과 없음, 타임스탬프는 호출부 주입)
+- Union: 컬럼 key 합집합, 타입 충돌 `boolean→integer→float→string` 승격, 없는 값 null, 선택적 `__source` 컬럼
+- Join: Inner/Left/Right/Full, 복수 키 복합 매칭, null 키 미매칭, 숫자·날짜·문자 정규화 비교, 우측 중복 컬럼 리네임, many-to-many 폭증 감지
+- 결과는 lineage(`op/sourceIds/joinType/keyPairs/createdAt`) 포함 새 데이터셋으로 materialize
+- Combine datasets 모달(Data explorer 진입), 실시간 Preview + 폭증 경고, `registerDataset`+`saveNow` 연동
+- Node 9/9 회귀 테스트, `tests/runner.html` DataOps 케이스 추가
+
+#### Added — Core v2 Milestone 4 (기능 브랜치, 밤샘 자율)
+- 순수 결정적 `window.PivotEngine` — Rows × Columns 크로스탭 집계 엔진
+- 복수 Values와 개별 집계(sum/avg/count/countd/min/max/median), 범주·범위 필터
+- 빈 셀 안전 처리(sum/count 0, 그 외 null), Grand Total은 원본 행에서 재계산(avg/median 정확)
+- `toDataset` 평탄화 → registerable 데이터셋(옵션 Grand Total 행) + lineage
+- Pivot rail 모드: 필드 드래그 shelf(Rows/Columns/Values), 크로스탭 테이블, Save & open in Chart
+- Node 8/8 회귀 테스트, `tests/runner.html` Pivot 케이스 추가
+
+#### Added — Core v2 Milestone 5 (기능 브랜치, 밤샘 자율)
+- 안전한 `window.KPIFormula` — eval/new Function 없는 재귀하강 파서+평가기
+- 문법: `SUM/AVG/COUNT(*)/COUNTD/MIN/MAX/MEDIAN(field)` + `+ - * / ( )` + 숫자 리터럴
+- 임의 코드·미지 함수·미지 필드·0 나눗셈 거부(→ `—`), `compute()`는 `{value,error}` 반환
+- 위젯 Inspector(우측 패널, 선택 위젯 편집): 공통 제목·크기, KPI(라벨·집계|수식 토글·형식·단위·소수), Chart(타입·차원·측정·집계·색상·Top N), Table(차원·측정·집계·행 제한), Text(평문)
+- KPI 위젯이 `spec.formula`를 Cross Filtering 이후 행 기준으로 계산
+- Text 위젯 `dangerouslySetInnerHTML` 제거 → 평문 렌더, 기존 `spec.html`은 태그 제거해 `spec.text`로 마이그레이션
+- Node 7/7 회귀 테스트, `tests/runner.html` KPI 케이스 추가
+
+#### Changed
+- Rail에 **Pivot** 모드 추가(Chart 다음). Dashboard 위젯의 Chart Top N·Table 행 제한을 Inspector에서 조절 가능
+
+#### Added — 분석 엔진 UI 배선 (`feat/analytics`)
+- **ML 모드 확장:** 기존 회귀/k-NN/KMeans에 **Logistic Regression + ROC/AUC**, **PCA**(Scree+로딩표), **DBSCAN**, **계층군집(Ward)** 추가. Task 선택기를 7종 그리드로 개편, task별 target/split/k/K/eps·minPts 컨트롤, 5k행 초과 O(n²) 경고.
+- **Stats 모드 확장:** **Normal Q-Q**(왜도·첨도·Jarque-Bera + 정규성 판정), **Time Series**(원계열+MA+EMA 라인 + ACF 막대, datetime 자동 정렬), **SPC 관리도**(I-MR 개별값 관리도 + CL/UCL/LCL + 관리이탈점 강조) 추가.
+- 언어 토글(한/영)과 Chart 모드 축 라벨(X축·차원 / Y축·측정값) 반영.
+
+#### Added — 언어 전환
+- TopBar에 한국어/English 토글(테마 토글 옆). Rail 모드명·Import/Export·Ask Insight 등 UI 라벨 전환, `<html lang>` 반영.
+
+#### Added — 분석 심화 & Show Me (Batch G)
+- **Auto Chart Recommendation** (`window.ChartAdvisor`) — Tableau "Show Me"식 규칙 기반 추천(날짜→line, 2측정→scatter, 3→bubble, 범주→bar, 저카디널리티→pie, 2차원→heatmap, OHLC→candlestick). Chart 모드에 원클릭 추천 배너. (Node 8)
+- **Time Series**: PACF 막대 추가(ACF와 나란히).
+- **SPC**: 선택적 LSL/USL 입력 → 공정능력 **Cp/Cpk/Pp/Ppk** 카드(1.33/1.0 임계 색상).
+- **Logistic**: ROC 외 **Precision-Recall 곡선 + AP** 추가.
+
+#### Added — 복합 차트(측정값별 마크) & 보조축
+- **막대/라인/영역 차트에서 측정값마다 표시 형태를 개별 지정** — Rows의 측정값 칩을 클릭해 **마크(막대/라인/영역)** 와 **축(좌 주축 / 우 보조축)** 선택. 예: `open`은 막대, `close`는 선 → 자동으로 복합(combo) 차트가 됨(엑셀 "차트 종류 변경" 방식). 스케일이 크게 다른 지표는 **보조축(우측)** 으로 분리.
+- 별도 "Combo" 타입 대신, 일반 차트에서 마크를 섞으면 복합차트가 되도록 통합. 색상 차원이 있을 땐 마크 컨트롤 숨김.
+- (되돌림) 캔들차트의 임의 MA5/MA20 오버레이 제거 — 데이터에 없는 값을 임의로 표시하지 않음. 이동평균이 필요하면 파생 컬럼으로 생성 예정.
+
+#### Changed
+- StatusBar·SQL 배지의 가짜 "DuckDB" 표기를 실제 "in-browser JS/SQL"로 정정 (IMPLEMENTATION_PLAN §9).
+- Chart 헤더 **PNG / Save to dashboard** 버튼 동작 연결(기존 무동작).
+- **Tweaks 패널 → 설정/Setting** 이름 변경, **Accent 색상 선택 제거**(브랜드 오렌지 고정).
+
+#### Fixed
+- **차트 전체가 빈 화면으로 렌더되던 문제 수정** — `charts.jsx`의 `resolveVar`가 `oklch()` 색을 canvas로만 변환하던 탓에, canvas가 oklch를 지원하지 않는 브라우저에서 모든 색이 검정(rgb(0,0,0))으로 폴백 → 다크 배경에서 차트가 보이지 않음. oklch→sRGB 변환을 JS(Ottosson 행렬)로 직접 수행하도록 개선하여 canvas 색공간 지원과 무관하게 정상 색 반환. Chart/Dashboard/Map/Stats 등 ECharts 전반에 적용.
+
+#### Security
+- Dashboard Text 위젯의 임의 HTML 주입 경로(`dangerouslySetInnerHTML`) 제거
+
+#### Added — Phase 2 분석 엔진 (기능 브랜치 `feat/analytics`, 밤샘 자율)
+> 모두 순수·결정적 window.* 라이브러리로 로드됨. Stats/ML 모드 UI 배선은 후속.
+- `window.PCA` — 표준화 공분산 + Jacobi 고유분해, Scree/Biplot (Node 11)
+- `window.Logistic` — 경사하강 로지스틱 회귀, ROC/AUC·PR 곡선·지표 (Node 7)
+- `window.TimeSeries` — MA/WMA/EMA, Holt 이중지수, diff, ACF/PACF, rolling std (Node 17)
+- `window.DistFit` — normInv/normCdf, QQ-정규, 정규 적합, Jarque-Bera, 히스토그램 (Node 10)
+- `window.SPC` — I-MR·X-bar/R·X-bar/S·p·c·u 관리도, Cp/Cpk/Pp/Ppk, Pareto (Node 7)
+- `window.Clustering` — DBSCAN + 병합형 계층군집(single/complete/average/ward), O(n²) ~5k행 (Node 4)
+- 전체 Node 테스트 90/90 통과, `tests/runner.html` 8개 분석 케이스 추가
+
+---
+
+### [1.9.0] — 2026-06-19 — 데이터 직접 편집 (JMP/Excel 스타일)
+
+> Data 모드 그리드에서 임포트한 데이터를 직접 편집. 모든 편집은 기존 **비파괴 스텝 파이프라인**에 기록되어 undo/redo·스텝 로그·원본 보존이 그대로 적용된다.
+
+#### Added
+
+##### 데이터 편집 엔진 (`js/store.jsx`)
+- **숨김 행 ID `__rid`**: 모든 원본 행에 단조 증가 정수 ID를 지연 태깅(`getDataset` 길목 — 빌드인/CSV/SQL 전부 커버). `columns`에 미포함되어 그리드에 표시되지 않으며, 정렬·필터·페이징·파이프라인 재배열과 무관하게 행을 안정적으로 지목.
+- `applySteps` 신규 op 5종:
+  - `set_cell` — 셀 값 변경 (`__rid` 지목, 열 타입에 맞춰 형변환)
+  - `drop_rows` — 행 삭제 (단일/다중, `__rid` 배열)
+  - `add_row` — 새 행 추가 (새 `__rid` 부여)
+  - `add_col` — 빈/기본값 열 추가 (삽입 위치 `at` 지원)
+  - `reorder_cols` — 열 순서 재배치 (key 순서 배열)
+- store 액션 `editCell·deleteRows·addRow·addColumn·reorderCols` (전부 `addStep` 래퍼 → undo/redo 자동)
+
+##### 편집 가능 그리드 (`js/grid.jsx` · `js/dataMode.jsx` · `css/grid.css`)
+- **Edit 토글** (Data 툴바): 평소 읽기전용, 토글 시 편집 모드 + Undo/Redo 버튼·편집 카운터
+- **셀 인라인 편집**: 더블클릭 → 입력 → Enter/blur 커밋, Esc 취소
+- **헤더**: 더블클릭 rename, 컨텍스트 메뉴 확장(Rename / Change type / Insert left·right / Delete column), **드래그앤드롭 열 순서 변경**
+- **행 거터**: 클릭 다중선택, hover × 삭제, Del 키 일괄 삭제
+- **하단 바**: Add row · Add column · 선택 행 Delete/Clear
+- `DataGrid`는 `editable` prop으로 게이팅 — Clean/SQL 사용처는 영향 없음(읽기전용 유지)
+- `edit`/`trash` 아이콘 추가 (`js/icons.jsx`)
+
+##### Clean 모드 통합 (`js/cleanMode.jsx`)
+- Data 모드 편집 이력이 Clean 모드 **PIPELINE 로그**에 라벨·아이콘으로 표시 (`stepLabel`/`OP_ICON`에 5종 추가)
+
+#### Fixed
+- **`__rid` 누출 방지**: 전체 행 `JSON.stringify` 기반 중복 제거/카운트(`store.jsx` drop_duplicates, `cleanMode.jsx` dup 카드)에서 `__rid` 제외 — 미수정 시 모든 행이 고유로 판정되어 중복 탐지가 무력화되는 문제 해결
+- **AIDrawer 견고성**: 편집으로 생긴 `null` `txn_date`·빈 행에 `buildInsights`가 크래시하던 버그 수정 (null 가드 + try/catch + null district 그룹 제외). AIDrawer는 항상 마운트되어 seoul 데이터 인사이트를 계산하므로, 빈 행 추가 시 앱 전체가 다운되던 문제
+- CSV export 시 `__rid` 누출 방어 (`js/charts.jsx`)
+
+#### Technical Notes
+- 모든 편집은 `state.clean[id].steps`에 기록 → 단일 비파괴 파이프라인으로 정리/편집 일원화
+- `index.html` 캐시 버전 `?v=170` → `?v=175` (CSS 링크에도 버전 쿼리 추가)
+
+---
+
+### [1.8.0] — 2026-06-07 — 브랜드 아이덴티티 정립 (Brand Spec v1.0)
+
+#### Changed
+
+##### 워드마크 소문자화 (전 파일)
+- `INSIGHT Analytics` → `insight Analytics` — 소문자 워드마크로 전환
+  - `in` (tx-hi) + `sight` (Heritage Orange `#E8611A`) + ` Analytics` (tx-faint `#6E6E86`, 0.62em)
+  - 로딩 화면(`index.html` `.nl-name`), TopBar(`js/shell.jsx`), 문서 topbar-brand 모두 반영
+
+##### 로고 시스템 (`docs/logo.svg` · `css/app.css`)
+- `docs/logo.svg`: 폰트 → IBM Plex Sans, Analytics 크기 16px → 20px(0.62em), 색상 → `#6E6E86`
+- `css/app.css`: `.logo-an` — `font-size: 0.62em` (비율 기준), `color: var(--tx-faint)` (스펙 정정)
+- `css/tokens.css`: 헤더 주석 `NØDE` → `insight Analytics`, Heritage Orange oklch 값 명시
+
+##### 로고 마크업 분리 (`js/shell.jsx`)
+- TopBar 로고: `.logo-in` / `.logo-sight { color:var(--accent) }` / `.logo-an` 세 span 구조
+- `text-transform: uppercase` 제거
+
+#### Added
+
+##### Brand Spec 문서 (`docs/insight_Analytics_Brand_Spec_standalone.html`)
+- 브랜드 스펙 단독 실행 HTML 파일 추가 (외부 의존 없음, v1.0 · 2026-06)
+- 워드마크 3종(표준/컴팩트/단색), 로고마크, 브랜드 컬러, 타이포그래피, 제품군 관계, 복사용 CSS 토큰 포함
+
+##### 브랜드 섹션 전면 갱신 (README · docs)
+- `README.md`: 워드마크 HTML 스니펫, Heritage Orange 컬러표, 타이포그래피표, 제품군표 추가
+- `docs/index.html`: 워드마크 4열 표(토큰/실제값), 컬러표(Heritage Orange/Hi/Soft/Hub Blue), 제품군표, HTML 코드 예시 추가
+- `docs/user-guide.html`: 동일 구조로 사용자 관점 재작성, Analytics 색상 `tx-lo` → `tx-faint` 정정
+
+#### Technical Notes
+- **Heritage Orange**: `#E8611A` / `oklch(0.70 0.17 47)` — 기본 accent · `sight` 강조색
+- **형제 제품**: insight Data hub — Hub Blue `#3F74E8` / `oklch(0.62 0.15 250)` (참조용)
+- **Analytics 크기**: 워드마크 기준 0.62em — 이전 구현(0.5em) 대비 스펙 준수
+- `index.html` 스크립트 태그 전체에 `?v=170` 캐시 버스팅 쿼리 추가 (v1.7.0 포함 사항)
+
+---
+
+### [1.7.0] — 2026-06-07 — Clean 모드 전처리 강화 (Phase 2 첫 번째 배치)
+
+#### Added
+
+##### Clean 모드 — 인코딩 (store.jsx · cleanMode.jsx)
+- **Label Encode** (`label_encode`): 문자열 컬럼 → 정수(0,1,2…) 새 컬럼(`_enc`) 추가. 고유값 알파벳 정렬 후 인덱스 부여.
+- **Dummy Encode** (`dummy_encode`): One-Hot 인코딩 — 고유값마다 `col_값` 0/1 정수 컬럼 추가. 고유값 20개 초과 시 사전 경고.
+- **Drop Column** (`drop_col`): columns 배열 + 모든 row에서 컬럼 완전 삭제.
+
+##### Clean 모드 — 수치 변환 (store.jsx · cleanMode.jsx)
+- **Standardize** (`standardize`): Z-Score 표준화 — (x−μ)/σ, 4자리 반올림, 제자리 변환.
+- **Normalize** (`normalize`): Min-Max 정규화 — (x−min)/(max−min), 0~1 범위, 제자리 변환.
+- **Log Transform** (`log_transform`): log1p(x), x > −1 조건 검사 후 적용.
+- **Rank Transform** (`rank_transform`): 오름차순 순위값(1..n) 제자리 변환, 정수 타입으로 변경.
+- **Winsorize** (`winsorize`): 상하 p% 분위수 클리핑 (기본 p=5, UI에서 1–49 조정 가능).
+- **Binning** (`binning`): 등폭 N구간 → `col_bin` 범주 컬럼 추가 (기본 5개, UI에서 2–50 조정).
+
+##### Clean 모드 — Formula Column (store.jsx · cleanMode.jsx)
+- **Formula** (`formula`): JS 수식으로 파생 컬럼 생성.
+  - **안전 평가기** `window.FormulaEval.compile(expr)` — eval/new Function 없는 재귀하강 파서. `row` 객체로 컬럼 값 접근, `Math.*`(화이트리스트) 함수 사용 가능. 프로토타입 체인·전역 접근 차단(A1 보안). *(구: `new Function("row","Math",expr)` — 코드실행 취약점으로 제거됨)*
+  - 수식 오류 시 해당 셀 `null` 처리 (전체 파이프라인 중단 없음).
+  - 결과 타입 자동 감지 → integer / float / string 컬럼 메타 생성.
+
+##### index.html
+- 전체 JS/JSX 스크립트 태그에 `?v=170` 캐시 버스팅 쿼리 추가 (개발 환경 브라우저 캐시 문제 해결).
+
+#### Changed
+- `stepLabel()` / `OP_ICON`: 신규 10개 op 모두 한국어 레이블 + 아이콘 등록.
+- `CleanPanel` destructure: `rows` 추가 (Dummy Encode 고카디널리티 경고에 현재 정제 행 기준 사용).
+
+---
+
+### [1.6.0] — 2026-06-07 — Map 강화 + Export/Import
+
+#### Added
+
+##### Export / Import
+- **Export 드롭다운** (`js/shell.jsx`): 차트 PNG (`echarts.getDataURL`, pixelRatio:2) + 현재 데이터 CSV 내보내기
+- **Import 모달** (`js/shell.jsx`): CSV / TSV / JSON 파일 드래그앤드롭 또는 클릭 업로드. 헤더 자동 파싱, 숫자 컬럼 자동 감지, `window.NODE.datasets`에 주입.
+
+##### Map 모드 — World · GDP 탭
+- ECharts v4 CDN (`echarts@4.9.0/map/json/world.json`)으로 world GeoJSON 로드
+- 30개국 choropleth: GDP(명목) / Per Capita / Population / Growth 4개 메트릭
+- 우측 패널: 국가별 순위 바차트
+
+##### Map 모드 — Korea · 행정구역 탭
+- Highcharts map-collection CDN (`@highcharts/map-collection@2.0.1`) 한국 GeoJSON 로드
+  - properties.name 영문 → 한국어 리맵 후 `echarts.registerMap("korea_prov")`
+- **시도 뷰**: 17개 시도 choropleth (인구/인구밀도/면적/GRDP), 시도 클릭 → 시군구 드릴다운
+- **시군구 뷰**: 84개 주요 시군구 버블 오버레이. 시도 필터 드롭다운.
+  - `wgs84ToHCKorea(lon, lat)` 함수: WGS84 → UTM Zone 52N → Highcharts 투영좌표 변환 (Highcharts GeoJSON이 UTM52N 좌표계 사용 — WGS84 아님)
+- 우측 패널: 시도/시군구 인구 순위 바차트 + 권역별 인구 집계
+
+##### Map 모드 — 내 데이터 모드 (Korea 탭)
+- `detectGeoColumns()`: 활성 데이터셋 컬럼명 패턴 매칭으로 위도/경도 컬럼 자동 감지
+  - 위도 패턴: `lat / latitude / 위도 / y / y_coord`
+  - 경도 패턴: `lon / lng / longitude / 경도 / x / x_coord`
+- 감지 시 탭에 **✦** 배지 표시, 드롭다운에 자동 입력
+- 위도·경도·값·라벨 4개 컬럼 선택 드롭다운
+- 한국 영역(위도 33–39°, 경도 124–132°) 외 좌표 자동 필터링
+- 50개 이하 포인트 시 라벨 자동 표시
+
+#### Fixed
+- Map 탭 전환 시 "Rendered more hooks than during previous render" 오류 → `<Workspace key={tab}>` 강제 리마운트로 해결
+- World GeoJSON 404 (ECharts v5에 map 번들 없음) → `echarts@4.9.0` CDN으로 교체
+
+#### Technical Notes
+- 한국 시도 GeoJSON CDN 조사 결과: `southkorea-maps` (GitHub raw → 404, jsDelivr → 403), `echarts@4` south-korea → 404. **Highcharts map-collection npm CDN만 정상 동작**.
+- Highcharts GeoJSON 좌표계: UTM Zone 52N 투영좌표 (`hc-transform`: scale=0.001170, jsonres=15.5, xoffset=114507.65, yoffset=4275280.76)
+
+---
+
+### [1.5.0] — 2026-06-06 — JMP Statistical Enhancement
+
+#### Added
+- **`js/insightEngine.js`** (신규 모듈): 규칙 기반 자동 해석 엔진
+  - `window.IE.profileDataset(id)` — 데이터셋 형상, 결측, IQR 이상치, 왜도 플래그, 최강 상관계수 자동 탐지 (string[] 반환)
+  - `window.IE.summarizeCorrelation({ cols, matrix })` — 최강 상관쌍 및 |r|>0.5 쌍 수 요약
+  - `window.IE.summarizeRegression({ r2, adj, terms, target, pF })` — R² 품질 등급 + 유의 예측변수 목록
+  - `window.IE.summarizeClustering({ K, sizes, inertia })` — 군집 균형도 평가
+  - `window.IE.summarizeClassification({ acc, classes, cm, k })` — 정확도 + 클래스별 P/R 요약
+  - `window.IE.recommendNextStep({ lastTest, lastResult })` — 현재 분석 맥락 기반 다음 분석 제안 (`{ icon, text }`)
+
+- **`js/statsMath.js`**: 왜도(skewness) / 초과 첨도(excess kurtosis) 함수
+  - `window.SM.skewness(a)` — 표본 왜도 (n/((n-1)(n-2)) 보정, n<3이면 null)
+  - `window.SM.kurtosis(a)` — Fisher 초과 첨도 (n<4이면 null)
+
+- **Stats 모드 — Distribution 탭** (`js/statsMode.jsx`):
+  - 컬럼 선택 → ECharts 히스토그램 (카테고리 축, 구간 레이블)
+  - 수평 박스플롯 (`layout: "horizontal"`) + IQR 이상치 scatter overlay
+  - n, Missing, Mean, Median, Std, Min, Max, Q1/Q3, IQR, Skewness, Kurtosis, Outliers 8카드
+  - IE Interpretation 패널 + Next Step 패널
+
+- **Stats 모드 — Analysis Builder 탭** (`js/statsMode.jsx`):
+  - Target 컬럼 + Input 컬럼 다중 선택 UI
+  - 컬럼 타입 자동 감지 → 회귀(OLS) / 일원 ANOVA / 카이제곱 중 자동 선택
+  - Summary / Visual / Statistical Results / Next Step 4개 섹션으로 결과 표시
+
+- **Stats 모드 — 모든 탭**: `InterpretationPanel` + `NextStepPanel` 컴포넌트 추가 (분석 완료 후 자동 표시)
+- **Stats 모드 — Descriptive 탭**: 기술통계 테이블에 Skewness / Kurtosis 컬럼 추가 (|sk|>1.5 경고 색상)
+
+- **ML 모드 — 분류(Classification)** (`js/mlMode.jsx`):
+  - `perClass` 배열: 클래스별 `{ tp, fp, fn, prec, rec, f1 }` 계산
+  - `macroF1` 산출
+  - 클래스별 Precision / Recall / F1 / TP / FP / FN 테이블 (F1 컬러 코딩)
+
+- **ML 모드 — 군집(KMeans)** (`js/mlMode.jsx`):
+  - `clusterMeans` 산출: 군집별 특성 평균 (원본 스케일 역정규화)
+  - Feature × Cluster 특성 표 표시
+
+- **ML 모드 — Model Comparison History** (`js/mlMode.jsx`):
+  - `window.NODE.mlHistory` — 렌더 간 영속 배열 (Store 외부)
+  - 최근 10개 실행 비교 테이블 (#/Task/Target/Metric/Score)
+  - Train 시 `window.NODE.lastAnalysisResult` 갱신
+
+- **Ask Insight 드로어** (`js/aiDrawer.jsx`):
+  - `IE.profileDataset(activeId)` 렌더마다 자동 실행 → "Dataset Profile" 섹션 표시
+  - `window.NODE.lastAnalysisResult` 존재 시 "Last Analysis Result" 섹션 표시
+  - 6번째 Suggest 칩: "Summarize last analysis"
+  - NL 키워드 확장: `corr/regress/distribut/ml/machine/learn` 등 Stats/ML 탐색 인텐트
+
+- **CSS — `css/stats.css`** (추가):
+  - `.interpretation-panel`, `.ip-head`, `.ip-body` — 파란색 해석 패널
+  - `.nextstep-panel`, `.ns-head`, `.ns-body` — 초록색 다음 단계 패널
+  - `.result-section`, `.rs-label` — 섹션 레이블
+  - `.analysis-builder`, `.ab-section`, `.ab-summary` — Analysis Builder 레이아웃
+
+- **CSS — `css/ml.css`** (추가):
+  - `.clf-metrics` — 클래스별 메트릭 + 군집 표 래퍼
+  - `.model-comparison-table` — 밀집 비교 테이블 (우정렬 숫자 셀, hover 배경)
+
+- **`index.html`**: `<script src="js/insightEngine.js"></script>` 추가 (statsMath.js 이후, icons.jsx 이전)
+
+#### Changed
+- `window.SM` exports 확장: 기존 `{ gammp, gammq, betai, tP, fP, chiP, matInverse, gammln }` → `skewness, kurtosis` 추가
+- Stats 모드 TESTS 배열: 6개 → 8개 (`distribution`, `builder` 탭 추가)
+- ML 모드 Train 버튼: 훈련 완료 후 자동으로 `window.NODE.mlHistory` 및 `lastAnalysisResult` 갱신
+
+---
+
+### [1.0.0] — 2026-06-06 — Phase 1 Initial Release
+
+#### Added
+- 전체 8개 모드 UI 프레임워크 (Data / Clean / SQL / Chart / Map / Board / Stats / ML)
+- 서울 아파트 실거래가 시뮬레이션 데이터셋 3종 (`seoul_txns` 503행, `monthly_index` 42행, `district_stats` 12행)
+- KOSPI 금융 데이터셋 (`KOSPI_Stock` 320행 OHLCV)
+- 20종 ECharts 차트 타입 (Basic 8 / Advanced 8 / Financial 3 / Special 1)
+- 다크/라이트 테마 + Tweaks 패널 (layout/tone/density/accent/sidebar)
+- DataGrid: 검색, 정렬, 필터, 컬럼 고정, 페이지네이션
+- Cleaning Studio: Missing/Duplicate/Outlier 원클릭 처리 + Undo/Redo 파이프라인
+- Local SQL Engine: SELECT/WHERE/GROUP BY/집계/ORDER/LIMIT
+- Correlation / T-Test / ANOVA / Chi-Square / Regression 통계 검정
+- In-browser AutoML: OLS 회귀, k-NN 분류, KMeans 군집
+- Seoul 25구 Choropleth (GeoJSON) + Bubble Map 폴백
+- Drag/Resize 위젯 대시보드 + Cross Filtering
+- Ask Insight AI 드로어 (규칙 기반 인사이트 + NL→차트 라우팅)
+- 로딩 화면 (의존성 상태 체크 + 애니메이션 링)
+- 개발자 매뉴얼 (`docs/index.html`, 자기 완결형 HTML)

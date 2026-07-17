@@ -13,18 +13,19 @@
 
 ## 1. TL;DR — what this is
 
-A browser-only analytics tool with **8 workspace modes** selectable from the left rail:
+A browser-only analytics tool with **9 workspace modes** selectable from the left rail:
 
 | Rail id | Label | What it does |
 |---|---|---|
 | `data` | Data | Dataset explorer + dense data grid + auto profiling + per-column statistics |
 | `clean` | Clean | Cleaning Studio: reversible cleaning pipeline (missing/dupes/outliers/transform) |
-| `sql` | SQL | Local SQL engine (SELECT/WHERE/GROUP BY/aggregates/ORDER/LIMIT) over datasets |
+| `sql` | SQL | DuckDB-WASM engine (full SQL incl. JOIN/subquery/CTE/window); falls back to a hand-written JS engine when DuckDB can't load |
 | `visualize` | Chart | Tableau-style Columns/Rows shelves → ECharts (20 chart types in 4 groups) |
+| `pivot` | Pivot | Rows × Columns cross-tab (`PivotEngine`), multi-value aggregation, save result as dataset |
 | `map` | Map | Seoul · Korea · World 3-tab maps + imported lat/lon data overlay |
 | `dashboard` | Board | Drag/resize widget grid (KPI/Chart/Table/Text) with **cross-filtering** |
 | `stats` | Stats | Significance testing: Correlation, T-Test, ANOVA, Chi-Square, Regression + auto-interpretation |
-| `ml` | ML | In-browser AutoML: OLS regression, k-NN classification, KMeans clustering |
+| `ml` | ML | In-browser AutoML: OLS regression, k-NN, Decision Tree, Naive Bayes, Logistic, KMeans, DBSCAN, hierarchical, PCA + k-fold CV |
 
 Plus: **Ask Insight** AI drawer (auto-insights + NL→chart), **Tweaks** panel (layout/tone/accent),
 dark/light toggle, CSV/TSV/JSON/XLSX import, PNG/CSV export. Projects, mutable datasets, analysis
@@ -90,7 +91,10 @@ css/
 
 js/
   data.js          (plain) # window.NODE: sample datasets + formatters (seeded, stable)
-  statsMath.js     (plain) # window.SM: incomplete gamma/beta, t/F/chi² p-values, matrix inverse
+  statsMath.js     (plain) # window.SM: incomplete gamma/beta, t/F/chi² p-values, matrix inverse.
+                           #   matInverse returns **null** on a singular matrix (never a fudged pivot) —
+                           #   callers must handle it; regression() throws {code:"collinear"}. Dual-mode
+                           #   export, so tests/statsMath.test.js can require() it under Node.
   icons.jsx                # window.Icon — inline line-icon set <Icon name="…" />
   store.jsx                # window.Store — global state, actions, transforms, aggregation, stats helpers
   projectStore.js          # window.ProjectStore — IndexedDB projects, autosave, portable JSON
@@ -240,7 +244,7 @@ All visuals are CSS variables; **never hard-code colors in components** — use 
 
 - `<TopBar>` — Insight logomark, workbench name, project switcher/save status, functional CSV/TSV/JSON/XLSX **Import**, functional PNG/CSV **Export**, **Ask Insight** toggle (`ui.aiOpen`), Tweaks button, theme toggle, avatar.
 - `<Rail>` — the 8 `MODES`. Active mode highlighted; click → `actions.setMode`.
-- `<StatusBar>` — engine label, dataset, row/col counts. The current UI string says `Local engine · DuckDB`, but the runtime still uses the hand-written JavaScript SQL/aggregation engine; treat the DuckDB label as aspirational until the engine swap is implemented.
+- `<StatusBar>` — engine label, dataset, row/col counts. The engine label is **live, not aspirational**: `shell.jsx:444` reads `window.DuckDB.status` and renders `Local engine · DuckDB-WASM` only when DuckDB actually instantiated, otherwise `Local engine · in-browser JS`.
 - `<Workspace left center right …>` — the **3-panel frame** used by every mode. Left = explorer, center = workspace, right = inspector. Side panels are **drag-resizable** (the `.resizer` handles write `ui.leftW/rightW`). Honors tweaks: `explorerSide:"right"` swaps panels; `layout:"focus"` hides the right panel.
 
 Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={<XPanel/>} />`.
@@ -262,7 +266,9 @@ Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={
 - Ops (`Step.op`) are centralized in `Store.derive.applySteps`: basic cleaning (`drop_missing`, fills, duplicates, outliers, rename/replace/type), encoding (`label_encode`, `dummy_encode`), numeric transforms (`standardize`, `normalize`, `log_transform`, `rank_transform`, `winsorize`, `binning`), `formula`, column removal, and direct-edit ops (`set_cell`, `drop_rows`, `add_row`, `add_col`, `reorder_cols`). **To add an op:** add a `case` there + a button in `CleanPanel` + a label/icon in the pipeline.
 
 ### SQL (`sqlMode.jsx`)
-- Hand-written engine `runSQL(sql)` — supports `SELECT (cols / *, AGG(col) AS alias)`, `FROM <datasetId|short>`, `WHERE c op v [AND …]` (ops `= != <> > < >= <= LIKE`, `%`/`_` wildcards), `GROUP BY`, aggregates `SUM/AVG/COUNT/MIN/MAX/MEDIAN` (`COUNT(*)`), `ORDER BY col [ASC|DESC]`, `LIMIT n`. No JOIN/subquery/window yet.
+- **Two engines, one switch** (`sqlMode.jsx:43-64`). Primary: **DuckDB-WASM** (`js/duckdbEngine.mjs`, the app's only ES module) — full SQL incl. JOIN/subquery/CTE/window. Every dataset's *post-cleaning* view is registered as a table on each run (`registerDatasets`), so quoted identifiers give Korean columns.
+- Fallback: `window.SQLFallback.runSQL` (`js/sqlFallback.js`) — engages **only when DuckDB fails to instantiate** (offline / CDN down / no WASM), never per-query. Supports `SELECT (cols / *, AGG(col) AS alias)`, `FROM <datasetId|short>`, `WHERE c op v [AND …]` (ops `= != <> > < >= <= LIKE`), `GROUP BY`, `SUM/AVG/COUNT/MIN/MAX/MEDIAN`, single-key `ORDER BY`, `LIMIT n`. **One table per query — no JOIN/subquery/window/OR/HAVING/DISTINCT.**
+- The active engine is surfaced to the user in the result bar (`sqlMode.jsx:86`) and the StatusBar (`shell.jsx:444`).
 - Editor (textarea + gutter), **⌘/Ctrl+Enter** runs, results in DataGrid, **Save as dataset** pushes results into `NODE.datasets`. Right panel: example queries + table schema chips.
 
 ### Chart / Visualization Builder (`vizMode.jsx`)
@@ -285,8 +291,9 @@ Every mode returns `<Workspace left={<DatasetTree/>} center={<XCenter/>} right={
 - **Cross-filtering**: clicking a mark in any chart sets `dash.cross = {key, value, source}`. `applyCross(rows, cross, widgetId)` filters every other widget (the **source** widget stays unfiltered as context). KPIs show "% of total". Click same mark again or **Clear** to reset.
 
 ### Stats (`statsMode.jsx` + `statsMath.js` + `insightEngine.js`)
-- Tests (8 total): **Descriptive, Distribution, Correlation (Pearson/Spearman), T-Test (Welch + Cohen's d), ANOVA (one-way + η²), Chi-Square (independence + Cramér's V), Regression (OLS + per-coef SE/t/p + R²/adj/F), Analysis Builder**.
+- Tests (**11 total**, the `TESTS` array at `statsMode.jsx:11`): **Descriptive, Distribution, Correlation (Pearson/Spearman), T-Test (Welch + Cohen's d), ANOVA (one-way + η²), Chi-Square (independence + Cramér's V), Regression (OLS + per-coef SE/t/p + R²/adj/F), Normal Q-Q, Time Series, SPC Chart, Analysis Builder**.
 - **Exact p-values** from `window.SM`: `tP(t,df)`, `fP(F,d1,d2)`, `chiP(x,df)` (regularized incomplete beta/gamma), plus `matInverse` for regression standard errors. Also `SM.skewness(a)` and `SM.kurtosis(a)` (Fisher's excess, sample-corrected).
+- ⚠️ **Regression and collinearity.** `SM.matInverse` returns `null` when `XtX` is singular, and `regression()` turns that into a thrown `{code:"collinear"}` which both UI paths render as a dedicated notice. **Do not "fix" this by substituting a small pivot** — that's the bug it replaced (PLAN §12 E1): it produced a normal-looking coefficient table with se≈1e7 → p≈1, i.e. a confident "not significant" for a term the model can't identify. It is reachable in the real UI because `dummy_encode` emits every level (no drop-first) and regression adds an intercept.
 - Each result shows metric cards + a chart/table + a **color-coded significance verdict** (α=0.05) + `InterpretationPanel` (IE-generated, blue tint) + `NextStepPanel` (green tint, suggests next analysis). Config in `ui.stats`.
 - **Distribution tab** (`DistributionCenter`): column picker → histogram (category-axis ECharts bar with bin labels) + horizontal boxplot (`layout:"horizontal"`, scatter overlay for IQR outliers) + 8 stat cards (n, missing, mean, median, std, min/max, IQR, skewness, kurtosis, outlier count).
 - **Analysis Builder tab** (`AnalysisBuilderCenter`): target + multi-input column selector → `runBuilder()` auto-detects type by column types (numInputs≥1+isNumTarget → OLS regression; catInputs≥1+isNumTarget → ANOVA; catInputs≥1+isCatTarget → chi-square) → shows Summary/Visual/Statistical Results/Next Step.

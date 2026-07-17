@@ -12,7 +12,7 @@
 ![Status](https://img.shields.io/badge/v2.0.0-Core%20Product%20v2-brightgreen)
 ![Stack](https://img.shields.io/badge/Stack-React%2018%20%2B%20ECharts%205%20%2B%20DuckDB--WASM-blue)
 ![No Build](https://img.shields.io/badge/Build-None%20(Browser--only)-lightgrey)
-![Tests](https://img.shields.io/badge/tests-329%20unit%20%2B%2043%20E2E-success)
+![Tests](https://img.shields.io/badge/tests-343%20unit%20%2B%2056%20E2E-success)
 
 ---
 
@@ -180,9 +180,8 @@ npm run preview       # 빌드 후 dist/를 :8743에 서빙해 눈으로 확인
 .
 ├── index.html               # 메인 진입점 (스크립트 로드 순서 = 의존성 순서)
 ├── IMPLEMENTATION_PLAN.md   # 계획 정본 — 앞으로 할 일 (§12 하드닝 백로그)
-├── WORKLOG.md               # 현재 상태 + 완료 기록 (세션 시작 시 여기부터)
+├── WORKLOG.md               # 현재 상태 + 완료 기록 + 릴리스 이력 (세션 시작 시 여기부터)
 ├── HANDOFF.md               # 코드 아키텍처
-├── CHANGELOG.md             # 릴리스 이력
 ├── css/                     # 13개 CSS 파일 (토큰 → 기능별 분리)
 ├── js/                      # JS/JSX 모듈 (window.* 전역 공유)
 ├── vendor/                  # 로컬 고정 서드파티 (sheetjs-0.20.3 · pptxgenjs)
@@ -196,8 +195,8 @@ npm run preview       # 빌드 후 dist/를 :8743에 서빙해 눈으로 확인
 
 ```bash
 npm install       # 테스트·빌드 도구만 설치 (앱 실행에는 불필요)
-npm test          # Node 유닛 329개
-npm run test:e2e  # Playwright E2E 43개 (시스템 Chrome 사용 — 브라우저 다운로드 없음)
+npm test          # Node 유닛 343개
+npm run test:e2e  # Playwright E2E 56개 (시스템 Chrome 사용 — 브라우저 다운로드 없음)
 npm run bump      # 자산 캐시버스트 ?v= 일괄 갱신
 ```
 
