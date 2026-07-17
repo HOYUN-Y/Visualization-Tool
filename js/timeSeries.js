@@ -196,43 +196,46 @@
   function acf(values, maxLag) {
     assert(isArray(values), "acf: values must be an array");
     assert(Number.isInteger(maxLag) && maxLag >= 0, "acf: maxLag must be an integer >= 0");
-    // collect finite values (missing dropped)
-    var x = [];
+    // Keep values POSITIONAL — nulls stay in place (PLAN §12 E4).
+    //
+    // This used to COMPACT the series (push only finite values into a dense array), which shifted every
+    // observation after a gap one slot earlier. A single missing point then destroyed the lag structure:
+    // a clean quarterly series scored acf(lag4)=0.90, but with one missing month it collapsed to 0.79,
+    // because "lag 4" no longer lined up with the same phase — exactly the seasonality ACF exists to
+    // find. Fix: preserve positions and use PAIRWISE deletion — a lag-k term is included only when BOTH
+    // x[t] and x[t-k] are present. When there are no gaps this reduces to the previous biased estimator
+    // (denominator = finite count = n), so the no-gap results are unchanged.
+    var xs = new Array(values.length);
+    var nFinite = 0, sum = 0;
     for (var i = 0; i < values.length; i++) {
       var v = toNum(values[i]);
-      if (v !== null) x.push(v);
+      xs[i] = v; // null preserved at its position
+      if (v !== null) { nFinite++; sum += v; }
     }
-    var n = x.length;
     var out = new Array(maxLag + 1);
-    if (n === 0) {
+    if (nFinite === 0) {
       for (var q = 0; q <= maxLag; q++) out[q] = q === 0 ? 1 : null;
       return out;
     }
-    var mean = 0;
-    for (var a = 0; a < n; a++) mean += x[a];
-    mean /= n;
+    var mean = sum / nFinite;
 
     var c0 = 0;
-    for (var b = 0; b < n; b++) {
-      var d = x[b] - mean;
+    for (var b = 0; b < xs.length; b++) {
+      if (xs[b] === null) continue;
+      var d = xs[b] - mean;
       c0 += d * d;
     }
-    c0 /= n;
+    c0 /= nFinite;
 
     for (var k = 0; k <= maxLag; k++) {
-      if (k === 0) {
-        out[0] = 1;
-        continue;
-      }
-      if (c0 === 0 || k >= n) {
-        out[k] = 0;
-        continue;
-      }
+      if (k === 0) { out[0] = 1; continue; }
+      if (c0 === 0 || k >= xs.length) { out[k] = 0; continue; }
       var ck = 0;
-      for (var t = k; t < n; t++) {
-        ck += (x[t] - mean) * (x[t - k] - mean);
+      for (var t = k; t < xs.length; t++) {
+        if (xs[t] === null || xs[t - k] === null) continue; // pairwise deletion — no shifting
+        ck += (xs[t] - mean) * (xs[t - k] - mean);
       }
-      ck /= n;
+      ck /= nFinite;
       out[k] = ck / c0;
     }
     return out;

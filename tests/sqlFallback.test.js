@@ -48,6 +48,30 @@ test("Korean column in WHERE with LIKE", () => {
   assert.equal(res.rows.length, 2);
 });
 
+// LIKE: * is a LITERAL character, not a wildcard (only % and _ are). Regression (PLAN §12 E6):
+// the escape class omitted *, so `LIKE 'a*'` compiled to /^a*$/ ("zero or more a") — a silent wrong
+// answer — instead of matching the literal string "a*".
+test("LIKE treats * as a literal, not a regex quantifier", () => {
+  const starRows = [
+    { code: "a*", n: 1 },
+    { code: "aaa", n: 2 },   // /^a*$/ would wrongly match this
+    { code: "", n: 3 },       // and this
+    { code: "a*b", n: 4 },
+  ];
+  const starCtx = {
+    datasets: [{ id: "codes", short: "codes", columns: [{ key: "code" }, { key: "n" }] }],
+    getRows: () => starRows.map((r) => ({ ...r })), aggFn, round,
+  };
+  const res = SQL.runSQL("SELECT * FROM codes WHERE code like 'a*'", starCtx);
+  assert.equal(res.error, undefined, res.error);
+  // Exactly the literal "a*" — NOT "aaa" or "" (which the unescaped /^a*$/ would have returned).
+  assert.deepEqual(res.rows.map((r) => r.code), ["a*"]);
+
+  // And % still works as a wildcard around a literal star: "a*%" → starts with "a*".
+  const res2 = SQL.runSQL("SELECT * FROM codes WHERE code like 'a*%'", starCtx);
+  assert.deepEqual(res2.rows.map((r) => r.code).sort(), ["a*", "a*b"]);
+});
+
 test("projection alias on Korean columns + ORDER BY ASC", () => {
   const res = run("SELECT 구역 AS 지역명, 값 FROM 지역 ORDER BY 값 ASC");
   assert.equal(res.error, undefined, res.error);

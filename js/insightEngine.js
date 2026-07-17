@@ -3,6 +3,10 @@
                  summarizeClustering, summarizeClassification, recommendNextStep } */
 (function () {
 
+  // Pairwise correlation is O(k²) in columns; this bounds the profile's quick scan. When it bites,
+  // profileDataset() tells the user and points at Stats › Correlation for the full matrix (PLAN §12 E2).
+  const CORR_SCAN_LIMIT = 6;
+
   function profileDataset(id) {
     const Store = window.Store, NODE = window.NODE, SM = window.SM;
     const { rows, columns } = Store.derive.getActiveData(id);
@@ -40,9 +44,15 @@
       findings.push(`**${totalOutliers}** outlier value(s) detected across numeric columns (IQR ±1.5). Review in **Clean** mode.`);
     }
 
-    // Skewness flags
+    // Skewness flags — every numeric column (PLAN §12 E2).
+    //
+    // This used to be `numCols.slice(0, 6)`, which silently skipped the 7th column onward. The cap was
+    // also inconsistent with its own file: the outlier scan above runs colStats() — which SORTS, so
+    // O(n log n) per column — over ALL numeric columns, uncapped, while skewness (a single O(n) pass)
+    // was the one being limited. The expensive scan was unbounded and the cheap one wasn't, so lifting
+    // this cap costs strictly less than what the function already spends.
     if (SM.skewness) {
-      for (const c of numCols.slice(0, 6)) {
+      for (const c of numCols) {
         const vals = rows.map((r) => r[c.key]);
         const sk = SM.skewness(vals);
         if (sk != null && Math.abs(sk) > 1.5) {
@@ -51,10 +61,16 @@
       }
     }
 
-    // Strongest correlation among first 6 numeric columns
+    // Strongest correlation — capped, and SAID SO (PLAN §12 E2).
+    //
+    // The cap stays here because pairwise correlation is genuinely O(k²) in columns: 6 columns = 15
+    // pairs, 20 columns = 190. But a silent cap is the problem, not the cap itself — the panel is
+    // titled "Dataset profile" and the reader takes its silence for "nothing found", when the 7th
+    // column onward was never examined. So when it truncates, say so and point at Stats › Correlation,
+    // which computes the FULL matrix over every numeric column (statsMode.jsx:650).
     if (numCols.length >= 2) {
       let bestR = 0, bestPair = null;
-      const slice = numCols.slice(0, 6);
+      const slice = numCols.slice(0, CORR_SCAN_LIMIT);
       for (let i = 0; i < slice.length; i++) {
         for (let j = i + 1; j < slice.length; j++) {
           const r = stat.pearson(rows.map((r2) => r2[slice[i].key]), rows.map((r2) => r2[slice[j].key]));
@@ -63,6 +79,9 @@
       }
       if (bestPair && Math.abs(bestR) > 0.35) {
         findings.push(`Strongest linear relationship: **${bestPair[0]}** ↔ **${bestPair[1]}** (r = ${bestR.toFixed(2)}, ${Math.abs(bestR) > 0.7 ? "strong" : "moderate"} correlation).`);
+      }
+      if (numCols.length > CORR_SCAN_LIMIT) {
+        findings.push(`Correlation scan covered the **first ${CORR_SCAN_LIMIT} of ${numCols.length}** numeric columns (pair count grows quadratically). Open **Stats › Correlation** for the full matrix.`);
       }
     }
 
@@ -141,5 +160,12 @@
     return { icon: "stats", text: "Run **Correlation** first to identify which variables are most related, then build a targeted regression or ANOVA." };
   }
 
-  window.IE = { profileDataset, summarizeCorrelation, summarizeRegression, summarizeClustering, summarizeClassification, recommendNextStep };
+  // Dual-mode export (PLAN §12 E2). window.IE for the browser; module.exports so tests can require()
+  // it under Node. profileDataset() reads window.Store/NODE/SM at CALL time (not load time), so it's
+  // exported too but is only exercisable in the browser; the summarize*/recommendNextStep functions
+  // are pure and now unit-testable — this was the second engine (with statsMath) that had no test file
+  // purely for lack of this line.
+  const api = { profileDataset, summarizeCorrelation, summarizeRegression, summarizeClustering, summarizeClassification, recommendNextStep, CORR_SCAN_LIMIT };
+  if (typeof window !== "undefined") window.IE = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();

@@ -121,9 +121,21 @@
     }
 
     // batch gradient descent on mean log-loss (+ L2 ridge on weights only)
+    //
+    // CONVERGENCE IS NOW REPORTED, NOT ASSUMED (PLAN §12 E5). This was a fixed 200-iteration loop whose
+    // comment claimed "converged weights" — untrue. On well-separated classes the MLE diverges (weights
+    // grow without bound), so at iteration 200 the fit is wherever GD happened to stop: the coefficient
+    // bar chart (mlMode.jsx:170) then reflects the iteration count, not the data, and predicted
+    // probabilities are systematically under-confident. Accuracy/AUC (rank-based) are unaffected — so
+    // this is a "the numbers you read off the bars/probabilities may be premature" problem, and the
+    // honest fix is to tell the caller. We stop early when the gradient is flat (a real optimum, which
+    // is also cheaper), and flag `converged` = did we stop before exhausting the iteration budget.
     var w = new Array(nf).fill(0);
     var b = 0;
     var eps = 1e-12;
+    var GRAD_TOL = 1e-6; // ‖mean gradient‖∞ below this ⇒ at an optimum
+    var converged = false;
+    var itUsed = 0;
 
     for (var it = 0; it < iterations; it++) {
       var gw = new Array(nf).fill(0);
@@ -136,15 +148,20 @@
         for (j = 0; j < nf; j++) gw[j] += err * X[i][j];
         gb += err;
       }
+      itUsed = it + 1;
       if (m > 0) {
+        // max-norm of the mean gradient (incl. the L2 term on weights) — the quantity GD drives to 0.
+        var gmax = Math.abs(gb / m);
+        for (j = 0; j < nf; j++) { var g = gw[j] / m + l2 * w[j]; if (Math.abs(g) > gmax) gmax = Math.abs(g); }
         for (j = 0; j < nf; j++) {
           w[j] -= lr * (gw[j] / m + l2 * w[j]);
         }
         b -= lr * (gb / m);
-      }
+        if (gmax < GRAD_TOL) { converged = true; break; }
+      } else { break; }
     }
 
-    // final mean log-loss with converged weights
+    // final mean log-loss
     var finalLoss = 0;
     for (i = 0; i < m; i++) {
       var zz = b;
@@ -162,7 +179,9 @@
       std: std,
       weights: w,
       bias: b,
-      iterations: iterations,
+      iterations: iterations,    // the budget that was requested
+      iterationsUsed: itUsed,    // how many were actually run (< budget ⇒ stopped at an optimum)
+      converged: converged,      // false ⇒ hit the budget still moving; coefficients/probabilities are premature
       finalLoss: finalLoss
     };
   }

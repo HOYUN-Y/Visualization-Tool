@@ -433,7 +433,13 @@
     const pts = qq.points.map((p) => [p.theoretical, p.sample]);
     const xs = pts.map((p) => p[0]); const lo = Math.min(...xs), hi = Math.max(...xs);
     const line = [[lo, qq.line.intercept + qq.line.slope * lo], [hi, qq.line.intercept + qq.line.slope * hi]];
-    const excessK = jb.excessKurtosis != null ? jb.excessKurtosis : (jb.kurtosis - 3);
+    // DISPLAY skewness/kurtosis with SM (the G1/G2 sample-corrected estimators) — the same numbers the
+    // Descriptive tab and the Ask Insight profile show. jarqueBera reports its own population-moment
+    // b1/b2 because that's what the JB *statistic* is defined on, but surfacing those raw moments here
+    // made the same column read differently in the Q-Q panel vs everywhere else (PLAN §12 E3). The JB
+    // statistic itself still comes from jb — only the two descriptive numbers are unified.
+    const dispSkew = SM.skewness ? SM.skewness(vals) : jb.skewness;
+    const excessK = SM.kurtosis ? SM.kurtosis(vals) : (jb.excessKurtosis != null ? jb.excessKurtosis : jb.kurtosis - 3);
     const option = { ...Charts.baseGrid(c), grid: { left: 8, right: 16, top: 16, bottom: 34, containLabel: true },
       tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item", formatter: (p) => `theoretical ${(+p.value[0]).toFixed(2)}<br/>sample ${NODE.fmtCompact(p.value[1])}` },
       xAxis: { type: "value", name: "Theoretical quantiles", nameLocation: "middle", nameGap: 22, axisLabel: { color: c.text, fontSize: 10 }, splitLine: { lineStyle: { color: c.split } } },
@@ -442,16 +448,16 @@
         { type: "scatter", data: pts, symbolSize: 5, itemStyle: { color: pal[0], opacity: 0.6 } },
         { type: "line", data: line, showSymbol: false, silent: true, lineStyle: { color: c.faint, type: "dashed", width: 1.5 } },
       ] };
-    const normal = Math.abs(jb.skewness) < 0.5 && Math.abs(excessK) < 1;
+    const normal = Math.abs(dispSkew) < 0.5 && Math.abs(excessK) < 1;
     return (
       <React.Fragment>
         <StatsHead title={"Normal Q-Q · " + (col.label || colKey)} />
         <div className="pbody statsbody">
-          <Cards items={[["n", vals.length], ["Skewness", jb.skewness.toFixed(2)], ["Excess kurtosis", excessK.toFixed(2)], ["Jarque-Bera", jb.statistic.toFixed(1)]]} />
+          <Cards items={[["n", vals.length], ["Skewness", dispSkew.toFixed(2)], ["Excess kurtosis", excessK.toFixed(2)], ["Jarque-Bera", jb.statistic.toFixed(1)]]} />
           <div style={{ height: 340, margin: "6px 0 10px" }}><EChart option={option} theme={theme} style={{ height: "100%" }} /></div>
           <Verdict p={normal ? 0.5 : 0.01} msg={lang === "ko"
-            ? `점들이 기준선을 ${normal ? "가깝게 따릅니다" : "벗어납니다"} — ${col.label || colKey}의 분포는 ${normal ? "근사적으로 정규분포입니다" : "정규분포가 아닙니다"} (skewness ${jb.skewness.toFixed(2)}, excess kurtosis ${excessK.toFixed(2)}).`
-            : `Points ${normal ? "closely follow" : "deviate from"} the reference line — the distribution of ${col.label || colKey} is ${normal ? "approximately normal" : "not normal"} (skewness ${jb.skewness.toFixed(2)}, excess kurtosis ${excessK.toFixed(2)}).`} />
+            ? `점들이 기준선을 ${normal ? "가깝게 따릅니다" : "벗어납니다"} — ${col.label || colKey}의 분포는 ${normal ? "근사적으로 정규분포입니다" : "정규분포가 아닙니다"} (skewness ${dispSkew.toFixed(2)}, excess kurtosis ${excessK.toFixed(2)}).`
+            : `Points ${normal ? "closely follow" : "deviate from"} the reference line — the distribution of ${col.label || colKey} is ${normal ? "approximately normal" : "not normal"} (skewness ${dispSkew.toFixed(2)}, excess kurtosis ${excessK.toFixed(2)}).`} />
         </div>
       </React.Fragment>
     );

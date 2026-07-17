@@ -168,7 +168,7 @@
     const preds = scores.map((s) => s >= 0.5 ? 1 : 0);
     const m = window.Logistic.metrics(yt, preds);
     const coefs = feats.map((f, i) => ({ f, w: model.weights[i] })).sort((a, b) => Math.abs(b.w) - Math.abs(a.w));
-    return { kind: "logit", classes: model.classes, roc, pr, coefs, feats, target, acc: m.accuracy, auc: roc.auc, ap: pr ? pr.ap : null, f1: m.f1, prec: m.precision, rec: m.recall, nTrain: tr.length, nTest: te.length };
+    return { kind: "logit", classes: model.classes, roc, pr, coefs, feats, target, acc: m.accuracy, auc: roc.auc, ap: pr ? pr.ap : null, f1: m.f1, prec: m.precision, rec: m.recall, nTrain: tr.length, nTest: te.length, converged: model.converged };
   }
 
   // ---- k-fold Cross-Validation runner (window.CrossVal) ----
@@ -473,6 +473,12 @@
         )}
 
         {/* Logistic coefficients */}
+        {res.kind === "logit" && res.converged === false && (
+          <div className="ml-note-warn" style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", marginBottom: 8, borderRadius: 6, background: "var(--accent-soft)", border: "1px solid var(--accent-line)" }}>
+            <Icon name="info" size={14} />
+            <span style={{ fontSize: "var(--fs-11)", color: "var(--tx-mid)" }}>{T("mlLogitNotConverged")}</span>
+          </div>
+        )}
         {res.kind === "logit" && res.coefs && (
           <div className="ml-importance">
             <div className="ml-charttitle">Standardized coefficients · positive class = {String(res.classes[1])}</div>

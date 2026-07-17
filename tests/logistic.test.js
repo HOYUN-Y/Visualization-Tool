@@ -105,3 +105,35 @@ test("rows with missing feature/target values are dropped", () => {
   assert.ok(isFinite(model.bias));
   assert.ok(isFinite(model.finalLoss));
 });
+
+// ── convergence reporting (PLAN §12 E5) ────────────────────────────────────────────
+// fit() used a fixed loop whose comment claimed "converged weights". On separable data the MLE
+// diverges, so the returned weights were just wherever GD stopped — with nothing telling the caller.
+// fit() now stops early at a flat gradient and reports `converged` / `iterationsUsed`.
+
+test("converged:true on an easy well-posed fit that reaches an optimum early", () => {
+  // Overlapping classes with L2 → a finite optimum GD can actually reach inside the budget.
+  const rows = [];
+  for (let i = 0; i < 80; i++) { const x = (i - 40) / 20; rows.push({ x, y: (i % 2) }); }
+  const m = Logistic.fit(rows, ["x"], "y", { iterations: 5000, lr: 0.3, l2: 0.1 });
+  assert.equal(m.converged, true, "flat-gradient stop should flag converged");
+  assert.ok(m.iterationsUsed < 5000, "should stop before exhausting the budget");
+});
+
+test("converged:false when separable data hits the iteration budget still moving", () => {
+  // Perfectly separable, no L2 → the MLE diverges; GD never flattens within the budget.
+  const rows = [];
+  for (let i = 0; i < 60; i++) { const x = (i - 30) / 10; rows.push({ x, y: x > 0 ? 1 : 0 }); }
+  const m = Logistic.fit(rows, ["x"], "y", { iterations: 200, lr: 0.1, l2: 0 });
+  assert.equal(m.converged, false, "budget-exhausted separable fit must NOT claim convergence");
+  assert.equal(m.iterationsUsed, 200, "should have run the full budget");
+});
+
+test("early stop does not change the fit — accuracy is stable across a huge budget increase", () => {
+  const rows = [];
+  for (let i = 0; i < 80; i++) { const x = (i - 40) / 20; rows.push({ x, y: (i % 2) }); }
+  const short = Logistic.fit(rows, ["x"], "y", { iterations: 5000, lr: 0.3, l2: 0.1 });
+  const long = Logistic.fit(rows, ["x"], "y", { iterations: 50000, lr: 0.3, l2: 0.1 });
+  // Once converged, more budget must not move the weights meaningfully.
+  assert.ok(Math.abs(short.weights[0] - long.weights[0]) < 1e-3, `w drift ${short.weights[0]} vs ${long.weights[0]}`);
+});

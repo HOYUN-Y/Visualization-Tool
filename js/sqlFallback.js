@@ -51,7 +51,11 @@
         case "!=": case "<>": return String(v) != String(c.val);
         case ">": return v > c.val; case "<": return v < c.val;
         case ">=": return v >= c.val; case "<=": return v <= c.val;
-        case "like": { const re = new RegExp("^" + String(c.val).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*").replace(/_/g, ".") + "$", "i"); return re.test(String(v)); }
+        // LIKE: only % (any run) and _ (single char) are wildcards; every other char is literal. The
+        // escape class must therefore include * — without it (PLAN §12 E6) `LIKE 'a*'` compiled to the
+        // regex ^a*$ ("zero or more a") instead of matching the literal string "a*", a silent wrong
+        // answer. Escaping happens BEFORE %/_ are turned into .*/. so those two still work.
+        case "like": { const re = new RegExp("^" + String(c.val).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*").replace(/_/g, ".") + "$", "i"); return re.test(String(v)); }
       }
     });
   }

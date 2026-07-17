@@ -19,8 +19,8 @@
 | Branch | **`main`** |
 | Base commit | `1231f15` — merge: 시군구 좌표 오배치 수정(C9) + 네이티브 다이얼로그 교체(C3) |
 | Last checkpoint commit | `1231f15` |
-| Working tree | 배치 1 완료(F1·F2·F6). **다음: 배치 2(정직성 — E2·E5·E3·E4·E6) → 배치 3(구조 — F3·F4·F5)** |
-| Last verified | **2026-07-17 — Node 344/344 · E2E 58/58 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v290 |
+| Working tree | 배치 1(F1·F2·F6) + 배치 2(E2·E3·E4·E5·E6) 완료. **다음: 배치 3(구조 — F3·F4·F5)** |
+| Last verified | **2026-07-17 — Node 359/359 · E2E 62/62 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v292 |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -92,6 +92,39 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-17 (배치 2 — E2·E3·E4·E5·E6 분석 정직성)
+
+"사실이 아닌 걸 말하지 않기" 주제. 다섯 항목 모두 **조용히 틀린 값을 정상처럼 표시**하던 것. E2의 선행 작업(insightEngine dual-export)이 statsMath 선례를 그대로 반복했다.
+
+### E2 — 프로파일이 컬럼을 조용히 자름 (해소)
+
+왜도·상관 모두 `slice(0,6)`이라 7번째 이후가 미검사인데 패널은 "데이터셋 프로파일"이라 침묵을 "이상 없음"으로 읽히게 했다. **비용 실측이 결정을 갈랐다**: 이상치 스캔은 이미 캡 없이 전 컬럼을 `colStats`(정렬 O(n log n))로 도는데 왜도(O(n) 1패스)만 캡돼 있었다 — 비싼 쪽이 무제한, 싼 쪽이 제한. 그래서 **왜도는 캡 제거**(추가 비용이 기존보다 적다), **상관은 O(k²)라 캡 유지하되 truncation을 명시**("first 6 of N … Stats › Correlation for the full matrix"). `IE`에 dual-export 추가 → 이 파일 최초 테스트(순수 summarize\* 8) + E2E `profileCoverage` 2. `profileDataset`은 `window.Store`를 call-time에 읽어 browser-only라 E2E로.
+
+### E3 — 왜도/첨도 정의 불일치 (해소)
+
+Descriptive·Profile은 `SM.skewness`(G1), Q-Q 패널은 `jarqueBera` 내부 모집단 적률 → 같은 컬럼이 탭마다 다른 왜도. **JB 통계량은 모집단 적률이 정의상 정답**이라 수식은 건드리지 않고, Q-Q의 **표시** 왜도/첨도만 `SM`(G1/G2)로 통일. `jb.statistic`은 JB 카드에 그대로. 정규성 판정·문구도 `dispSkew` 사용.
+
+### E4 — ACF가 결측을 압축해 lag를 밈 (해소)
+
+`x.push(v)`가 결측을 건너뛰고 남은 값을 조밀 배열로 밀어 결측 이후 모든 관측의 lag가 밀렸다. **ACF로 찾으려던 계절성 신호가** 결측 하나당 깎였다(period-4가 0.90→0.79). 위치 보존 + lag별 **pairwise deletion**(양쪽 유한한 쌍만)으로 교체 — 결측 없을 때 기존 편향추정량과 정확히 동일(무회귀 잠금), 결측 있을 때 0.90→0.84로 안정화되고 결측 수와 무관. `pacf`가 acf 호출해 자동 혜택.
+
+### E5 — logistic "수렴"이 사실이 아님 (해소, 최소 조치)
+
+주석은 "converged weights"인데 종료 조건 없는 고정 200회 GD였다. 완전 분리 데이터에선 MLE가 발산해 200회 지점 값을 반환하고, 플래그가 없어 호출부가 구별 불가. **정확도·AUC(순위 기반)는 무영향**이고 계수 막대와 확률만 잠정값이라, "고장"이 아니라 "정직성" 문제 — gradient max-norm `<1e-6`면 조기 종료 + `converged`/`iterationsUsed` 반환, 미수렴 시 ML 패널 배너. 사용자 승인대로 **최소 조치**(IRLS 전환은 별도). 결과 무회귀: 수렴 후 예산 늘려도 가중치 불변(테스트 잠금). 미수렴 유도에 필요한 분리 데이터를 실제 UI로 등록·학습해 배너 출현/미출현을 E2E로 검증(mlMode 설정 400회·lr0.3 기준 분리=미수렴, 중첩=119회 수렴 실측).
+
+### E6 — sqlFallback LIKE가 `*`를 안 이스케이프 (해소)
+
+이스케이프 문자셋에 `*` 누락 → `LIKE 'a*'`가 `^a*$`("a 0개 이상")로 컴파일돼 조용한 오답. SQL LIKE에서 `*`는 리터럴(와일드카드는 %·_뿐). 문자셋에 `*` 추가 — %·_는 이스케이프 이후 치환이라 무영향.
+
+### 검증
+
+- 신규: `tests/insightEngine.test.js` 8 · `tests/statsMath`(E1서 이미) · `tests/logistic.test.js` +3 · `tests/timeSeries.test.js` +3 · `tests/sqlFallback.test.js` +1
+- 신규 E2E: `profileCoverage` 2 · `logitConvergence` 2
+- 각 수정이 **수정 전 실패 → 수정 후 통과**를 실증(E2·E5 E2E는 옛 코드에서 실패 확인). E5는 양쪽 케이스(분리/중첩) 모두 플래그 없이는 실패.
+- 전체: **Node 359/359** · **E2E 62/62** · `verify:dist` 9개 모드 전수 통과·콘솔 에러 0 · asset v292
+
+---
 
 ## 세션 기록 — 2026-07-17 (배치 1 — F1·F2·F6 기계적 수정)
 

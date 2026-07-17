@@ -94,6 +94,42 @@ test("acf of constant series: lag0=1", () => {
   assert.equal(a[0], 1);
 });
 
+// ── missing values must not shift the lag structure (PLAN §12 E4) ──────────────────
+// acf used to compact out nulls, shifting every later observation one slot earlier — a single gap
+// then broke the phase and quietly weakened the very seasonality ACF is used to detect. Now positions
+// are preserved and pairwise deletion drops only the straddling terms.
+test("acf: a single gap barely moves a strong seasonal signal (no lag shift)", () => {
+  const clean = [];
+  for (let i = 0; i < 40; i++) clean.push([10, 20, 30, 20][i % 4]); // period-4 seasonality
+  const gapped = clean.slice(); gapped[10] = null;
+
+  const c = TS.acf(clean, 8)[4];
+  const g = TS.acf(gapped, 8)[4];
+  assert.ok(c > 0.85, `clean lag4 should be strong, got ${c}`);
+  // Before the fix a single gap dropped this from 0.90 to 0.79; positional pairwise keeps it close.
+  assert.ok(Math.abs(c - g) < 0.08, `one gap should barely move lag4: clean ${c} vs gapped ${g}`);
+  assert.ok(g > 0.8, `gapped lag4 should still read as seasonal, got ${g}`);
+});
+
+test("acf: adding more gaps does not progressively corrupt the lag (no cumulative shift)", () => {
+  const base = [];
+  for (let i = 0; i < 40; i++) base.push([10, 20, 30, 20][i % 4]);
+  const oneGap = base.slice(); oneGap[10] = null;
+  const twoGap = base.slice(); twoGap[10] = null; twoGap[25] = null;
+  // With compaction each extra gap shifted the tail further (0.79 → 0.68); with pairwise deletion the
+  // lag-4 estimate barely moves — the only change is a slightly different mean from one fewer value,
+  // not a phase shift. So the two must agree to well under a percent.
+  assert.ok(Math.abs(TS.acf(oneGap, 8)[4] - TS.acf(twoGap, 8)[4]) < 0.01,
+    "gap count must not change which observations line up at lag 4");
+});
+
+test("acf: no-gap results are unchanged by the rewrite (biased estimator preserved)", () => {
+  // Alternating series: lag1 autocorrelation is strongly negative. Locks the exact no-gap value so the
+  // positional rewrite can't silently drift from the original dense-array estimator.
+  const alt = [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1];
+  assert.ok(Math.abs(TS.acf(alt, 2)[1] - (-11 / 12)) < 1e-9, `expected -11/12, got ${TS.acf(alt, 2)[1]}`);
+});
+
 test("pacf[0]===1 and length maxLag+1", () => {
   const p = TS.pacf([1, 2, 3, 4, 5, 4, 3, 2, 1], 4);
   assert.equal(p[0], 1);
