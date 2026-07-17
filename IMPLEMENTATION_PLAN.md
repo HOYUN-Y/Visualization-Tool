@@ -1,13 +1,33 @@
-# insight Analytics Workbench — Core Product v2 Implementation Plan
+# insight Analytics Workbench — Implementation Plan
 
-> **Plan version:** `core-v2-plan-v3`
-> **Status:** Approved
-> **Approved:** 2026-07-11
-> **Canonical scope:** 이 문서는 무엇을 왜 어떤 순서와 기준으로 구현하는지 정의한다. 현재 진행 위치와 다음 행동은 `WORKLOG.md` 상단을 따른다.
+> **Plan version:** `core-v2-plan-v4`
+> **Status:** Core v2 **완료** (`v2.0.0`, 2026-07-12) · 잔여 작업은 [§12 하드닝 백로그](#12-하드닝-백로그-core-v2-이후-잔여)
+> **Updated:** 2026-07-17
+> **Canonical scope:** **이 문서가 계획의 정본이다.** 무엇을 왜 어떤 순서와 기준으로 구현하는지 정의한다. 현재 진행 위치와 다음 행동은 `WORKLOG.md` 상단을 따른다.
+
+**문서 지도**
+
+| 문서 | 역할 |
+|---|---|
+| **`IMPLEMENTATION_PLAN.md`** (이 문서) | **계획 정본** — 앞으로 할 일. §4~§9는 완료된 Core v2 마일스톤 이력, §12가 살아있는 백로그 |
+| `WORKLOG.md` | 현재 상태 + 완료 기록. 세션 시작 시 상단부터 읽는다 |
+| `HANDOFF.md` | 코드 아키텍처 |
+| `CHANGELOG.md` | 릴리스 이력 |
+| `README.md` | 사용자용 개요 |
+| `docs/archieve/FOLLOWUP_PROPOSALS.md` | **폐기** — 다른 모델의 제안 문서. 2026-07-17에 §12와 WORKLOG로 분해 흡수. 참조하지 말 것 |
+
+> ⚠️ **세션 시작 전 필수** — 이 문서는 클론의 로컬 상태일 뿐 프로젝트의 진실이 아니다. 먼저 실행할 것:
+> ```bash
+> git fetch origin && git status -sb
+> ```
+> `behind`가 0이 아니면 **문서를 신뢰하기 전에 동기화한다.** 2026-07-17에 낡은 클론이 6일 전 완료된 작업을 재구현하려던 사고가 있었다(`WORKLOG.md` 상단 참조).
 
 ---
 
 ## 1. 목표와 확정 결정
+
+> ✅ **이 절의 목표는 2026-07-12 달성됐다 (`v2.0.0` 태그).** 아래 구현 순서 6단계는 전부 완료돼 **이력**이다. 살아있는 작업은 [§12 하드닝 백로그](#12-하드닝-백로그-core-v2-이후-잔여).
+> **운영 원칙 중 "승인 전에는 다음 기능 브랜치를 시작하지 않는다"는 Core v2 한정으로 종료됐다** — 백로그 항목에는 적용되지 않는다. (2026-07-17에 이 규칙을 완료된 마일스톤에 적용하려다 혼선이 있었다.)
 
 현재 no-build 브라우저 앱에서 실제 업무에 필요한 핵심 제품 기능을 완성한 뒤 `v2.0.0`으로 동결한다.
 
@@ -402,22 +422,83 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 
 ## 11. 명시적 제외
 
-- Next.js/FastAPI/DuckDB 전환
+> ⚠️ **이 절은 `core-v2-plan-v1`(2026-07-10) 기준이며 일부는 이미 뒤집혔다.** 아래 취소선 항목은 Core v2 이후 실제로 구현·병합됐다. 이력 보존을 위해 원문을 남긴다.
+
+- ~~Next.js/FastAPI/DuckDB 전환~~ → **DuckDB-WASM은 구현·병합됨**(Phase 4 S1~S3, `v2.0.0`). SQL 모드가 DuckDB에서 실행되며 JS 폴백 보유. Next.js/FastAPI 전환은 여전히 제외.
 - Versioned Snapshot
 - 노드 기반 Pipeline/Lineage
 - 실제 LLM과 NL→SQL
-- 고급 ML/PCA
-- 시계열/SPC/DOE
-- Image/Annotation/Dashboard PDF
+- ~~고급 ML/PCA~~ → **구현·병합됨**: PCA·Decision Tree·Naive Bayes·Logistic(one-vs-rest)·Cross Validation·DBSCAN·Hierarchical
+- ~~시계열/SPC/DOE~~ → **시계열(분해·ACF/PACF)·SPC는 구현·병합됨**. DOE는 여전히 제외.
+- ~~Image/Annotation/Dashboard PDF~~ → **PPT 네이티브 차트 매핑은 구현·병합됨**(`js/pptxExport.js`). Image/Annotation/PDF는 여전히 제외.
 
-위 항목은 Core v2 완료 후 별도 계획으로 다룬다.
+여전히 제외: Next.js/FastAPI 전환 · Versioned Snapshot · 노드 기반 Pipeline/Lineage · 실제 LLM/NL→SQL · DOE · Image/Annotation/Dashboard PDF.
 
 ---
 
-## 12. Plan Revisions
+## 12. 하드닝 백로그 (Core v2 이후 잔여)
+
+> **출처:** `docs/archieve/FOLLOWUP_PROPOSALS.md`(다른 모델 Fable의 제안 문서, 폐기됨) §5 잠재 리스크 레지스터를 2026-07-17에 흡수. 완료분은 `WORKLOG.md` §완료 원장으로 갔다.
+> **상태 표기는 2026-07-17 코드 실사로 재확인한 것**이며 제안 문서의 주장을 그대로 옮기지 않았다. 근거 명령을 각 항목에 남긴다.
+> **성격:** 전부 "지금 로컬 개인 사용에는 문제 없고, 특정 조건이 충족될 때 터지는 것". 강제 착수 순서는 없다.
+
+### 우선순위 정의
+
+| 티어 | 조건 |
+|---|---|
+| **T1** | 배포·공유를 실제로 하기 전 필수 |
+| **T2** | 데이터·사용 규모 확대 시 |
+| **T3** | 품질·완성도 |
+
+### A. 배포·환경
+
+| ID | 항목 | 확인된 현재 상태 (2026-07-17) | 티어 | 완화책 |
+|---|---|---|---|---|
+| **A2** | React development 빌드 + 인브라우저 Babel | ❌ 잔존 — `index.html`이 `react.development.js`/`react-dom.development.js` 로드, JSX 22개 매 로드 트랜스파일 | T1 | production UMD 교체 + esbuild 원샷 사전 트랜스파일(no-build 철학 유지 가능). **D2와 동일 작업** |
+| **A3′** | DuckDB-WASM CDN 런타임 의존 | ❌ 잔존 — `vendor/`에 sheetjs·pptxgenjs만 존재, DuckDB는 jsDelivr ESM 동적 import(수 MB, SRI 없음). ECharts SRI는 ✅ 해소됨 | T1 | `vendor/duckdb/` 로컬 벤더링(SheetJS 선례 2건) + 폴백 배지 고지. **JS 폴백이 있어 오프라인서도 SQL 자체는 동작**(JOIN/윈도우만 미지원) |
+| **A4** | `navigator.clipboard` HTTPS 요구 | 미변경 — secure context 전용, localhost 예외라 현재는 동작. http:// 배포 시 조용히 false 반환 | T1 | 실패 시 "HTTPS 필요" 토스트 + PNG 다운로드 폴백 |
+| **A5** | 최신 CSS 의존 | ❌ 잔존 — `oklch()`/`color-mix()`가 **CSS 7개 파일**에 분포. Safari <16.2 / Chrome <111 스타일 붕괴 | T2 | 지원 브라우저 명시(README 완료) 또는 빌드 시 폴백 생성 |
+| **A6** | IndexedDB 영속성 한계 | 미변경 — Safari ITP(7일)·시크릿·스토리지 축출. 사용자 고지 없음 | T1 | 첫 실행 1회 안내 + JSON 백업 리마인드 |
+
+### B. 데이터 무결성·동시성
+
+| ID | 항목 | 확인된 현재 상태 (2026-07-17) | 티어 | 완화책 |
+|---|---|---|---|---|
+| **B1** | 다중 탭 last-write-wins | ❌ 잔존 — `BroadcastChannel`·`navigator.locks` **코드에 전무**(grep 0건). 같은 프로젝트를 두 탭에서 열면 1초 autosave가 서로 덮어씀 | T1~T2 | Web Locks 또는 BroadcastChannel로 "다른 탭에서 열림" 경고. 최소: mtime 비교 후 덮어쓰기 확인 |
+| **B3′** | formula column 한글/공백 컬럼 접근 | ❌ 잔존 — SQL 주경로·폴백 파서는 ✅ 해소됐으나 formula는 `row.한글` 불가 | T3 | `FormulaEval`에 `row["이름"]` 인덱스 문법 지원 |
+| **B4** | undo 스택 무한 성장 | 미변경 — 셀 편집 1회 = 스텝 1개 영구 축적 | T2 | 연속 `set_cell` 병합, 스텝 상한 + 베이스라인 스냅샷 압축 |
+
+### C. 인터랙션·UI
+
+| ID | 항목 | 확인된 현재 상태 (2026-07-17) | 티어 | 완화책 |
+|---|---|---|---|---|
+| **C1** | 전역 리렌더 store | ❌ 잔존 — `store.jsx:158` `useStore(sel)`가 **selector 결과 비교 없이** 모든 `setState`에 전 구독 컴포넌트 `force()` | T2~T3 | selector 결과 얕은 비교 후 skip(10줄 내). 장기: 그리드 가상화 |
+| **C3** | `alert()`/`confirm()` 네이티브 다이얼로그 | ❌ 잔존 — **17곳**(ML 모드는 P13에서 제거 완료, 그 외 rename 충돌·dummy encode 등) | T2~T3 | 인앱 토스트/다이얼로그로 점진 교체 |
+| **C6** | 접근성 부재 | ❌ 잔존 — aria 속성 **1개**, 포커스 트랩·키보드 내비 없음 | T3 | 개인 도구론 범위 밖 명시. 신규 모달부터 포커스 트랩 관례 |
+| **C7** | 라이트 테마 검증 공백 | 미변경 — 최근 기능이 다크에서만 검증 | T3 | E2E에 라이트 테마 스크린샷 1패스 |
+| **C8** | 소형 화면 레이아웃 | 미변경 — 1280px 미만 미검증 | T3 | 최소 지원 폭 정의 + 이하에서 패널 접기 |
+
+### D. 성능·규모
+
+| ID | 항목 | 확인된 현재 상태 (2026-07-17) | 티어 | 완화책 |
+|---|---|---|---|---|
+| **D1** | 전량 인메모리 + 복제 파이프라인 | 미변경 — `applySteps` 전 행 복제. 메모(P4)로 재계산은 감소했으나 XLSX 수십만 행 시 복제 1회가 수백 MB | T2 | 규모 경고를 하드 가드로(행수 상한+샘플링) |
+| **D2** | Babel 트랜스파일 시간 | ❌ 잔존 — **A2와 동일 작업** | T1 | A2와 함께 해소 |
+
+### 트리거별 체크리스트
+
+- **공유·링크·배포 결정 시**: A2(dev 빌드) → A4(HTTPS) → A6(저장 한계 고지) → C3(다이얼로그). *A1(수식 코드실행)은 ✅ 해소 — 공유링크 보안 선행 완료.*
+- **XLSX 대용량 사용 시작 시**: D1 → B4 → C1.
+- **팀·다중 기기 사용 시작 시**: B1 → A6. *B2(언로드 플러시)는 ✅ 해소.*
+- **오프라인 보장 필요 시**: A3′(DuckDB 벤더링).
+
+---
+
+## 13. Plan Revisions
 
 | Version | Date | Change | Approval |
 |---|---|---|---|
 | `core-v2-plan-v1` | 2026-07-10 | 최초 승인 계획. 하이브리드 구조, 핵심 제품 기능만, 기능별 승인 게이트 확정. | User approved |
 | `core-v2-plan-v2` | 2026-07-11 | 브라우저 제어가 없는 세션의 체크포인트 규칙 추가. 자동 검증+명시적 진행 승인으로 병합 가능하나 브라우저 왕복은 v2 릴리스 차단 항목으로 유지. | User instructed continuation |
 | `core-v2-plan-v3` | 2026-07-11 | 밤샘 자율 실행 승인. §1 "승인 전 다음 브랜치 미착수"를 **브랜치 스택 방식**으로 완화 — M3→M4→M5를 자율 연쇄 구현하되 main 병합·태그·원격 push·실브라우저 왕복은 전부 아침 사용자 게이트로 보류. 범위: Core v2 + Phase 2 순수-JS 분석(Batch E) + 규모제한(Batch F, 경고). Phase 3 제외. 서브에이전트 병렬/테스트 위임 허용. 상세: `~/.claude/plans/temporal-juggling-fountain.md`. | User approved |
+| `core-v2-plan-v4` | 2026-07-17 | **Core v2 종료 반영 + 계획 문서 일원화.** ① M1~M6 전부 완료·`v2.0.0` 태그 확인 — §4~§9 마일스톤은 이력으로 전환. ② §11 명시적 제외 정정 — DuckDB·고급 ML/PCA·시계열/SPC·PPT 매핑은 실제로 구현·병합돼 제외 목록이 사실과 달랐음. ③ **§12 하드닝 백로그 신설** — `docs/FOLLOWUP_PROPOSALS.md`(다른 모델 제안 문서)를 분해해 미완 14항목 흡수, 각 항목을 코드 실사로 재확인 후 등재. 완료 24항목은 `WORKLOG.md` 완료 원장으로. FOLLOWUP 원본은 `docs/archieve/`로 이동, 계획 정본은 이 문서 하나. ④ §1 "승인 전 다음 브랜치 미착수" 원칙은 Core v2 한정으로 종료 — 백로그는 강제 순서 없음. | User instructed (2026-07-17) |

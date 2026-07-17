@@ -13,14 +13,18 @@
 
 | 항목 | 현재 값 |
 |---|---|
-| Plan version | `safe-hardening-batch` (자율 실행 승인) |
-| Current milestone | **안전 후속 배치 완료** (E2E 인프라·캐시버스트·언로드 플러시·ECharts SRI·UI 폴리시·SQL 폴백 유니코드). 병합·push는 사용자 게이트 |
-| Status | FOLLOWUP §5 저위험 6트랙 완료. ML 확장(P13·P10)은 이미 main 병합됨. |
-| Branch | **`main`** (origin 동기화 — ahead/behind 0). `feat/safe-hardening`도 push됨. |
-| Base commit | `9c7c6b3` — merge: 안전 후속 배치 → main (--no-ff, 6커밋) |
-| Last checkpoint commit | `9c7c6b3` — merge: 안전 후속 배치 → main |
-| Working tree | 깨끗. |
-| Last verified | 2026-07-12 — **Node 295/295**(+7 sqlFallback) · tsc 0 · **E2E 21/21**(+statsDecomp) **깨끗 종료**(force-kill 0) · asset v=277. **main 병합·push 완료** |
+| Plan version | `core-v2-plan-v4` — Core v2 완료(`v2.0.0`), 잔여는 `IMPLEMENTATION_PLAN.md` §12 **하드닝 백로그** |
+| Current milestone | **Core v2 종료.** 다음 마일스톤 미착수 — 백로그에서 선택 필요 |
+| Status | FOLLOWUP 제안 문서 **분해·흡수 완료** (완료분→본 문서 §완료 원장, 미완분→`IMPLEMENTATION_PLAN.md` §12). 미병합 브랜치 0개 |
+| Branch | **`main`** (origin 동기화 — ahead/behind 0) |
+| Base commit | `dadf6e8` — Merge PR #5 `feat/p10-pptx-chart-mapping` |
+| Last checkpoint commit | `dadf6e8` |
+| Working tree | 깨끗 |
+| Last verified | **2026-07-17 — Node 329/329 통과** · asset v282 · 원격 브랜치 9개 전부 main 병합 확인. E2E·tsc는 이 세션에서 미실행 |
+
+> ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
+> 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
+> **재발 방지: 세션 시작 시 `git fetch origin && git status -sb`를 먼저 실행하고, `behind`가 0이 아니면 문서를 신뢰하기 전에 동기화한다.** 문서는 클론 로컬 상태이지 프로젝트의 진실이 아니다.
 
 > ✅ **게이트 통과 (2026-07-12)**: `feat/ml-expansion` → main 병합(`28e7ae4`, --no-ff) + origin push 완료. Node 288/288 · E2E 20.
 
@@ -38,21 +42,47 @@
 > ✅ **C4 export 대상 명시 (2026-07-16, `fix/c4-export-target` 3커밋)** — FOLLOWUP §5 C4: export가 전역 `Charts.lastInst`(마지막 렌더 차트)에만 의존해 대시보드 다중차트·차트전환 직후 **엉뚱한 차트가 PPT/PNG로** 나가던 문제. `EChart`에 `onInst(inst)` 콜백 추가(각 차트가 자기 인스턴스 노출) + export 헬퍼(downloadPNG/SVG/copyPNG)에 optional `inst` 인자(생략 시 lastInst 폴백=하위호환). Chart 모드(VizCenter)는 `chartInstRef`로 캡처해 doExport/doCopy/doPPTX에 명시 전달. 전역 TopBar ExportBtn은 모드 무관이라 폴백 유지(의도). 검증: Node **295/295** · **E2E 22/22**(신규 `chartExport.spec.mjs` — onInst 캡처·명시 인스턴스·폴백·대상 전무 false) · tsc 0. 커밋 `392ece0`·`1f49f82`·`8c1cf8b`. PR #1 머지 완료.
 > ✅ **A1 formula column 안전파서 (2026-07-17, `fix/a1-formula-safe-parser` 2커밋)** — FOLLOWUP §5 A1(T1 배포 전 필수): Clean 모드 Formula Column이 `new Function("row","Math",expr)`로 **임의 JS 실행** — 공유 프로젝트 JSON/공유링크(P10) 열면 코드실행 벡터. `js/formulaEval.js`(`window.FormulaEval`) 신규 — eval/new Function 없는 재귀하강 파서+트리워커, `row.*` 읽기 + `Math.*`(화이트리스트)만 허용, 프로토타입 체인(`constructor`/`__proto__`) 차단으로 `constructor.constructor("…")()` 탈출 봉쇄. 산술·비교·논리·삼항·`**`·`%` 지원, `compile()`은 문법오류 throw(UI 사전거부)·per-row fn은 null-safe(기존 동작 유지). `store.jsx` formula case를 `FormulaEval.compile`로 교체, index.html 등록 + 자산 v278 bump. 검증: Node **307/307**(+12 formulaEval) · **E2E 22/22**(신규 formulaColumn — 정상계산 + constructor 탈출·전역할당 무력화 브라우저 실증) · tsc 0. 커밋 `ae3dbff`·`4cfae88`. **P10 공유링크 보안 선행 완료.** 병합·push는 사용자 게이트.
 > ✅ **P10 공유 링크 (2026-07-17, `feat/p10-share-link` 2커밋)** — FOLLOWUP §3 P10.4: 프로젝트 전체(데이터 포함)를 `#p=` URL fragment로 공유. `js/shareLink.js`(`window.ShareLink`) 신규 — 이식 번들↔JSON↔base64url↔fragment, 브라우저 `CompressionStream`(deflate-raw) 압축+무압축 폴백(1자 코덱태그 z/r), 크기 상한 `MAX_PAYLOAD_CHARS`(32k) 초과 시 JSON 파일 폴백. `projectStore.exportBundle()`(파일 저장 없이 번들 반환), `shell.jsx` Projects 메뉴에 **Share link** 버튼(클립보드 복사·tooLarge/clipboard 폴백), `app.jsx` 부팅 시 `#p=` 감지→decode→importJSON→`history.replaceState`로 fragment 정리. fragment는 서버 전송 안 됨(백엔드 불필요, no-build 유지). **보안**: A1 안전파서 전제 → 공유 번들 formula 코드실행 불가. 검증: Node **315/315**(+8 shareLink) · **E2E 25/25**(신규 shareLink 2 — 코덱 왕복 + 실브라우저 열기·fragment 정리 실증) · tsc 0. 커밋 `0cb3295`·`5b98b3a`. **함정 기록**: 같은 페이지 hash-only goto는 SPA 취급→app.jsx 미재실행, E2E는 about:blank 선경유로 해결(실사용 새 탭은 정상). 병합·push는 사용자 게이트.
-| Updated at | 2026-07-12 |
+| Updated at | 2026-07-17 |
 
-> ☀️ **아침 게이트(`fix/mode-render-p0`)** — 활성 계획 Phase 3.5. **① 8모드 전환+리로드 복원은 Playwright E2E로 자동 검증 완료(P0.5) → 재확인 불필요.** 사용자는 **시각·상호작용만**: ② P3(Stats decomposition 4단 차트·Clean 다변량 이상치 카드; Map은 Fable ✓), ③ P9(붙여넣기·Enter/Tab·Cmd+Z·Shift-범위), ④ IndexedDB 왕복. 이상 없으면 `fix/mode-render-p0`→main 병합(P0+P2+P3 일괄) → `feat/duckdb` 분기 → Phase 4.
-> E2E 재현: `npx playwright test`.
->
-> ✅ **게이트 통과 (2026-07-12 Fable 브라우저 검증)** — ①~④ **전 항목 통과**, 콘솔 에러 0. 결과표: `docs/FOLLOWUP_PROPOSALS.md` §0-0. **병합 가능 판정** — main 병합·push는 CLI에서 진행. (관찰 2건: 다변량 카드 컬럼명 미표시, multiplicative 미클릭 — FOLLOWUP §1 참고)
+## NEXT EXACT ACTION
 
-> ☀️ **아침 브라우저 게이트(시각·상호작용 확인 후 병합)**
-> - **Phase 2 P3**(`feat/analytics-wiring`): (1) Stats›Time Series View=decomposition→Original/Trend/Seasonal/Residual 4단 차트, (2) Clean 이슈바 "다변량 이상치" 카드→제거, (3) Map›내 데이터 "단계구분도"→지역명 매칭 채색.
-> - **Phase 3 P9**(`feat/excel-edit`): Data 편집모드에서 (a) Excel/시트에서 복사→셀 붙여넣기(1 undo), (b) 편집 중 Enter/↓/↑/Tab 이동, (c) Cmd+Z/Shift+Cmd+Z(셀 편집 밖에서), (d) Shift-클릭 행 범위선택.
-> - 문제 없으면 브랜치 스택을 순서대로 main 병합(feat/analytics-wiring → feat/excel-edit) 후 필요 시 origin push.
->
-> ⏭️ **NEXT (Phase 4 DuckDB, 새 세션)**: `feat/duckdb` 분기 → **S1 로딩 PoC**(vendor/duckdb/에 glue+worker+wasm 벤더링+SHA256/라이선스, index.html에 첫 `<script type="module">` island로 DuckDB 인스턴스화 → `window.DuckDB.query(sql)` 노출 → 사소 쿼리). **브라우저 로드·쿼리 성공 여부가 make-or-break 게이트** — 성공 시 S2 어댑터(js/sqlEngine.js, rows→테이블 등록)·S3 sqlMode async 교체. 상세: `~/.claude/plans/temporal-juggling-fountain.md`.
+Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.** 착수 시 `IMPLEMENTATION_PLAN.md` §12 하드닝 백로그에서 선택하고, 선택 즉시 이 절을 그 작업으로 교체한다.
 
-> 활성 계획: `~/.claude/plans/temporal-juggling-fountain.md` (Phase 0~4 체크리스트). 실브라우저 검증은 Claude Desktop/Fable로 대체.
+배포·공유를 실제로 할 계획이면 §12의 **T1(A2 프로덕션 빌드 → A4 HTTPS 클립보드 → A6 저장 한계 고지 → B1 다중 탭)**이 선행 조건이다. 로컬 개인 사용만 유지한다면 백로그 전체가 대기 상태로 남아도 무방하다.
+
+---
+
+## 완료 항목 원장 — FOLLOWUP 제안 문서 흡수 (2026-07-17)
+
+> FOLLOWUP은 **다른 모델(Fable)의 제안 문서**였다. 2026-07-17에 분해해 **완료분은 이 표로, 미완분은 `IMPLEMENTATION_PLAN.md` §12으로** 옮기고 원본은 `docs/archieve/`로 보냈다. 계획의 정본은 `IMPLEMENTATION_PLAN.md` 하나다.
+
+| ID | 항목 | 결과 · 근거 |
+|---|---|---|
+| P0 | 모드 전환 크래시 (함수호출 렌더 × i18n 훅) | ✅ `4d402b9` — `window.XMode()` 8곳 → `<window.XMode/>`. 벽돌화 해소 |
+| P0.5 | 모드 전환 스모크 E2E | ✅ `659524f` — Playwright 헤드리스로 P0 클래스 영구 회귀망 |
+| P1 | IndexedDB 리로드 왕복 검증 | ✅ Fable 브라우저 검증 — mode·스텝·편집값·열·`__rid` 연속성 복원 |
+| P2 | main 병합 게이트 + 태그 | ✅ `checkpoint/core-v2` · `v2.0.0` |
+| P3 | 엔진 3종 UI 배선 (TSDecomp·Outliers·GeoMatch) | ✅ 계절분해 4단 차트·다변량 17건 제거·Map 매칭 시각검증 |
+| P4 | `getActiveData` 메모이제이션 | ✅ +HANDOFF 규약 `7f66bb3` |
+| P5 | 편집 op 견고성 3종 | ✅ |
+| P6 | `.gitignore`·문서 드리프트·구 훅 | ✅ `9b6820d` · `301ae06` |
+| P7 | i18n 커버리지 | ✅ `13092a3` + Phase 1a~1g. `tests/i18n.test.js` 회귀 잠금 |
+| P8 | 언가드 플레이스홀더 카피 | ✅ |
+| P9 | Excel식 편집 (붙여넣기·셀이동·Cmd+Z·범위선택) | ✅ `2aa9faa` · `d469d78` — 상호작용 전수 통과 |
+| P10 | Planned 잔여 4종 | ✅ **전부** — DT/NB/CV(`0707044`…) · SQL JOIN(DuckDB 전환으로 해소) · 공유링크(`feat/p10-share-link`) · PPT 네이티브 매핑(`feat/p10-pptx-chart-mapping`, PR #5) |
+| P11 | Playwright 스모크 E2E | ✅ `tests/e2e/*` — 현재 14스펙 |
+| P12 | 캐시버스트 `?v=` 자동화 | ✅ `3eb86f0` — `scripts/bump-assets.sh` + `npm run bump` |
+| P13 | ML 데이터 적격성 검증 | ✅ `1b58e1f` · `b356ec6` — 태스크 게이팅·target 필터·`alert()` 제거·one-vs-rest. 관찰 ①② 폴리시까지 반영 |
+| A1 | formula column `new Function` 임의 실행 | ✅ **보안 해소** `ae3dbff` · `4cfae88` — `window.FormulaEval` 재귀하강 파서, 프로토타입 체인 차단 |
+| A3 | ECharts SRI 부재 | ✅ **부분** — ECharts sha384 SRI 추가(`3eb86f0`). **DuckDB 로컬 벤더링은 미해결 → §12 A3′로 이월** |
+| B2 | 언로드 저장 플러시 부재 | ✅ `1d13d4b` — projectStore pagehide/beforeunload saveNow |
+| B3 | 한글 컬럼명 상호운용 | ✅ **부분** — SQL 주경로 DuckDB 해소 + 폴백 파서 유니코드화(`f3ce2d7`). **formula `row["한글"]`는 미해결 → §12 B3′로 이월** |
+| C2 | 싱글클릭 = 즉시 편집 | ✅ `6d59625` (PR #4) — Excel식 클릭=선택 / 더블클릭·F2·타이핑=편집 |
+| C4 | `Charts.lastInst` 전역 export 대상 | ✅ `392ece0`·`1f49f82`·`8c1cf8b` (PR #1) — `onInst` 콜백 + 명시 인스턴스 |
+| C5 | 함수호출 렌더 재발 위험 | ✅ P0 수정이 원천 차단 + HANDOFF "모드=엘리먼트 렌더" 명문화 |
+| — | ML 관찰 3건 (다변량 카드 컬럼명·multiplicative·태스크 전환 결과 잔존) | ✅ `d2a44b1`(툴팁+multiplicative E2E) · `b356ec6`(result 초기화) |
+
+**FOLLOWUP §4 조치 불필요 판정**(피벗 드롭 오발·aiDrawer 가드·SHA-256 이력)은 그대로 유효하며 이월하지 않았다.
 
 ## 밤샘 자율 실행 정책 (사용자 승인 2026-07-11)
 
@@ -62,6 +92,18 @@
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-17 (문서 드리프트 복구 + FOLLOWUP 분해 + 브랜치 정리)
+
+낡은 로컬 클론(07-10 `76d5333`)에서 시작한 세션. 낡은 `WORKLOG`를 신뢰해 **이미 6일 전 완료된 작업(M1 병합·M2 XLSX Import)을 재실행하려다** `git log main..origin/main`에서 180커밋 격차를 발견하고 중단 — 상세는 상단 ⚠️ 문서 드리프트 사고 참조.
+
+- **동기화**: 로컬 `main` 고유 커밋 0개 확인 후 `origin/main`으로 fast-forward(184커밋) → `dadf6e8`. 로컬에서 잃은 작업 없음.
+- **검증**: **Node 329/329 통과** · asset v282 · 원격 브랜치 9개 전부 main 병합 확인(미병합 0).
+- **문서 재편(사용자 지시)**: `IMPLEMENTATION_PLAN.md`를 계획 **정본**으로 확정. FOLLOWUP(다른 모델 제안)을 분해 — 완료분 24항목 → 본 문서 §완료 원장, 미완분 14항목 → PLAN §12 하드닝 백로그. 원본은 `docs/archieve/`로 이동.
+- **잔여 항목 코드 실사**(문서 주장을 그대로 옮기지 않고 재확인): A2 React dev 빌드 ❌잔존 · DuckDB 벤더링 ❌부재(CDN 런타임 import) · A5 `oklch/color-mix` 7개 CSS ❌잔존 · B1 다중탭 방어 ❌부재(BroadcastChannel/Web Locks 없음) · C1 `useStore` selector 비교 ❌없음(전역 force render) · C3 `alert/confirm` 17곳 잔존 · C6 aria 1개. **B2·A3(ECharts)·C2·C4는 해소 확인.**
+- **README** v1.9.0 → v2.0.0 최신화(DuckDB·공유링크·PPT·ML 10종·SPC/시계열/PCA 반영).
+- **브랜치 정리**: 병합 완료된 로컬/원격 브랜치 제거.
+- **미실행**: E2E·tsc는 이 세션에서 돌리지 않음. 브라우저 IndexedDB 왕복도 미실시(로컬 서버가 이 환경 Chrome에서 `ERR_CONNECTION_REFUSED` — 샌드박스 네트워크 격리 추정, Playwright 경로는 정상이므로 차단 아님).
 
 ## 세션 기록 — 2026-07-12 (Track C — P10: Decision Tree·Naive Bayes·Cross Validation)
 
@@ -197,7 +239,7 @@ Data 그리드에 스프레드시트식 편집 추가. store 배치 op가 핵심
    - C2 다변량 이상치(Outliers) → 시각화
    - D2 geoMatch → MyDataMap choropleth 배선(geojson 로딩·ECharts map 등록)
 3. **main 병합·태그·원격 push**: `feat/analytics` 90커밋 스택 검토→승인→`--no-ff`. (자율 금지 항목)
-4. **후속작업 제안 검토**: [`docs/FOLLOWUP_PROPOSALS.md`](./docs/FOLLOWUP_PROPOSALS.md) — 실브라우저 클릭 검증(2026-07-12) 결과 기반 P1~P12 우선순위 제안 (미배선 UI·getActiveData 메모·편집 op 견고성 3종·i18n 잔존·E2E 자동화 등). 참고: 위 1번 실브라우저 왕복 중 편집/피벗→차트/Export/SPC/ML은 제어 브라우저로 검증 완료.
+4. **후속작업 제안 검토**: [`docs/archieve/FOLLOWUP_PROPOSALS.md`](./docs/archieve/FOLLOWUP_PROPOSALS.md) *(당시 `docs/`에 있었음 — 2026-07-17 폐기·이동)* — 실브라우저 클릭 검증(2026-07-12) 결과 기반 P1~P12 우선순위 제안 (미배선 UI·getActiveData 메모·편집 op 견고성 3종·i18n 잔존·E2E 자동화 등). 참고: 위 1번 실브라우저 왕복 중 편집/피벗→차트/Export/SPC/ML은 제어 브라우저로 검증 완료.
 
 ## 세션 기록 — 2026-07-12 (FOLLOWUP P7: i18n 커버리지)
 
