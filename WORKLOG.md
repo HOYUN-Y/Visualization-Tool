@@ -14,13 +14,13 @@
 | 항목 | 현재 값 |
 |---|---|
 | Plan version | `core-v2-plan-v5` — Core v2 완료(`v2.0.0`), 잔여는 `IMPLEMENTATION_PLAN.md` §12 **하드닝 백로그** |
-| Current milestone | **T1 하드닝 배치 완료** (A2·A4·A6·B1 + 배포 빌드). 배포 대상: 우선 http → 향후 Cloudflare/AWS + HTTPS + 공개 서비스 |
+| Current milestone | **T1 하드닝 배치 완료** (A2·A4·A6·B1 + 배포 빌드 + C9·C3). 배포 대상: 우선 http → 향후 Cloudflare/AWS + HTTPS + 공개 서비스 |
 | Status | **1순위 원칙: 로컬 단독 사용.** T1 잔여 = A3′(DuckDB 벤더링)·A5(CSS 하한)·C3(다이얼로그)·B1 잠금. 로그인·회원관리는 §13에 구상만(미결정) |
 | Branch | **`main`** |
 | Base commit | `3f4b505` — merge: 계획 문서 일원화 |
 | Last checkpoint commit | `3f4b505` |
 | Working tree | T1 하드닝 배치 작업 중 |
-| Last verified | **2026-07-17 — Node 329/329 · E2E 43/43 · `npm run verify:dist` 통과(콘솔 에러 0)** · asset v285 |
+| Last verified | **2026-07-17 — Node 329/329 · E2E 53/53 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v288 |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -107,7 +107,7 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 **빌드가 잡아낸 잠복 버그 2건 (dev에선 보이지 않던 것):**
 
 1. 🚨 **`grid.jsx` TDZ — dist에서 Data 모드 즉시 크래시 (수정함)**. 키보드 네비 `useEffect`가 `pageRows`(const) **선언 위**에 있어 의존성 배열이 렌더 중 TDZ를 읽음. **dev는 브라우저 Babel이 const→var로 낮춰 호이스팅 덕에 우연히 동작**하던 것. esbuild는 const 유지 → `Cannot access 'pageRows' before initialization`. effect를 선언 아래로 이동 + 재발 방지 주석. **이 앱이 Babel의 다운레벨링에 의존하고 있었다는 뜻** — 유사 패턴이 더 있을 수 있으므로 `npm run verify:dist`를 배포 전 필수로 유지할 것.
-2. ⚠️ **`mapMode.jsx` 중복 키 `북구` (미수정 — §12 C9로 등재)**. esbuild `duplicate-object-key` 경고. `MUN_LATLON`이 시군구명만으로 좌표를 찾는데 `북구`가 부산·광주 두 번 → 뒤가 이김. 데이터셋에 `북구` 3개(부산/대구/광주)·`서구` 3개가 있어 **여러 도시 버블이 한 좌표에 겹쳐 찍힘**(부산 북구가 광주에, 약 200km 오차). 데이터에 `province` 필드가 있는데 미사용. 수정은 이번 배치 범위 밖 — 사용자 판단 대기.
+2. ✅ **`mapMode.jsx` 중복 키 `북구` — 수정 완료** (커밋 3, §12 C9 해소). esbuild `duplicate-object-key` 경고. `MUN_LATLON`이 시군구명만으로 좌표를 찾는데 `북구`가 부산·광주 두 번 → 뒤가 이김. 데이터셋에 `북구` 3개(부산/대구/광주)·`서구` 3개가 있어 **여러 도시 버블이 한 좌표에 겹쳐 찍힘**(부산 북구가 광주에, 약 200km 오차). 데이터에 `province` 필드가 있는데 미사용. 수정은 이번 배치 범위 밖 — 사용자 판단 대기.
 
 **추가 (2026-07-17, 커밋 2)**:
 - **§13 로그인·회원관리 A 확정** — "접근 제한만, 앱 코드 0줄". 데이터는 브라우저 로컬 유지(서버 보관 책임 없음). §13.3(전용페이지 vs 관리자계정)은 **보류**(C 이상 승격 시에만). **배포처는 여전히 미정** → §13.3′에 Cloudflare Access / AWS / Nginx별 실행 방법만 준비. ⚠️ Basic Auth는 http에서 평문 전송이므로 "우선 http" 구간에는 접근 제한을 적용하지 않거나 공개하지 않는다.
@@ -115,7 +115,17 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - **`dashMode.jsx` ResizeObserver null 가드 (수정함)** — 확장된 검사가 잡음. 대시보드 이탈 시 컨테이너 리사이즈 → 큐된 RO 콜백이 언마운트 후 발화 → `ref.current.clientWidth`가 null. **WORKLOG에 "ml 진입 시 clientWidth 에러 1건, 비차단"으로 오래 방치되던 바로 그 건.** 크래시는 아니지만 프로덕션 콘솔에 uncaught TypeError가 남는다. 콜백 내부 가드 + 캡처한 엘리먼트 관찰로 해소. 동일 패턴은 charts.jsx뿐이며 이미 가드 있음.
 
 **검증**: **Node 329/329** · **E2E 43/43**(기존 25 + 신규 18) · **`verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v286.
-**미해소 T1**: A3′(DuckDB 로컬 벤더링 — 여전히 런타임 jsDelivr), A5(oklch 브라우저 하한), C3(alert/confirm 17곳), B1 잠금.
+**추가 (2026-07-17, 커밋 3 — C9 해소 + 지도 타일 후보 등재)**
+- **C9 수정**: `MUN_LATLON_BY_PROV`(`시도|이름`) 우선 조회. 모호한 `북구`/`서구`는 평면 맵에서 **제거** — province 없이는 아예 해석되지 않게(틀린 도시에 조용히 찍는 것보다 안 찍는 게 낫다). 좌표 미상 시 서울 `[37.5,127.0]`에 찍던 폴백 제거 → skip + 경고. 툴팁 `dataIndex`가 어긋나지 않도록 `munPlaced` 단일 배열로 통일. 대구 북구는 애초에 항목이 없어 광주로 갔었음 — 좌표 3개 신규 추가(대구 북구·대전 서구·광주 서구). E2E `mapCoords` 3(84개 전부 고유 좌표 · 동명 3쌍 분리 · 소속 시도 근접성 검증). **esbuild 경고 0.**
+- **§14 지도 타일 배경(MapTiler) 후보 등재** — 사용자 동기는 "도로·지형 위 표기", 의사는 "천천히". 착수 조건만 명시: 배포처·HTTPS 확정 → 키 도메인 제한 → 오프라인 폴백 설계 → **"내 데이터" 탭 한정**(choropleth 탭은 타일이 방해). ECharts 단독 불가(MapLibre GL 추가 필요), 무료 할당량·CDN 의존 추가가 §12 A3′와 동종 리스크임을 기록.
+
+**추가 (2026-07-17, 커밋 4 — C3 해소)**
+- **`js/ui.jsx`(`window.UI`) 신규** — 토스트 + promise 기반 `alert`/`confirm`/`prompt`. 네이티브 다이얼로그 **20곳 전부 교체**(alert 14·confirm 2·prompt 4; `combineModal.jsx:69`는 동명 로컬 함수라 오탐이었음).
+- **왜 중요한가**: 네이티브 다이얼로그는 단순히 못생긴 게 아니라 **이벤트 루프를 블로킹**한다 — 임베드/iframe 호스트가 멈추고, **E2E helper가 `page.on("dialog", d=>d.dismiss())`를 미리 걸어야 스위트가 안 멎었다**(그 워크어라운드 자체가 C3의 근거였다). Chrome의 "추가 대화상자 방지"가 이후 메시지를 조용히 삼키는 문제도 있다.
+- **설계**: 계약을 네이티브와 동일하게(`confirm`→bool, `prompt`→string|null) 유지해 호출부는 `await`만 붙고 로직은 그대로. 상태는 모듈 레벨 store(=`window.Store` 패턴)라 컴포넌트 밖(async 플로우·엔진)에서도 훅 없이 띄울 수 있고, 부팅 중 발생한 토스트도 `Host` 마운트 시 그대로 표시된다. Escape 취소·Enter 제출·자동 포커스.
+- E2E `uiDialogs` 7 — 토스트 스택/자동소멸/클릭소멸, confirm 3분기(확인·취소·Escape), prompt 값/null, alert에 취소 없음, **실제 rename/delete 플로우에서 네이티브 다이얼로그 미발화 명시 검증**.
+
+**미해소 T1**: A3′(DuckDB 로컬 벤더링 — 여전히 런타임 jsDelivr), A5(oklch 브라우저 하한), B1 잠금(경고까지만).
 
 ## 세션 기록 — 2026-07-17 (문서 드리프트 복구 + FOLLOWUP 분해 + 브랜치 정리)
 

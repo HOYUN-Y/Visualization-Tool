@@ -233,9 +233,14 @@
             <div className="opgroup-h">{T("cleanEncoding")}</div>
             <div className="opbtns">
               <button className="opbtn" onClick={() => add("label_encode")}><Icon name="layers" size={13} />Label Encode</button>
-              <button className="opbtn" onClick={() => {
+              <button className="opbtn" onClick={async () => {
+                // C3: native confirm → UI.confirm. Async handler; the guard is otherwise unchanged.
                 const uniq = [...new Set(rows.map((r) => r[col]).filter((v) => v != null && v !== ""))];
-                if (uniq.length > 20 && !window.confirm(`컬럼 "${col}"의 고유값이 ${uniq.length}개입니다. 더미 컬럼 ${uniq.length}개가 추가됩니다. 계속하시겠습니까?`)) return;
+                if (uniq.length > 20) {
+                  const ok = await window.UI.confirm(`컬럼 "${col}"의 고유값이 ${uniq.length}개입니다.\n더미 컬럼 ${uniq.length}개가 추가됩니다. 계속하시겠습니까?`,
+                    { title: "Dummy Encode", confirmLabel: "계속" });
+                  if (!ok) return;
+                }
                 add("dummy_encode");
               }}><Icon name="layers" size={13} />Dummy Encode</button>
             </div>

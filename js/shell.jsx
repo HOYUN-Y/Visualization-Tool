@@ -78,35 +78,39 @@
         await refresh();
         if (closeAfter !== false) setOpen(false);
       } catch (error) {
-        alert(error.message || String(error));
+        window.UI.toast(error.message || String(error), { type: "error" });
       } finally {
         setBusy(false);
       }
     }
 
-    function createProject() {
-      const name = prompt("새 프로젝트 이름", "Untitled Project");
+    // C3: native prompt/confirm → window.UI equivalents. Same control flow, just awaited —
+    // UI.prompt resolves null on cancel exactly like prompt() returned null.
+    async function createProject() {
+      const name = await window.UI.prompt("새 프로젝트 이름", { title: "새 프로젝트", defaultValue: "Untitled Project" });
       if (name == null) return;
       run(() => PS.create(name));
     }
 
-    function renameProject() {
+    async function renameProject() {
       if (!snapshot.project) return;
-      const name = prompt("프로젝트 이름 변경", snapshot.project.name);
+      const name = await window.UI.prompt("프로젝트 이름 변경", { title: "이름 변경", defaultValue: snapshot.project.name });
       if (name == null) return;
       run(() => PS.rename(snapshot.project.id, name));
     }
 
-    function duplicateProject() {
+    async function duplicateProject() {
       if (!snapshot.project) return;
-      const name = prompt("복제 프로젝트 이름", snapshot.project.name + " Copy");
+      const name = await window.UI.prompt("복제 프로젝트 이름", { title: "프로젝트 복제", defaultValue: snapshot.project.name + " Copy" });
       if (name == null) return;
       run(() => PS.duplicate(snapshot.project.id, name));
     }
 
-    function removeProject() {
+    async function removeProject() {
       if (!snapshot.project) return;
-      if (!confirm('"' + snapshot.project.name + '" 프로젝트를 삭제할까요? 이 브라우저에서는 되돌릴 수 없습니다.')) return;
+      const ok = await window.UI.confirm('"' + snapshot.project.name + '" 프로젝트를 삭제할까요?\n이 브라우저에서는 되돌릴 수 없습니다.',
+        { title: "프로젝트 삭제", danger: true, confirmLabel: "삭제" });
+      if (!ok) return;
       run(() => PS.remove(snapshot.project.id));
     }
 
@@ -125,21 +129,23 @@
       const base = location.origin + location.pathname;
       const res = await window.ShareLink.encodeShareLink(base, bundle);
       if (res.tooLarge) {
-        alert("이 프로젝트는 공유 링크로 담기엔 너무 큽니다 (" + Math.round(res.chars / 1024) + "KB).\n대신 \"Project JSON\"으로 내보내 파일로 공유하세요.");
+        await window.UI.alert("이 프로젝트는 공유 링크로 담기엔 너무 큽니다 (" + Math.round(res.chars / 1024) + "KB).\n대신 \"Project JSON\"으로 내보내 파일로 공유하세요.",
+          { title: "공유 링크가 너무 큼" });
         return;
       }
       // A4: navigator.clipboard is secure-context-only — absent on an http:// deployment. Fall back to a
-      // selectable prompt and say WHY, so it doesn't read as a bug.
+      // selectable field and say WHY, so it doesn't read as a bug.
       let copied = false;
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(res.url); copied = true; }
       } catch (e) { copied = false; }
       window.LOG && window.LOG.info("share", "link built · " + res.chars + " chars · " + (res.compressed ? "deflate" : "raw") + " · " + (copied ? "copied" : "manual"));
-      if (copied) { alert("공유 링크가 클립보드에 복사되었습니다.\n이 링크를 열면 데이터·분석이 그대로 재현됩니다."); return; }
+      if (copied) { window.UI.toast("공유 링크를 클립보드에 복사했습니다 · 열면 데이터·분석이 그대로 재현됩니다", { type: "success" }); return; }
       const why = !window.isSecureContext
-        ? "자동 복사는 HTTPS에서만 됩니다 (현재 http:// 접속) — 아래 링크를 직접 복사하세요."
-        : "자동 복사에 실패했습니다 — 아래 링크를 직접 복사하세요.";
-      window.prompt(why, res.url);
+        ? "자동 복사는 HTTPS에서만 됩니다 (현재 http:// 접속).\n아래 링크를 직접 복사하세요."
+        : "자동 복사에 실패했습니다.\n아래 링크를 직접 복사하세요.";
+      // prompt() doubled as a "here's text you can select" affordance — UI.prompt keeps that, prefilled.
+      await window.UI.prompt(why, { title: "공유 링크", defaultValue: res.url });
     }
 
     const saveState = snapshot.state || "unsaved";
@@ -335,7 +341,7 @@
 
     function exportPNG() {
       const ok = window.Charts.downloadPNG("insight-chart");
-      if (!ok) alert("내보낼 차트가 없습니다. Chart 모드에서 차트를 먼저 그려주세요.");
+      if (!ok) window.UI.toast("내보낼 차트가 없습니다 · Chart 모드에서 차트를 먼저 그려주세요", { type: "warn" });
       setOpen(false);
       window.LOG && window.LOG.info("export", "PNG exported");
     }
