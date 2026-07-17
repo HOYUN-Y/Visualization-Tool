@@ -270,8 +270,10 @@
               <input className="inp mono" placeholder="row.price * 1.1" value={fmlExpr} onChange={(e) => setFmlExpr(e.target.value)} style={{ flex: 1, fontFamily: "var(--font-mono)" }} />
               <button className="btn sm" disabled={!fmlExpr.trim() || !fmlName.trim()} onClick={() => { add("formula", { name: fmlName.trim(), expr: fmlExpr.trim() }); setFmlExpr(""); setFmlName(""); }}>{T("cleanAdd")}</button>
             </div>
-            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3 }}>
-              <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>row</code> 객체로 각 행 접근. 예: <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>row.area * row.price</code>
+            <div style={{ fontSize: "var(--fs-11)", color: "var(--tx-faint)", marginTop: 3, lineHeight: 1.6 }}>
+              <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>row</code> {T("cleanFormulaHintAccess")} <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>row.area * row.price</code>
+              <br />
+              {T("cleanFormulaHintBracket")} <code style={{ background: "var(--bg-dp1)", padding: "1px 4px", borderRadius: 3 }}>{'row["가격"] * 2'}</code>
             </div>
           </div>
         </div>

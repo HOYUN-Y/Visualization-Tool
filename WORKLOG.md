@@ -19,8 +19,8 @@
 | Branch | **`main`** |
 | Base commit | `1231f15` — merge: 시군구 좌표 오배치 수정(C9) + 네이티브 다이얼로그 교체(C3) |
 | Last checkpoint commit | `1231f15` |
-| Working tree | 배치 1~3(F/E) + **C1(전역 리렌더) 해소 — 2차, 선행조건 갖춰 재시도**. 실사 백로그에서 남은 건 조건부 대기 항목(T1 배포·T2 규모·T3 품질)뿐 |
-| Last verified | **2026-07-18 — Node 359/359 · E2E 71/71 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v294 |
+| Working tree | 배치 1~3(F/E) + C1(전역 리렌더) + **B3′(formula 한글 컬럼)** 해소. 남은 건 배포(A3′)·규모(A5·B1·B4·D1)·품질(C6·C7·C8) 조건부 대기 항목 |
+| Last verified | **2026-07-18 — Node 361/361 · E2E 73/73 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v295 |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -92,6 +92,21 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-18 (B3′ — formula 한글 컬럼: 이미 되던 걸 보장·발견 가능하게)
+
+대기 항목 중 "지금 로컬 사용에 값을 내고 작고 안전한 것" 기준으로 B3′ 선택(도메인이 한국 부동산 데이터인데 formula가 `row.한글`을 못 쓰면 실사용 갭).
+
+**실사 결과 이미 동작했다.** `FormulaEval`(A1 안전파서)이 대괄호 인덱스를 설계에 포함하고 있어서 `row.가격`·`row["면적 (m²)"]`·`row["2024년"]`·`row["가-나"]`가 전부 계산되고, `constructor`/`__proto__` 차단도 유지된다. PLAN이 ❌였던 건 FormulaEval 이전(FOLLOWUP) 기준의 **문서 드리프트**.
+
+그래서 "구현"이 아니라 **우연히 되던 걸 보장·발견 가능하게**:
+- **테스트 잠금**: `formulaEval.test.js` +2 — 한글/공백/유니코드/숫자시작/특수문자 접근 + 대괄호 경로의 샌드박스(프로토타입 탈출 차단) 회귀 잠금.
+- **발견 가능성**: Clean 수식 UI 힌트가 `row.area * row.price`(영어 점)만 보여줘서 한글-데이터 사용자가 `가격` 참조법을 몰랐다 → 대괄호 예시 `row["가격"] * 2` 줄 추가(i18n `cleanFormulaHintAccess`·`cleanFormulaHintBracket` 한/영).
+- **E2E**: `formulaKoreanColumn` 2 — 실제 Clean 파이프라인서 `row.가격 / row["면적 (m²)"]` 파생 컬럼 계산·float 타입추론·그리드 헤더 렌더 + 힌트 노출 검증.
+
+검증: **Node 361/361**(+2) · **E2E 73/73**(+2) · verify:dist 9모드·콘솔 에러 0 · asset v295.
+
+---
 
 ## 세션 기록 — 2026-07-18 (C1 — 전역 리렌더 해소, 2차: 선행조건 갖춰 재시도)
 

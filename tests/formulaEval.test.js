@@ -60,6 +60,33 @@ test("bracket field access + string/number/bool/null literals", () => {
   assert.equal(FE.compute("'hello'", row).value, "hello");
 });
 
+// PLAN §12 B3′ — Korean / spaced / special-character column names. This app's domain is Korean
+// apartment data, so a formula must be able to reference 한글 columns. Dot access works for valid
+// identifiers (Korean letters are); brackets cover everything else (spaces, leading digits, symbols).
+// These lock that so a tokenizer/parser change can't silently break it.
+test("B3′: Korean and special column names via dot and bracket access", () => {
+  const kr = { "가격": 100, "면적_m2": 25, "면적 (m²)": 30, "2024년": 7, "가-나": 5, "price/m2": 4 };
+  // Korean identifier — dot access is valid (letters).
+  assert.equal(FE.compute("row.가격 * 2", kr).value, 200);
+  assert.equal(FE.compute("row.면적_m2 + 1", kr).value, 26);
+  // Bracket access — the general escape hatch for names dots can't express.
+  assert.equal(FE.compute('row["가격"] + row["면적_m2"]', kr).value, 125);
+  assert.equal(FE.compute('row["면적 (m²)"] * 2', kr).value, 60);   // spaces + unicode symbol
+  assert.equal(FE.compute('row["2024년"] + 1', kr).value, 8);        // leading digit
+  assert.equal(FE.compute('row["가-나"] * row["price/m2"]', kr).value, 20); // hyphen, slash
+  // Single-quoted brackets too.
+  assert.equal(FE.compute("row['가격']", kr).value, 100);
+});
+
+test("B3′: bracket access stays sandboxed — no prototype escape via a Korean-looking key", () => {
+  // The A1 security guarantees must still hold for bracket keys: prototype-chain keys are blocked and
+  // only own data properties resolve (compute → null, not a function/constructor).
+  const r = { "가격": 1 };
+  assert.equal(FE.compute('row["constructor"]', r).value, null);
+  assert.equal(FE.compute('row["__proto__"]', r).value, null);
+  assert.equal(FE.compute('row["missing_한글"]', r).value, null); // absent own prop → null
+});
+
 test("compile returns a reusable per-row fn; runtime errors → null, not throw", () => {
   const fn = FE.compile("row.price / row.zero");   // 100/0 = Infinity (valid JS), stays a number
   assert.equal(fn(row), Infinity);

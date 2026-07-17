@@ -463,7 +463,7 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 | ID | 항목 | 확인된 현재 상태 (2026-07-17) | 티어 | 완화책 |
 |---|---|---|---|---|
 | **B1** | 다중 탭 last-write-wins | ⚠️ **경고까지 해소 (2026-07-17)** — BroadcastChannel로 탭 간 announce/close, `getStatus().conflict`·`peerSavedAt` 노출, 상단바 배지(피어 저장 시 stale 강조). **잠금은 아님** — 사용자가 무시하면 여전히 덮어쓴다 | T2 | 잔여: Web Locks로 실제 차단, 또는 저장 전 mtime 비교 후 확인 프롬프트 |
-| **B3′** | formula column 한글/공백 컬럼 접근 | ❌ 잔존 — SQL 주경로·폴백 파서는 ✅ 해소됐으나 formula는 `row.한글` 불가 | T3 | `FormulaEval`에 `row["이름"]` 인덱스 문법 지원 |
+| ~~**B3′**~~ | ~~formula column 한글/공백 컬럼 접근~~ | ✅ **해소 (2026-07-18)** — 실사 결과 **`FormulaEval`이 이미 대괄호 인덱스 지원**(A1 안전파서 설계에 포함): `row.가격`(한글 점 접근)·`row["면적 (m²)"]`(공백·유니코드)·`row["2024년"]`(숫자 시작)·`row["가-나"]`(특수문자) 전부 동작하며 프로토타입 탈출(`constructor`/`__proto__`) 차단도 유지. 남은 갭은 **테스트·발견 가능성**이었다: (a) 한글/공백/특수 접근 + 샌드박스 회귀 테스트 신설(`formulaEval.test.js` +2) (b) Clean 수식 UI 힌트에 대괄호 예시 `row["가격"] * 2` 추가(i18n) (c) E2E `formulaKoreanColumn` 2 — 실제 Clean 파이프라인서 `row.가격 / row["면적 (m²)"]` 계산·타입추론·헤더 렌더 + 힌트 노출. PLAN 항목이 ❌였던 건 FormulaEval 이전(FOLLOWUP) 기준의 문서 드리프트 | — | — |
 | **B4** | undo 스택 무한 성장 | 미변경 — 셀 편집 1회 = 스텝 1개 영구 축적 | T2 | 연속 `set_cell` 병합, 스텝 상한 + 베이스라인 스냅샷 압축 |
 
 ### C. 인터랙션·UI
