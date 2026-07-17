@@ -20,3 +20,6 @@ playwright-report/
 
 # Claude Code env-specific hooks (disarmed; not shared)
 .claude/hooks/
+
+# 배포 빌드 산출물 (npm run build로 생성 — 커밋하지 않음)
+dist/

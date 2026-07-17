@@ -20,6 +20,13 @@
   var storeUnsubscribe = null;
   var listeners = new Set();
   var status = { state: "unsaved", label: "Unsaved", error: null, projectId: null, updatedAt: null };
+  // B1 multi-tab state: this tab's identity, peers holding the same project, and the last time a peer
+  // reported a write (meaning our in-memory snapshot no longer matches what's on disk).
+  var channel = null;
+  var peerTabs = new Set();
+  var peerSavedAt = null;
+  var storageMode = "unknown";   // A6: "granted" | "best-effort" | "unsupported" | "unknown"
+  var TAB_ID = "tab_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
 
   function clone(value) {
     if (value == null) return value;
@@ -248,6 +255,82 @@
     return true;
   }
 
+  // ── A6: storage durability ─────────────────────────────────────────────────
+  // IndexedDB is not permanent storage. Projects can vanish without warning: Safari's ITP wipes
+  // script-writable storage after ~7 days without a visit, private windows discard everything on close,
+  // and any browser may evict "best-effort" origins under storage pressure. The user is never told —
+  // they'd just find their work gone.
+  //
+  // The real mitigation (not a warning) is StorageManager.persist(): it asks the browser to exempt this
+  // origin from automatic eviction. Chromium usually grants it silently for an engaged origin; Safari
+  // does not implement it. It requires a secure context, so on a plain http:// deployment the API is
+  // absent and we stay best-effort. Result is reported via getStatus().storage so the UI can advise a
+  // JSON backup only when durability is NOT guaranteed.
+  //   granted     — persisted, exempt from automatic eviction
+  //   best-effort — supported but not granted (or refused)
+  //   unsupported — no StorageManager (Safari, or non-secure context)
+  async function ensurePersistence() {
+    try {
+      var s = navigator.storage;
+      if (!s || typeof s.persisted !== "function") { storageMode = "unsupported"; return; }
+      if (await s.persisted()) { storageMode = "granted"; return; }
+      if (typeof s.persist !== "function") { storageMode = "best-effort"; return; }
+      storageMode = (await s.persist()) ? "granted" : "best-effort";
+    } catch (_) {
+      storageMode = "unsupported";   // never let a durability probe break boot
+    }
+  }
+
+  // ── B1: multi-tab detection ────────────────────────────────────────────────
+  // Autosave is last-write-wins: two tabs on the same project each hold a full in-memory snapshot and
+  // overwrite the whole record every second, so whichever saves last silently erases the other's work.
+  // There is no merge here and there shouldn't be one — the honest fix is to tell the user, not to
+  // guess. Tabs announce themselves over BroadcastChannel; `conflict` is true while a peer holds the
+  // same project. This warns; it does not lock (see PLAN §12 B1 for the Web Locks escalation).
+  function setupChannel() {
+    if (channel || typeof window.BroadcastChannel === "undefined") return; // absent on older Safari — degrade to no warning
+    try { channel = new window.BroadcastChannel("insight-workbench-tabs"); } catch (_) { channel = null; return; }
+    channel.onmessage = function (event) {
+      var msg = event && event.data;
+      if (!msg || msg.tabId === TAB_ID) return;
+      if (!currentProject || msg.projectId !== currentProject.id) return;
+      if (msg.type === "open") { addPeer(msg.tabId); post("here"); }         // a peer just opened my project
+      else if (msg.type === "here") addPeer(msg.tabId);                      // a peer answered my announce
+      else if (msg.type === "close") removePeer(msg.tabId);
+      else if (msg.type === "saved") {                                       // peer wrote — my snapshot is now stale
+        addPeer(msg.tabId);
+        peerSavedAt = msg.updatedAt || null;
+        notify();
+      }
+    };
+  }
+
+  function post(type, extra) {
+    if (!channel || !currentProject) return;
+    var msg = { type: type, projectId: currentProject.id, tabId: TAB_ID };
+    if (extra) Object.keys(extra).forEach(function (k) { msg[k] = extra[k]; });
+    try { channel.postMessage(msg); } catch (_) {}
+  }
+
+  function addPeer(tabId) {
+    if (peerTabs.has(tabId)) return;
+    peerTabs.add(tabId);
+    notify();
+  }
+
+  function removePeer(tabId) {
+    if (!peerTabs.delete(tabId)) return;
+    if (!peerTabs.size) peerSavedAt = null;
+    notify();
+  }
+
+  // Called whenever the active project changes: drop stale peers, then re-announce for the new project.
+  function announceProject() {
+    peerTabs.clear();
+    peerSavedAt = null;
+    post("open");
+  }
+
   function notify() {
     var snapshot = api.getStatus();
     listeners.forEach(function (listener) {
@@ -300,6 +383,7 @@
       window.Store.actions.hydrateProject(bundle);
       currentProject = clone(bundle.project);
       await setSetting("lastProjectId", currentProject.id);
+      announceProject();   // B1: tell other tabs which project this one now holds
       setStatus("saved");
     } finally {
       hydrating = false;
@@ -337,6 +421,8 @@
       if (initPromise) return initPromise;
       initPromise = (async function () {
         if (!window.Store || !window.NODE) throw new Error("Store must be loaded before ProjectStore");
+        setupChannel();          // B1: listen for peer tabs before we activate a project and announce
+        await ensurePersistence(); // A6: ask for eviction exemption before we start writing projects
         seedSnapshot = {
           state: sanitizeState(window.Store.getState()),
           datasets: clone(window.NODE.datasets),
@@ -363,6 +449,7 @@
         // fires the pending write immediately instead of waiting out the debounce.
         var flushOnExit = function () {
           if (currentProject && status.state !== "saved") api.saveNow().catch(function () {});
+          post("close");   // B1: let peers drop us so a closed tab stops showing as a conflict
         };
         window.addEventListener("pagehide", flushOnExit);
         window.addEventListener("beforeunload", flushOnExit);
@@ -471,6 +558,10 @@
         bundle = await saveBundle(bundle);
         currentProject = clone(bundle.project);
         await setSetting("lastProjectId", currentProject.id);
+        // B1: our write just became the record on disk, so any peer's snapshot is now stale — and ours
+        // is current again, which clears the stale marker this tab was showing.
+        peerSavedAt = null;
+        post("saved", { updatedAt: currentProject.updatedAt });
         setStatus("saved");
         return projectSummary(currentProject);
       } catch (error) {
@@ -534,6 +625,16 @@
         project: currentProject ? projectSummary(currentProject) : null,
         updatedAt: status.updatedAt,
         initialized: initialized,
+        // B1: another tab holds this same project — autosave from either will overwrite the other.
+        conflict: peerTabs.size > 0,
+        peerCount: peerTabs.size,
+        // A peer has written since our last save: what's on disk is theirs, not ours. Saving from this
+        // tab now would overwrite their work with our older snapshot.
+        peerSavedAt: peerSavedAt,
+        tabId: TAB_ID,
+        // A6: durability of this browser's storage. "granted" = exempt from automatic eviction;
+        // anything else means projects can disappear and a JSON backup is the only real protection.
+        storage: storageMode,
       };
     },
 

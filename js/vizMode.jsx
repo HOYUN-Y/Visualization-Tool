@@ -910,8 +910,28 @@
       else window.LOG && window.LOG.info("export", kind.toUpperCase() + " exported · " + bg);
       setExpOpen(false);
     };
+    // A4: the async Clipboard API is HTTPS-only. On an http:// deployment it is simply absent, so a
+    // bare "copy" would fail silently and read as broken. Explain the actual reason and fall back to
+    // the PNG download automatically — the user still gets their image into PowerPoint.
     const doCopy = () => {
-      window.Charts.copyPNG(undefined, chartInstRef.current).then((ok) => alert(ok ? "클립보드에 복사됨 · 파워포인트에서 Ctrl+V로 붙여넣기" : "복사를 지원하지 않는 브라우저입니다. PNG 다운로드를 사용하세요."));
+      const inst = chartInstRef.current;
+      const sup = window.Charts.clipboardSupport();
+      if (!sup.ok) {
+        const why = sup.reason === "insecure"
+          ? "클립보드 복사는 HTTPS에서만 지원됩니다 (현재 http:// 접속).\n대신 PNG로 내려받았습니다 — 파워포인트에 끌어다 넣으세요."
+          : "이 브라우저는 클립보드 이미지 복사를 지원하지 않습니다.\n대신 PNG로 내려받았습니다 — 파워포인트에 끌어다 넣으세요.";
+        const saved = window.Charts.downloadPNG("insight-" + (viz.type || "chart"), undefined, inst);
+        alert(saved ? why : "차트를 먼저 그려주세요. / Draw a chart first.");
+        window.LOG && window.LOG.info("export", "clipboard unavailable (" + sup.reason + ") → PNG fallback");
+        setExpOpen(false);
+        return;
+      }
+      window.Charts.copyPNG(undefined, inst).then((ok) => {
+        if (ok) { alert("클립보드에 복사됨 · 파워포인트에서 Ctrl+V로 붙여넣기"); return; }
+        // Secure context but the write still failed (permission denied, transient) — don't strand the user.
+        const saved = window.Charts.downloadPNG("insight-" + (viz.type || "chart"), undefined, inst);
+        alert(saved ? "클립보드 복사에 실패해 PNG로 내려받았습니다." : "차트를 먼저 그려주세요. / Draw a chart first.");
+      });
       setExpOpen(false);
     };
     const doPPTX = () => {

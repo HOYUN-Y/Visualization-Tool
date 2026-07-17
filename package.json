@@ -7,10 +7,14 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test",
-    "bump": "bash scripts/bump-assets.sh"
+    "bump": "bash scripts/bump-assets.sh",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/build.mjs && (cd dist && python3 -m http.server 8743)",
+    "verify:dist": "node scripts/verify-dist.mjs"
   },
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@playwright/test": "^1.61.1",
+    "esbuild": "^0.28.1"
   }
 }

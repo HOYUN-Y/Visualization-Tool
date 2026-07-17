@@ -12,7 +12,7 @@
 ![Status](https://img.shields.io/badge/v2.0.0-Core%20Product%20v2-brightgreen)
 ![Stack](https://img.shields.io/badge/Stack-React%2018%20%2B%20ECharts%205%20%2B%20DuckDB--WASM-blue)
 ![No Build](https://img.shields.io/badge/Build-None%20(Browser--only)-lightgrey)
-![Tests](https://img.shields.io/badge/tests-329%20unit%20%2B%2014%20E2E-success)
+![Tests](https://img.shields.io/badge/tests-329%20unit%20%2B%2043%20E2E-success)
 
 ---
 
@@ -122,9 +122,11 @@ open http://localhost:8742
 ### ⚠️ 지원 환경
 
 - **최신 데스크톱 Chromium 기준.** `oklch()`/`color-mix()`를 쓰므로 **Safari <16.2 · Chrome <111에서 스타일이 깨집니다.**
-- 클립보드 복사(PPT용)는 **secure context 전용** — `localhost`는 예외라 로컬에서는 동작하지만, `http://`로 배포하면 조용히 실패합니다.
-- **로컬 저장은 영구 보장이 아닙니다** — Safari ITP(7일 미사용 시 삭제)·시크릿 모드·스토리지 압박으로 축출될 수 있습니다. 중요한 프로젝트는 **JSON 백업**을 권장합니다.
-- 현재 CDN은 **React/Babel development 빌드**입니다(첫 로드 수 초). 실제 배포 시 production 빌드 교체가 필요합니다 — `IMPLEMENTATION_PLAN.md` §12 A2.
+- 클립보드 복사(PPT용)는 **HTTPS 전용**입니다(`localhost`는 예외). `http://` 접속 시 자동으로 **PNG 다운로드로 폴백**하며 이유를 안내합니다.
+- **로컬 저장은 영구 보장이 아닙니다.** 앱이 시작할 때 브라우저에 저장소 보존(`StorageManager.persist()`)을 요청하지만, 허용되지 않으면(Safari는 미지원) ITP 7일 규칙·시크릿 모드·용량 압박으로 프로젝트가 삭제될 수 있습니다. 이 경우 앱이 1회 안내하며, **중요한 작업은 `Projects › Project JSON`으로 백업**하세요.
+- **같은 프로젝트를 여러 탭에서 열지 마세요.** 양쪽이 1초마다 자동저장하므로 나중에 저장한 쪽이 상대 작업을 덮어씁니다. 감지되면 상단바에 경고 배지가 뜨지만 **차단하지는 않습니다.**
+
+---
 
 ### 향후 (별도 계획 — 미착수)
 - **Frontend**: Next.js + TypeScript + TailwindCSS + shadcn/ui + Zustand + TanStack Table + dnd-kit
@@ -133,6 +135,26 @@ open http://localhost:8742
 - **AI**: OpenAI API / Ollama / LM Studio
 
 > DuckDB는 원래 백엔드 전환 항목이었으나 **DuckDB-WASM으로 브라우저에서 해결**되어 v2.0.0에 포함됐습니다.
+
+---
+
+---
+
+## 📦 배포
+
+개발은 빌드가 없지만, **배포할 때는 빌드하세요.** 개발용 구성(`react.development.js` + 브라우저 Babel 3MB + 매 로드 JSX 컴파일)을 그대로 올리면 첫 화면까지 수 초 걸리고 콘솔에 개발 경고가 노출됩니다.
+
+```bash
+npm run build         # → dist/ (JSX 사전 트랜스파일 · React production 로컬 vendoring · Babel 제거)
+npm run verify:dist   # 빌드 결과를 실제 Chrome으로 부팅 검증 (권장 — 배포 전 필수)
+npm run preview       # 빌드 후 dist/를 :8743에 서빙해 눈으로 확인
+```
+
+`dist/`를 정적 호스팅에 그대로 올리면 됩니다 (git에는 커밋하지 않습니다).
+
+> **`npm run verify:dist`를 건너뛰지 마세요.** 브라우저 Babel은 `const`를 `var`로 낮춰 컴파일하므로, 개발 환경에서는 우연히 동작하지만 빌드에서는 깨지는 코드가 존재할 수 있습니다. 실제로 2026-07-17에 이 검증이 Data 모드를 통째로 크래시시키는 TDZ 버그를 잡아냈습니다.
+
+> **알려진 제약:** DuckDB-WASM은 여전히 런타임에 jsDelivr에서 로드됩니다(로컬 vendoring 미적용). 오프라인·CDN 장애 시 SQL은 내장 JS 엔진으로 폴백하며 JOIN·윈도우 함수만 제한됩니다 — `IMPLEMENTATION_PLAN.md` §12 A3′.
 
 ---
 
@@ -164,7 +186,8 @@ open http://localhost:8742
 ├── css/                     # 13개 CSS 파일 (토큰 → 기능별 분리)
 ├── js/                      # JS/JSX 모듈 (window.* 전역 공유)
 ├── vendor/                  # 로컬 고정 서드파티 (sheetjs-0.20.3 · pptxgenjs)
-├── scripts/                 # bump-assets.sh (캐시버스트 자동화)
+├── scripts/                 # build.mjs(배포 빌드) · verify-dist.mjs · bump-assets.sh
+├── dist/                    # 배포 산출물 (npm run build로 생성 · git 미포함)
 ├── tests/                   # Node 유닛 테스트 + e2e/ (Playwright)
 └── docs/                    # 개발자 매뉴얼 · 브랜드 에셋 · archieve/(폐기 문서)
 ```
@@ -172,8 +195,9 @@ open http://localhost:8742
 ### 테스트
 
 ```bash
-npm test          # Node 유닛 329개 (앱 실행에는 불필요)
-npm run test:e2e  # Playwright E2E 14스펙 (시스템 Chrome 사용)
+npm install       # 테스트·빌드 도구만 설치 (앱 실행에는 불필요)
+npm test          # Node 유닛 329개
+npm run test:e2e  # Playwright E2E 43개 (시스템 Chrome 사용 — 브라우저 다운로드 없음)
 npm run bump      # 자산 캐시버스트 ?v= 일괄 갱신
 ```
 

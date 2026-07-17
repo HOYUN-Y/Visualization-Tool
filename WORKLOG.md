@@ -13,14 +13,14 @@
 
 | 항목 | 현재 값 |
 |---|---|
-| Plan version | `core-v2-plan-v4` — Core v2 완료(`v2.0.0`), 잔여는 `IMPLEMENTATION_PLAN.md` §12 **하드닝 백로그** |
-| Current milestone | **Core v2 종료.** 다음 마일스톤 미착수 — 백로그에서 선택 필요 |
-| Status | FOLLOWUP 제안 문서 **분해·흡수 완료** (완료분→본 문서 §완료 원장, 미완분→`IMPLEMENTATION_PLAN.md` §12). 미병합 브랜치 0개 |
-| Branch | **`main`** (origin 동기화 — ahead/behind 0) |
-| Base commit | `dadf6e8` — Merge PR #5 `feat/p10-pptx-chart-mapping` |
-| Last checkpoint commit | `dadf6e8` |
-| Working tree | 깨끗 |
-| Last verified | **2026-07-17 — Node 329/329 통과** · asset v282 · 원격 브랜치 9개 전부 main 병합 확인. E2E·tsc는 이 세션에서 미실행 |
+| Plan version | `core-v2-plan-v5` — Core v2 완료(`v2.0.0`), 잔여는 `IMPLEMENTATION_PLAN.md` §12 **하드닝 백로그** |
+| Current milestone | **T1 하드닝 배치 완료** (A2·A4·A6·B1 + 배포 빌드). 배포 대상: 우선 http → 향후 Cloudflare/AWS + HTTPS + 공개 서비스 |
+| Status | **1순위 원칙: 로컬 단독 사용.** T1 잔여 = A3′(DuckDB 벤더링)·A5(CSS 하한)·C3(다이얼로그)·B1 잠금. 로그인·회원관리는 §13에 구상만(미결정) |
+| Branch | **`main`** |
+| Base commit | `3f4b505` — merge: 계획 문서 일원화 |
+| Last checkpoint commit | `3f4b505` |
+| Working tree | T1 하드닝 배치 작업 중 |
+| Last verified | **2026-07-17 — Node 329/329 · E2E 43/43 · `npm run verify:dist` 통과(콘솔 에러 0)** · asset v285 |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -92,6 +92,25 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-17 (T1 하드닝 배치 — A2·A4·A6·B1 + 배포 빌드)
+
+사용자가 배포(우선 http → 향후 Cloudflare/AWS + HTTPS + 공개 서비스)를 염두한다고 밝혀 §12 T1 착수. **원칙 재확인: 로컬 단독 사용이 1순위이므로 dev 경로는 건드리지 않고 전부 추가로만 구현.**
+
+- **A4 클립보드 (해소)**: `Charts.clipboardSupport()` — secure context를 **런타임 감지**해 `ready`/`insecure`/`unsupported` 판별. HTTPS 이전 시 코드 변경 없이 자동 정상화. 차트 복사는 사유 안내 + **PNG 자동 폴백**(기존엔 "지원하지 않는 브라우저"라는 **거짓 메시지** 후 사용자 방치), 공유링크는 사유 안내 + 수동 복사. E2E `clipboardFallback` 4.
+- **B1 다중 탭 (경고까지 해소)**: BroadcastChannel announce/here/close/saved. `getStatus().conflict`·`peerCount`·`peerSavedAt` 노출, 상단바 배지(피어 저장 시 stale 강조). **잠금 아님** — 무시하면 여전히 덮어씀(§12에 잔여 기록). E2E `multiTabConflict` 3(실제 2탭).
+- **A6 저장 한계 (해소)**: 경고보다 **실제 완화책** 우선 — init에서 `StorageManager.persist()`로 축출 면제 요청. `getStatus().storage`(`granted`/`best-effort`/`unsupported`)로 노출하고 **granted가 아닐 때만** 1회 배너. 프로브가 throw해도 부팅 무영향. E2E `storageNotice` 5.
+- **A2·D2 배포 빌드 (해소)**: `scripts/build.mjs` → `npm run build` → `dist/`. esbuild로 JSX 18개 1:1 트랜스파일(**번들 아님** — `window.*` 전역 + script 순서가 의존성 그래프라 번들링은 별개 대공사), React production **로컬 vendoring**(URL 교체 시 SRI 재계산 문제 회피 + CDN 2회 제거), Babel Standalone 제거. **개발은 no-build 그대로.**
+  - **함정**: 로더가 `window.Babel`을 체크해 dist에서 영원히 실패 → 빌드가 이 게이트도 재작성.
+  - `scripts/verify-dist.mjs` → `npm run verify:dist`: 빌드 산출물을 **실브라우저로 부팅 검증**(Babel 잔존·text/babel·.jsx 참조·전역 누락·모드전환·IndexedDB·콘솔에러). "빌드 성공"과 "동작"은 다르다.
+
+**빌드가 잡아낸 잠복 버그 2건 (dev에선 보이지 않던 것):**
+
+1. 🚨 **`grid.jsx` TDZ — dist에서 Data 모드 즉시 크래시 (수정함)**. 키보드 네비 `useEffect`가 `pageRows`(const) **선언 위**에 있어 의존성 배열이 렌더 중 TDZ를 읽음. **dev는 브라우저 Babel이 const→var로 낮춰 호이스팅 덕에 우연히 동작**하던 것. esbuild는 const 유지 → `Cannot access 'pageRows' before initialization`. effect를 선언 아래로 이동 + 재발 방지 주석. **이 앱이 Babel의 다운레벨링에 의존하고 있었다는 뜻** — 유사 패턴이 더 있을 수 있으므로 `npm run verify:dist`를 배포 전 필수로 유지할 것.
+2. ⚠️ **`mapMode.jsx` 중복 키 `북구` (미수정 — §12 C9로 등재)**. esbuild `duplicate-object-key` 경고. `MUN_LATLON`이 시군구명만으로 좌표를 찾는데 `북구`가 부산·광주 두 번 → 뒤가 이김. 데이터셋에 `북구` 3개(부산/대구/광주)·`서구` 3개가 있어 **여러 도시 버블이 한 좌표에 겹쳐 찍힘**(부산 북구가 광주에, 약 200km 오차). 데이터에 `province` 필드가 있는데 미사용. 수정은 이번 배치 범위 밖 — 사용자 판단 대기.
+
+**검증**: **Node 329/329** · **E2E 43/43**(기존 25 + 신규 18) · `verify:dist` 통과(콘솔 에러 0) · asset v285.
+**미해소 T1**: A3′(DuckDB 로컬 벤더링 — 여전히 런타임 jsDelivr), A5(oklch 브라우저 하한), C3(alert/confirm 17곳), B1 잠금.
 
 ## 세션 기록 — 2026-07-17 (문서 드리프트 복구 + FOLLOWUP 분해 + 브랜치 정리)
 

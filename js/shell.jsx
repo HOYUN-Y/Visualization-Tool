@@ -15,6 +15,40 @@
     { id: "ml", label: "ML", icon: "ml" },
   ];
 
+  // ── A6: storage durability notice ────────────────────────────────
+  // Shown once, and only when the browser did NOT grant persistent storage — i.e. when projects can
+  // actually be evicted (Safari ITP's ~7-day wipe, private windows, storage pressure). If persist() was
+  // granted there's nothing to warn about, so we stay quiet rather than train the user to dismiss us.
+  const STORAGE_NOTICE_KEY = "insight.storageNoticeSeen";
+
+  function StorageNotice({ storage }) {
+    const [dismissed, setDismissed] = React.useState(() => {
+      try { return localStorage.getItem(STORAGE_NOTICE_KEY) === "1"; } catch (e) { return false; }
+    });
+    // "unknown" = init hasn't probed yet; don't flash a warning before we know.
+    if (dismissed || storage === "granted" || storage === "unknown" || !storage) return null;
+
+    const close = () => {
+      setDismissed(true);
+      try { localStorage.setItem(STORAGE_NOTICE_KEY, "1"); } catch (e) {}
+    };
+    return (
+      <div className="storage-notice">
+        <Icon name="info" size={14} />
+        <div className="storage-notice-body">
+          <strong>프로젝트는 이 브라우저에만 저장됩니다.</strong>
+          <span>
+            {storage === "unsupported"
+              ? "이 브라우저는 저장소 보존을 지원하지 않습니다 (Safari는 7일간 미방문 시 자동 삭제). "
+              : "브라우저가 저장소 보존을 허용하지 않아 용량 부족 시 삭제될 수 있습니다. "}
+            중요한 작업은 <b>Projects › Project JSON</b>으로 백업하세요.
+          </span>
+        </div>
+        <button className="iconbtn" onClick={close} title="닫기"><Icon name="x" size={13} /></button>
+      </div>
+    );
+  }
+
   // ── Project library + save status ────────────────────────────────
   function ProjectControls() {
     const PS = window.ProjectStore;
@@ -94,13 +128,18 @@
         alert("이 프로젝트는 공유 링크로 담기엔 너무 큽니다 (" + Math.round(res.chars / 1024) + "KB).\n대신 \"Project JSON\"으로 내보내 파일로 공유하세요.");
         return;
       }
+      // A4: navigator.clipboard is secure-context-only — absent on an http:// deployment. Fall back to a
+      // selectable prompt and say WHY, so it doesn't read as a bug.
       let copied = false;
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(res.url); copied = true; }
       } catch (e) { copied = false; }
-      window.LOG && window.LOG.info("share", "link built · " + res.chars + " chars · " + (res.compressed ? "deflate" : "raw"));
-      if (copied) alert("공유 링크가 클립보드에 복사되었습니다.\n이 링크를 열면 데이터·분석이 그대로 재현됩니다.");
-      else window.prompt("공유 링크 (복사하세요):", res.url);
+      window.LOG && window.LOG.info("share", "link built · " + res.chars + " chars · " + (res.compressed ? "deflate" : "raw") + " · " + (copied ? "copied" : "manual"));
+      if (copied) { alert("공유 링크가 클립보드에 복사되었습니다.\n이 링크를 열면 데이터·분석이 그대로 재현됩니다."); return; }
+      const why = !window.isSecureContext
+        ? "자동 복사는 HTTPS에서만 됩니다 (현재 http:// 접속) — 아래 링크를 직접 복사하세요."
+        : "자동 복사에 실패했습니다 — 아래 링크를 직접 복사하세요.";
+      window.prompt(why, res.url);
     }
 
     const saveState = snapshot.state || "unsaved";
@@ -108,6 +147,7 @@
 
     return (
       <React.Fragment>
+        <StorageNotice storage={snapshot.storage} />
         <div className="project-switcher">
           <button className="btn ghost sm project-trigger" onClick={() => setOpen(!open)} disabled={busy} title={projectName}>
             <Icon name="db" size={13} /><span>{projectName}</span><Icon name="chevD" size={11} />
@@ -145,6 +185,21 @@
             </div>
           )}
         </div>
+        {/* B1: another tab holds this project. Autosave is last-write-wins with no merge, so silence
+            here means one side's work vanishes without a trace. Warn instead of pretending. */}
+        {snapshot.conflict && (
+          <span className={"tab-conflict" + (snapshot.peerSavedAt ? " stale" : "")}
+            title={snapshot.peerSavedAt
+              ? "다른 탭이 이 프로젝트를 저장했습니다 (" + new Date(snapshot.peerSavedAt).toLocaleTimeString() + ").\n"
+                + "이 탭의 화면은 그 변경을 반영하지 않은 상태입니다 — 여기서 저장하면 다른 탭의 작업을 덮어씁니다.\n"
+                + "안전하게 하려면: 이 탭을 새로고침해 최신 상태를 불러오세요."
+              : "이 프로젝트가 다른 탭 " + snapshot.peerCount + "개에서도 열려 있습니다.\n"
+                + "양쪽이 1초마다 자동저장하므로 나중에 저장한 쪽이 상대 작업을 덮어씁니다.\n"
+                + "한쪽 탭만 남기고 닫는 것을 권장합니다."}>
+            <Icon name="info" size={12} />
+            {snapshot.peerSavedAt ? "다른 탭이 저장함" : "다른 탭에서 열림"}
+          </span>
+        )}
         <button className={"btn ghost sm save-now " + saveState} disabled={busy || saveState === "saving" || !snapshot.initialized}
           onClick={() => run(() => PS.saveNow(), false)} title={snapshot.error || snapshot.label}>
           <span className="save-dot" />
