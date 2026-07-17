@@ -9,9 +9,10 @@
 > Tableau의 시각화 + Power BI의 대시보드 + JMP의 통계 + Orange의 분석 흐름 + ChatGPT의 자연어 인터페이스를  
 > 하나의 로컬 웹 애플리케이션으로 통합한 개인용 데이터 분석 플랫폼
 
-![Status](https://img.shields.io/badge/v1.9.0-Direct%20Editing%20Complete-brightgreen)
-![Stack](https://img.shields.io/badge/Stack-React%2018%20%2B%20ECharts%205-blue)
+![Status](https://img.shields.io/badge/v2.0.0-Core%20Product%20v2-brightgreen)
+![Stack](https://img.shields.io/badge/Stack-React%2018%20%2B%20ECharts%205%20%2B%20DuckDB--WASM-blue)
 ![No Build](https://img.shields.io/badge/Build-None%20(Browser--only)-lightgrey)
+![Tests](https://img.shields.io/badge/tests-329%20unit%20%2B%2014%20E2E-success)
 
 ---
 
@@ -78,7 +79,7 @@ open http://localhost:8742
 ```
 
 > **빌드 단계 없음** — 순수 HTML + in-browser Babel 구성입니다.  
-> Node.js / npm 설치 불필요.
+> 앱 실행에 Node.js / npm 설치는 **불필요**합니다. (테스트를 돌릴 때만 필요 — 아래 참조)
 
 ---
 
@@ -88,14 +89,15 @@ open http://localhost:8742
 |---|---|
 | **Data** | 데이터셋 탐색기 + 고밀도 데이터 그리드 + 자동 프로파일링 + **직접 편집** (JMP/Excel 스타일 — 셀 편집 · 행/열 추가·삭제 · 피처명 변경 · 타입 변경 · 헤더 드래그 열 순서 변경, 모두 비파괴 Undo/Redo) |
 | **Clean** | 결측치/중복/이상치 처리 · 컬럼 변환 · **Encoding** (Label/Dummy) · **수치 변환** (Z-Score/Min-Max/Log/Rank/Winsorize/Binning) · **Formula Column** (JS 수식 파생 컬럼) · Undo/Redo 파이프라인 (Data 모드 편집 이력도 여기에 통합 표시) |
-| **SQL** | 로컬 SQL 엔진 (SELECT/WHERE/GROUP BY/집계/ORDER/LIMIT) |
+| **SQL** | **DuckDB-WASM** 엔진 — 전체 SQL(JOIN·서브쿼리·CTE·윈도우 함수). 데이터셋이 테이블로 자동 등록되고 따옴표 식별자로 한글 컬럼 지원 · DuckDB 미로드 시 내장 JS 엔진 폴백(JOIN/윈도우 제외) |
 | **Chart** | Tableau 스타일 Dimension/Measure 셸프 → ECharts (Basic 8 + Advanced 8 + Financial 3 + Special 1, 총 20종) |
 | **Map** | 3개 탭 — **Seoul · 구** (서울 25구 Choropleth + 버블맵) · **Korea · 행정구역** (17 시도 choropleth + 84 시군구 버블맵 + 내 데이터 모드) · **World · GDP** (30개국 choropleth) |
 | **Board** | 드래그/리사이즈 위젯 대시보드 + Cross Filtering + **위젯 Inspector**(타입·필드·크기 편집) + **안전 KPI 수식**(SUM/AVG/COUNT/… 사칙연산, eval 없음) |
-| **Stats** | 상관분석, T-Test, ANOVA, Chi-Square, 회귀분석 + **Distribution 탭** (히스토그램+박스플롯+왜도/첨도) + **Analysis Builder** (자동 분석 유형 선택) + 자동 해석 패널 |
-| **ML** | 브라우저 내 AutoML: OLS 회귀, k-NN 분류, KMeans 군집 + **클래스별 Precision/Recall/F1** + **군집 특성표** + **모델 비교 이력** |
+| **Stats** | 상관분석, T-Test, ANOVA, Chi-Square, 회귀분석 + **Distribution 탭** (히스토그램+박스플롯+왜도/첨도) + **Analysis Builder** (자동 분석 유형 선택) + **시계열** (계절분해 4단 차트 additive/multiplicative · ACF/PACF) + **SPC 관리도** + **다변량 이상치** + 자동 해석 패널 |
+| **ML** | 브라우저 내 AutoML **10종** — OLS 회귀 · k-NN · **Decision Tree**(CART) · **Naive Bayes**(Gaussian) · **Logistic**(다중클래스 one-vs-rest) · KMeans · **DBSCAN** · **계층 군집** · **PCA** + **Cross Validation**(k-fold mean±std) + **적격성 게이팅**(이 데이터로 못 돌리는 태스크는 사유와 함께 비활성) + 클래스별 Precision/Recall/F1 + 군집 특성표 + 모델 비교 이력 |
 | **Ask Insight** | 데이터셋 자동 프로파일 (IE.profileDataset) + 마지막 분석 결과 요약 + NL→차트/모드 전환 |
-| **Projects** | IndexedDB 다중 프로젝트 · 1초 자동저장 · 즉시 저장 상태 · JSON 백업/복원 |
+| **Projects** | IndexedDB 다중 프로젝트 · 1초 자동저장(+언로드 플러시) · 즉시 저장 상태 · JSON 백업/복원 · **공유 링크**(`#p=` URL fragment, deflate 압축, 백엔드 없음) |
+| **Export** | PNG/SVG/CSV · **PPT 네이티브 차트**(스택·보조축·콤보를 편집 가능한 PowerPoint 차트로 매핑, 미대응 형식은 이미지 폴백) |
 | **Import** | CSV/TSV/JSON/XLSX 공통 Preview · 결정적 타입 추론 · XLSX 복수 시트 선택 · 타입 override |
 | **Combine** | 데이터셋 Union(행 결합·타입 승격·`__source`) / Join(Inner·Left·Right·Full·복수키·폭증 경고) · lineage 포함 새 데이터셋 생성 |
 | **Pivot** | Rows × Columns 크로스탭 · 복수 Values 개별 집계 · 범주/범위 필터 · Grand Total(원본 재계산) · 결과를 데이터셋으로 저장 후 Chart 열기 |
@@ -104,20 +106,33 @@ open http://localhost:8742
 
 ## 🛠 기술 스택
 
-### 현재 (v1.9.0 — 브라우저 전용 프로토타입)
+### 현재 (v2.0.0 — 브라우저 전용, 빌드 없음)
 - **React 18.3.1** (UMD, no bundler)
-- **Apache ECharts 5.5.1** (차트)
+- **Apache ECharts 5.5.1** (차트, SRI 고정)
 - **Babel Standalone 7.29.0** (in-browser 트랜스파일)
+- **DuckDB-WASM 1.29.0** (SQL 엔진 — jsDelivr ESM 동적 로드, JS 폴백 보유)
+- **SheetJS CE 0.20.3** (로컬 vendoring — XLSX 파싱)
+- **PptxGenJS** (로컬 vendoring — PPT 네이티브 차트 export)
+- **IndexedDB** (브라우저 로컬 다중 프로젝트 저장)
 - **IBM Plex Sans / Mono** (타이포그래피)
 - **CSS Custom Properties** (디자인 토큰 기반 다크/라이트 테마)
-- **IndexedDB** (브라우저 로컬 다중 프로젝트 저장)
-- **SheetJS CE 0.20.3** (로컬 vendoring, XLSX 파싱)
 
-### 목표 (Phase 3 — 프로덕션 스택)
+> 앱 자체는 여전히 **빌드 단계가 없습니다.** `package.json`은 테스트 하네스(Node 유닛 + Playwright E2E) 전용이며 앱 실행에 필요하지 않습니다.
+
+### ⚠️ 지원 환경
+
+- **최신 데스크톱 Chromium 기준.** `oklch()`/`color-mix()`를 쓰므로 **Safari <16.2 · Chrome <111에서 스타일이 깨집니다.**
+- 클립보드 복사(PPT용)는 **secure context 전용** — `localhost`는 예외라 로컬에서는 동작하지만, `http://`로 배포하면 조용히 실패합니다.
+- **로컬 저장은 영구 보장이 아닙니다** — Safari ITP(7일 미사용 시 삭제)·시크릿 모드·스토리지 압박으로 축출될 수 있습니다. 중요한 프로젝트는 **JSON 백업**을 권장합니다.
+- 현재 CDN은 **React/Babel development 빌드**입니다(첫 로드 수 초). 실제 배포 시 production 빌드 교체가 필요합니다 — `IMPLEMENTATION_PLAN.md` §12 A2.
+
+### 향후 (별도 계획 — 미착수)
 - **Frontend**: Next.js + TypeScript + TailwindCSS + shadcn/ui + Zustand + TanStack Table + dnd-kit
-- **Backend**: FastAPI + DuckDB + Polars + Pandas
+- **Backend**: FastAPI + Polars + Pandas
 - **ML**: scikit-learn + statsmodels
 - **AI**: OpenAI API / Ollama / LM Studio
+
+> DuckDB는 원래 백엔드 전환 항목이었으나 **DuckDB-WASM으로 브라우저에서 해결**되어 v2.0.0에 포함됐습니다.
 
 ---
 
@@ -141,14 +156,25 @@ open http://localhost:8742
 
 ```
 .
-├── index.html          # 메인 진입점 (스크립트 로드 순서 중요)
-├── HANDOFF.md          # 개발 인수인계 문서 (전체 아키텍처 설명)
-├── CHANGELOG.md        # 버전별 변경사항 기록
-├── WORKLOG.md          # 세션별 작업 로그
-├── css/                # 13개 CSS 파일 (토큰 → 기능별 분리)
-├── js/                 # JS/JSX 모듈 (window.* 전역 공유, ProjectStore 포함)
-├── tests/              # Node 기본 테스트 러너 기반 회귀 테스트
-└── docs/               # 개발자 매뉴얼 (자기 완결형 HTML)
+├── index.html               # 메인 진입점 (스크립트 로드 순서 = 의존성 순서)
+├── IMPLEMENTATION_PLAN.md   # 계획 정본 — 앞으로 할 일 (§12 하드닝 백로그)
+├── WORKLOG.md               # 현재 상태 + 완료 기록 (세션 시작 시 여기부터)
+├── HANDOFF.md               # 코드 아키텍처
+├── CHANGELOG.md             # 릴리스 이력
+├── css/                     # 13개 CSS 파일 (토큰 → 기능별 분리)
+├── js/                      # JS/JSX 모듈 (window.* 전역 공유)
+├── vendor/                  # 로컬 고정 서드파티 (sheetjs-0.20.3 · pptxgenjs)
+├── scripts/                 # bump-assets.sh (캐시버스트 자동화)
+├── tests/                   # Node 유닛 테스트 + e2e/ (Playwright)
+└── docs/                    # 개발자 매뉴얼 · 브랜드 에셋 · archieve/(폐기 문서)
+```
+
+### 테스트
+
+```bash
+npm test          # Node 유닛 329개 (앱 실행에는 불필요)
+npm run test:e2e  # Playwright E2E 14스펙 (시스템 Chrome 사용)
+npm run bump      # 자산 캐시버스트 ?v= 일괄 갱신
 ```
 
 ---
@@ -201,30 +227,30 @@ open http://localhost:8742
 - 숨김 행 ID(`__rid`)로 정렬·필터·페이징과 무관하게 안정적 행 지목
 - 모든 편집을 비파괴 스텝으로 기록 → Undo/Redo + Clean 모드 PIPELINE 통합 표시
 
-### ✅ Core v2 Milestone 1 — 프로젝트 저장·복원 (로컬 체크포인트 완료)
+### ✅ Core v2 Milestone 1 — 프로젝트 저장·복원
 - IndexedDB 다중 프로젝트 생성·전환·이름 변경·복제·삭제
 - Store/데이터셋/분석 이력 1초 debounce 자동저장 + 즉시 저장 상태
 - schema version 1 JSON 백업·복원과 미래 버전 거부
 - 데이터셋 등록 API 중앙화와 `__rid` 복원 연속성
 
-### 🧪 Core v2 Milestone 2 — XLSX Import와 타입 추론 (기능 브랜치)
+### ✅ Core v2 Milestone 2 — XLSX Import와 타입 추론
 - SheetJS CE 0.20.3 로컬 고정 + 라이선스/SHA-256 기록
 - CSV/TSV/JSON/XLSX 공통 ImportEngine과 원문 기반 결정적 타입 추론
 - XLSX 시트 범위·행/열·첫 20행 Preview, 복수 시트 선택, 컬럼별 타입 override
 - 중복 데이터셋명 `_2`, `_3` 처리와 Import 완료 후 프로젝트 즉시 저장
 
-### 🧪 Core v2 Milestone 3 — Union/Join 데이터 결합 (기능 브랜치, 밤샘 자율)
+### ✅ Core v2 Milestone 3 — Union/Join 데이터 결합
 - 순수 결정적 `window.DataOps` 엔진: Union(타입 승격·null 채움·`__source`), Join(4종·복수키·정규화 비교·리네임·폭증 감지)
 - Combine 모달: 실시간 Preview·many-to-many 경고·lineage 포함 새 데이터셋 materialize
 - Node 9/9 회귀 테스트 + 브라우저 러너 케이스
 
-### 🧪 Core v2 Milestone 4 — Pivot Table (기능 브랜치, 밤샘 자율)
+### ✅ Core v2 Milestone 4 — Pivot Table
 - 순수 결정적 `window.PivotEngine`: Rows × Columns 크로스탭, 복수 Values 개별 집계, 범주/범위 필터
 - Grand Total은 원본 행에서 재계산(평균·중앙값 정확), 빈 셀 안전 처리
 - Pivot rail 모드: 드래그 shelf + 크로스탭 테이블 + 데이터셋 저장·Chart 열기
 - Node 8/8 회귀 테스트 + 브라우저 러너 케이스
 
-### 🧪 Core v2 Milestone 5 — Dashboard 설정 + KPI Builder (기능 브랜치, 밤샘 자율)
+### ✅ Core v2 Milestone 5 — Dashboard 설정 + KPI Builder
 - 안전한 `window.KPIFormula` 파서/평가기(eval 없음): SUM/AVG/COUNT(*)/COUNTD/MIN/MAX/MEDIAN + 사칙연산
 - 위젯 Inspector: 선택 위젯의 타입·필드·집계·색상·크기 편집(Chart/KPI/Table/Text)
 - KPI 수식은 Cross Filtering 이후 행 기준 계산, 오류는 `—` 표시
@@ -237,45 +263,40 @@ open http://localhost:8742
 - **Stats 모드:** **Normal Q-Q**(왜도/첨도/Jarque-Bera), **Time Series**(MA/EMA + ACF), **SPC 관리도**(I-MR + CL/UCL/LCL)
 - 엔진: `window.PCA·Logistic·TimeSeries·DistFit·SPC·Clustering` (Cp/Cpk·Pareto·Holt·PACF 등 추가 함수 포함, 일부는 UI 후속)
 
-### 🔲 Phase 2 (2차) — 브라우저 단독 구현 가능 (예정)
+### ✅ Core v2 Milestone 6 — 통합 안정화 · `v2.0.0` (완료)
+- 8모드 전환 크래시(P0) 수정 — 모드를 함수호출이 아닌 **엘리먼트로 렌더**
+- **Playwright E2E 14스펙** — 모드 전환·un-bricking·ML·DuckDB·SQL·Export·공유링크 회귀 잠금
+- **Formula Column 안전 파서** — `new Function` 제거, 재귀하강 파서로 임의 코드 실행 차단
+- 언로드 저장 플러시 · ECharts SRI · 캐시버스트 자동화(`npm run bump`)
 
-> 순수 JS로 구현 가능. 백엔드 불필요. 데이터 규모 ~10k 행까지 실용적.
+### ✅ Phase 4 — DuckDB-WASM 전환 (완료)
+> 원래 "백엔드 필요" 항목이었으나 브라우저에서 해결.
+- SQL 모드가 DuckDB-WASM에서 전체 SQL 실행 (JOIN·서브쿼리·CTE·윈도우)
+- 데이터셋 자동 테이블 등록(`__rid` 제외), 따옴표 식별자로 한글 컬럼 지원
+- DuckDB 미로드 시 내장 JS 엔진 폴백 → 오프라인에서도 기본 SQL 동작
 
-**[최우선] ML 모델 확장 및 고급 전처리**
-- Box-Cox Transformation (lambda 최적화)
-- ~~Formula Column~~ ✅ ~~Dummy / Label Encoding~~ ✅ ~~Standardization / Normalization~~ ✅ ~~Log / Rank / Binning / Winsorizing~~ ✅
+### 🔲 다음 — 하드닝 백로그
 
-**[최우선] ML 모델 확장**
-- Logistic Regression, Decision Tree, Naive Bayes
-- ~~Confusion Matrix~~ ✅ · ROC/AUC, Precision-Recall Curve, Lift/Gain/KS Chart
-- ~~OLS 표준화 계수 기반 Feature Importance~~ ✅ · 트리/분류 모델 Feature Importance, Cross Validation (소규모)
+> **강제 순서 없음.** 전부 "지금 로컬 개인 사용에는 문제 없고, 특정 조건에서 터지는 것".
+> 상세·근거: [`IMPLEMENTATION_PLAN.md` §12](./IMPLEMENTATION_PLAN.md)
 
-**[최우선] PCA**
-- PCA + Biplot + Scree Plot (순수 JS SVD, <10k 행)
+| 트리거 | 선행 필요 항목 |
+|---|---|
+| **배포·공유 시작** | A2 production 빌드 · A4 HTTPS 클립보드 · A6 저장 한계 고지 · C3 네이티브 다이얼로그 |
+| **대용량 XLSX 사용** | D1 인메모리 복제 가드 · B4 undo 스택 압축 · C1 전역 리렌더 |
+| **팀·다중 기기 사용** | B1 다중 탭 last-write-wins 방어 |
+| **오프라인 보장** | A3′ DuckDB 로컬 벤더링 |
 
-**[중요] 차트 확장 (Chart 모드)**
-- Auto Chart Recommendation, Parallel Coordinates (ECharts 내장)
-- Mosaic Plot, Pair Plot, Contour Plot, Bubble Matrix
+### 🔲 미착수 분석 기능 (브라우저 단독 가능)
 
-**[중요] 분포 플랫폼 (Stats 모드)**
-- QQ Plot, Normal Fit, Multi Variable Distribution
-- ~~IQR 이상치 탐지 + 박스플롯 표시~~ ✅ · 다변량 이상치 시각화는 예정
-
-**[중요] 시계열 기초 (Stats 모드)**
-- Moving Average, Exponential Smoothing, Seasonal Decomposition, ACF/PACF
-
-**[중요] 품질관리 SPC (신규 탭)**
-- Control Charts (X-Bar, R, S, P, C, U), Pareto Chart, Cp/Cpk/Pp/Ppk
-
-**[JMP 차별화] 고급 기능**
-- Hierarchical Clustering + Dendrogram (<5k 행)
-- DBSCAN (<5k 행)
-- Stepwise Regression, ANCOVA, Bootstrap
+- Box-Cox 변환 · Stepwise Regression · ANCOVA · Bootstrap
+- Precision-Recall Curve · Lift/Gain/KS Chart · 트리 모델 Feature Importance
+- Auto Chart Recommendation · Parallel Coordinates · Mosaic/Pair/Contour Plot
 - DOE 기초 (Full/Fractional Factorial, CCD, Taguchi, Prediction Profiler)
 
-### ⚠️ Phase 2 데이터 규모 제한 항목
+### ⚠️ 데이터 규모 제한 항목
 
-> 브라우저에서 구현은 가능하나 **5k 행 초과 시 실용성 저하**. 경고 메시지와 함께 제한적 지원.
+> 구현 가능하나 **5k 행 초과 시 실용성 저하**. 경고와 함께 제한적 지원.
 
 | 기능 | 제한 이유 | 실용 상한 |
 |---|---|---|
@@ -286,9 +307,7 @@ open http://localhost:8742
 | Factor Analysis | SVD 반복 계산 | ~10k 행 |
 | Neural Network | TF.js CDN (~1.5MB) 필요 | 소규모 아키텍처 |
 
-### ❌ Phase 3 이후 — 브라우저 단독 불가
-
-> 백엔드(Python/WASM) 또는 네이티브 라이브러리가 필요한 항목.
+### ❌ 브라우저 단독 불가 — 백엔드 필요
 
 | 기능 | 불가 이유 |
 |---|---|
@@ -303,8 +322,8 @@ open http://localhost:8742
 | Survival Analysis (Cox) | Partial likelihood 최적화 복잡 |
 | Gradient Boosting | 대용량 데이터 시 너무 느림 |
 
-### 🔲 Phase 3 — 프로덕션 스택 전환
-- FastAPI + DuckDB 백엔드 → 위 ❌ 항목 모두 구현 가능
+### 🔲 별도 계획 — 프로덕션 스택 전환 (미착수)
+- FastAPI + Polars 백엔드 → 위 ❌ 항목 구현 가능
 - Next.js TypeScript 포팅
 - Analysis Pipeline Builder (노드 기반 워크플로우)
 - AI Analytics Assistant (실제 LLM 연동)
