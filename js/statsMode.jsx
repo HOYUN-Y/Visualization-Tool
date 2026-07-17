@@ -88,7 +88,13 @@
     const X = data.map((r) => [1, ...preds.map((f) => +r[f])]), y = data.map((r) => +r[target]);
     const A = Array.from({ length: p }, () => Array(p).fill(0)), Xty = Array(p).fill(0);
     for (let i = 0; i < n; i++) for (let a = 0; a < p; a++) { Xty[a] += X[i][a] * y[i]; for (let b = 0; b < p; b++) A[a][b] += X[i][a] * X[i][b]; }
+    // SM.matInverse returns null when XtX is singular — i.e. the predictors are perfectly collinear and
+    // OLS has no unique solution. Most common cause here: dummy_encode emits every level of a category
+    // (store.jsx:233) and the model also has an intercept, so the dummies sum to the intercept column.
+    // We must NOT paper over this — a fudged inverse yields plausible coefficients with astronomical
+    // standard errors, i.e. "not significant" for a term the model can't identify. Fail loudly instead.
     const Ainv = SM.matInverse(A);
+    if (!Ainv) { const e = new Error("collinear predictors: (XtX) is singular"); e.code = "collinear"; throw e; }
     const coef = Ainv.map((row) => row.reduce((s, v, j) => s + v * Xty[j], 0));
     const pred = (r) => coef.reduce((s, c, j) => s + c * (j === 0 ? 1 : +r[preds[j - 1]]), 0);
     const ym = stat.mean(y); let rss = 0, tss = 0;
@@ -272,7 +278,18 @@
     const isCatTarget = targetCol.type === "category";
 
     if (isNumTarget && numInputs.length >= 1) {
-      const r = regression(rows, target, numInputs.map((c) => c.key));
+      // runBuilder is called straight from an onClick (runBuilder2). React does not catch errors thrown
+      // in event handlers, so a collinear throw here would abort the handler before set() runs — the
+      // button would look dead. Return it as a renderable result instead; the renderer guards on `data`.
+      let r;
+      try {
+        r = regression(rows, target, numInputs.map((c) => c.key));
+      } catch (e) {
+        if (e && e.code === "collinear") {
+          return { type: "unavailable", data: null, summary: window.I18N.t(window.Store.getState().tweaks.lang || "ko", "statCollinearDesc"), nextStep: null, targetCol, numInputs };
+        }
+        throw e;
+      }
       const summary = IE ? IE.summarizeRegression(r) : "";
       const nextStep = IE ? IE.recommendNextStep({ lastTest: "reg", lastResult: r }) : null;
       return { type: "regression", data: r, summary, nextStep, targetCol, numInputs };
@@ -732,11 +749,16 @@
       // A bad column/group combo (e.g. ANOVA with no valid groups) must not crash the whole app.
       if (window.LOG && window.LOG.error) window.LOG.error("stats", "test render failed: " + (e && e.message), { test });
       title = "계산할 수 없음 · " + test;
+      // Collinearity needs its OWN message: the generic "pick a category with 2+ groups" note below is
+      // actively misleading for it — the user's columns are fine, it's their combination that isn't.
+      const collinear = e && e.code === "collinear";
+      const tr = (k) => window.I18N.t(lang, k);
       body = (
         <div className="empty" style={{ padding: 24 }}>
           <Icon name="info" />
-          <div className="t">이 조합으로는 통계를 계산할 수 없습니다</div>
-          <div className="s">그룹이 2개 이상인 범주 컬럼과 숫자 측정값을 선택했는지 확인하세요. 우측 패널에서 컬럼을 바꾸면 다시 계산됩니다.</div>
+          <div className="t">{collinear ? tr("statCollinearTitle") : "이 조합으로는 통계를 계산할 수 없습니다"}</div>
+          <div className="s">{collinear ? tr("statCollinearDesc")
+            : "그룹이 2개 이상인 범주 컬럼과 숫자 측정값을 선택했는지 확인하세요. 우측 패널에서 컬럼을 바꾸면 다시 계산됩니다."}</div>
         </div>
       );
     }
