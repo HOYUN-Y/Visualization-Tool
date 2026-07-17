@@ -52,6 +52,29 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 
 ---
 
+## 2026-07-18 실사 백로그 소탕 — 롤업 (미푸시, `origin/main` 기준 커밋 8개)
+
+> 세부 근거는 아래 각 `세션 기록`에, 항목별 상태는 `IMPLEMENTATION_PLAN.md` §12에. 이 표는 전체 아크를 한눈에.
+> **성격:** 전부 "지금 로컬 사용엔 조용하지만 특정 조건에서 틀리거나 터지는 것"을 실사로 찾아 수정. 각 수정은 **수정 전 실패 → 수정 후 통과**를 실증(회귀망)했고, 순수 리팩터·store 변경은 `verify:dist`(production React)를 게이트로 썼다.
+
+| 커밋 | 묶음 | 내용 |
+|---|---|---|
+| `caeada0` | 문서 정리 | `CHANGELOG.md` → WORKLOG 통합(무손실)·삭제 · HANDOFF 드리프트 4건(모드 8→9·DuckDB aspirational→완료·SQL JOIN·Tests 8→11) |
+| `7e5ed9d` | **E1** | 회귀가 완전 공선성에서 조용히 오답(`matInverse` `piv\|\|1e-9` → se≈1e7·p≈1). null 반환 + `code:"collinear"` throw + UI 안내. **statsMath dual-export = 이 파일 최초 테스트 14** |
+| `845cadc` | 배치1 (F1·F2·F6) | Map의 Clean 우회 · 죽은 버튼 제거 · `Math.random` 결정성 |
+| `0d26160` | 배치2 (E2~E6) | 프로파일 컬럼 절단 고지 · 왜도 정의 통일 · ACF 결측 pairwise · logistic 수렴 플래그 · LIKE `*` 이스케이프 |
+| `ca98521` | 배치3 (F3·F4·F5) | vizMode 1431→776(vizOptions 추출) · animation:false 18곳→EChart 단일강제 · 탭바 3벌→SheetTabs·editHandlers 2벌→팩토리 |
+| `66fff7a` | **C1 1차** | 시도 → 되돌림(시스템 변경 판명, 정확히 재스코핑). 코드는 배치3과 동일 |
+| `63349c7` | **C1 2차** | 전역 리렌더 제거(`useSyncExternalStore`) + `useActiveData`/`useDatasets` 훅으로 파생/전역 읽기 캡슐화(13파일 전수 교체) · `datasetsRev` 신호 · staleness E2E |
+| `3d48ff1` | **B3′** | formula 한글 컬럼(이미 되던 걸 테스트 잠금 + UI 대괄호 힌트 + E2E) |
+
+**해소:** E1~E6(정확성 6) · F1~F6(구조 6) · C1(전역 리렌더) · B3′(formula 한글). **문서 드리프트도 정리**(HANDOFF 4건 + 여러 PLAN 항목이 FollowUp 이전 기준으로 ❌ 오표기였던 것 재확인).
+**잔여(전부 조건부 대기):** 배포 A3′(DuckDB 벤더링) · 규모 A5(CSS 폴백)·B1(다중탭 잠금)·B4(undo 스택 상한)·D1(인메모리 가드) · 품질 C6(a11y)·C7(라이트 테마)·C8(소형 화면). 트리거(실제 배포·대용량·다기기) 전엔 값을 못 냄.
+**검증 최종:** Node **361/361** · E2E **73/73** · `verify:dist` 9모드 전수·콘솔 에러 0 · asset v295.
+**교훈(다음 세션 필독):** store/selector 변경 시 **`verify:dist`가 유일한 신뢰 게이트** — fresh-object selector 무한루프(React #185)·훅 위반·전역읽기 stale은 전부 **dev-invisible**하다. 전역 리렌더는 파생/전역 읽기의 무효화 크러치였음(C1 참조).
+
+---
+
 ## 완료 항목 원장 — FOLLOWUP 제안 문서 흡수 (2026-07-17)
 
 > FOLLOWUP은 **다른 모델(Fable)의 제안 문서**였다. 2026-07-17에 분해해 **완료분은 이 표로, 미완분은 `IMPLEMENTATION_PLAN.md` §12으로** 옮기고 원본은 `docs/archieve/`로 보냈다. 계획의 정본은 `IMPLEMENTATION_PLAN.md` 하나다.
