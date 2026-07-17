@@ -56,7 +56,7 @@
       dashDataExplorer: "데이터 탐색기", dashBuildDashboard: "대시보드 구성",
       // clean mode
       cleanTitle: "정제 스튜디오", cleanOpsPipeline: "작업 & 파이프라인",
-      cleanMissingCells: "결측 셀", cleanDropFill: "제거 / 채우기", cleanDupRows: "중복 행",
+      cleanMissingCells: "결측 셀", cleanDupRows: "중복 행",
       cleanDropDupes: "중복 제거", cleanOutliers: "이상치", cleanRemove: "제거",
       cleanRowsAfter: "행 ·", cleanSteps: "단계 적용 후", cleanClean: "깨끗함",
       cleanAddOperation: "작업 추가", cleanColumn: "컬럼", cleanMissingValues: "결측값",
@@ -162,7 +162,7 @@
       dashLayoutDescA: "{n} widgets on a {c}-column grid. Toggle ", dashLayoutDescB: " to drag, resize, duplicate or remove.",
       dashDataExplorer: "Data Explorer", dashBuildDashboard: "Build Dashboard",
       cleanTitle: "Cleaning Studio", cleanOpsPipeline: "Operations & Pipeline",
-      cleanMissingCells: "Missing cells", cleanDropFill: "Drop / fill", cleanDupRows: "Duplicate rows",
+      cleanMissingCells: "Missing cells", cleanDupRows: "Duplicate rows",
       cleanDropDupes: "Drop dupes", cleanOutliers: "Outliers", cleanRemove: "Remove",
       cleanRowsAfter: "rows after", cleanSteps: "steps", cleanClean: "Clean",
       cleanAddOperation: "Add operation", cleanColumn: "Column", cleanMissingValues: "Missing values",

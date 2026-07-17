@@ -27,11 +27,19 @@
   "use strict";
 
   // Whitelisted Math members (constants + functions). Nothing else on Math is reachable.
+  //
+  // `random` is deliberately NOT here (PLAN §12 F6). It isn't a security question — the sandbox holds
+  // either way — it's determinism. A formula column is stored as a cleaning STEP and replayed by
+  // applySteps() on every load, undo, redo and step-scrub, so `Math.random()` would produce different
+  // numbers each replay: the same saved project, and the same shared #p= link, would show different
+  // values on every open, and any analysis run on that column would be unreproducible. Every other
+  // engine in js/ holds this line (crossVal seeds its own PRNG rather than reach for Math.random);
+  // this whitelist was the one hole. Removing it turns a formula that used it into a clear parse
+  // error ("Math.random is not allowed") instead of silent non-reproducibility.
   const MATH_FNS = new Set([
     "abs", "ceil", "floor", "round", "trunc", "sign", "sqrt", "cbrt", "exp", "expm1",
     "log", "log2", "log10", "log1p", "pow", "min", "max", "hypot",
     "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "sinh", "cosh", "tanh",
-    "random",
   ]);
   const MATH_CONSTS = new Set(["PI", "E", "LN2", "LN10", "LOG2E", "LOG10E", "SQRT2", "SQRT1_2"]);
 

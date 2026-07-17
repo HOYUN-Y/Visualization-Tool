@@ -26,6 +26,21 @@ test("Math whitelist functions and constants", () => {
   assert.equal(Math.round(FE.compute("Math.PI * 2", row).value * 1000) / 1000, 6.283);
 });
 
+test("Math.random is rejected — formula columns must be reproducible (PLAN §12 F6)", () => {
+  // Not a sandbox question (the whitelist holds either way) — a determinism one. A formula column is
+  // stored as a cleaning STEP and replayed by applySteps() on every load/undo/redo/step-scrub, so
+  // Math.random() would make the same saved project — and the same shared #p= link — show different
+  // numbers on every open. Every other engine in js/ holds this line; this whitelist was the hole.
+  assert.throws(() => FE.compile("Math.random()"), /random is not allowed/);
+  assert.throws(() => FE.compile("Math.random() * row.price"), /random is not allowed/);
+  // compute() surfaces it as an error rather than throwing, per its contract.
+  assert.ok(FE.compute("Math.random()", row).error, "compute must report an error, not a value");
+
+  // The rejection must be surgical: neighbouring Math members still work.
+  assert.equal(FE.compute("Math.round(row.area)", row).value, 25);
+  assert.equal(FE.compute("Math.sqrt(row.price)", row).value, 10);
+});
+
 test("unary, comparison, logical, ternary", () => {
   assert.equal(FE.compute("-row.price", row).value, -100);
   assert.equal(FE.compute("row.price > row.area", row).value, true);

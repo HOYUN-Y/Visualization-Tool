@@ -504,18 +504,18 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 
 | ID | 항목 | 현재 상태 | 티어 | 완화책 |
 |---|---|---|---|---|
-| **F1** | `mapMode`가 `getActiveData` 규약 위반 | ❌ 잔존 — 저장소 최상위 규칙(README §개발 규칙 2)을 **Map만** 어긴다. `mapMode.jsx:43·123·320-321·539-540·601·675`가 `NODE.datasets.find(...).rows`를 직접 읽어 **해당 데이터셋의 Clean 단계가 지도에 반영되지 않는다**. 나머지 8개 모드는 준수 | T2 | `derive.getActiveData(id).rows`로 교체(6곳, 기계적). 올바른 선례: `sqlMode.jsx:59` |
-| **F2** | Clean 이슈바 "제거/채우기" 죽은 버튼 | ❌ 잔존 — `cleanMode.jsx:113`의 action이 `fn: () => { }`. `Issue`(`:145`)가 정상 렌더·클릭 가능한 버튼을 그리는데 **아무 일도 안 일어난다**. 옆 "중복 제거"·"이상치 제거"는 동작해서 더 눈에 띔 | T3 | 결측 처리 op에 배선하거나 버튼 제거 |
+| ~~**F1**~~ | ~~`mapMode`가 `getActiveData` 규약 위반~~ | ✅ **해소 (2026-07-17)** — 6곳을 `seedRows(id)` 헬퍼로 통일(존재 확인 후 `derive.getActiveData(id).rows`). **부재 가드는 유지 필수** — `getActiveData`는 없는 id에 throw(`applySteps`가 `dataset.rows`를 널 체크 없이 역참조), seed는 삭제됐을 수 있음(브라우저 실증). 공유 캐시 오염 방지 위해 정렬 전 복사 유지. E2E `mapCleanPipeline` 2 — Seoul 탭 리더보드(`.maprank`)에서 Clean 반영을 실제 DOM으로 검증 | — | — |
+| ~~**F2**~~ | ~~Clean 이슈바 "제거/채우기" 죽은 버튼~~ | ✅ **해소 (2026-07-17, 버튼 제거)** — 결측은 이웃들처럼 단일 전역 동작으로 환원되지 않는다(`drop_duplicates`는 무인자, `remove_outliers`는 단일 컬럼인데 결측은 여러 컬럼 × 전략 4종). 설계 공백이지 게으름이 아니었다. 컬럼별 선택지는 이미 우측 Add operation 패널에 있어 기능 손실 없음. 고아가 된 i18n 키 `cleanDropFill` 한/영 동시 제거 | — | — |
 | **F3** | `vizMode.jsx` 1431줄이 4역할 | ❌ 잔존 — `buildOption`(460줄 if-사다리)·`applyFormat`(170줄)은 **React 없는 순수 함수이고 이미 `window.buildVizOption`으로 export돼 dashMode가 쓴다.** 앱에서 가장 복잡한 로직이 가장 테스트 불가능 | T3 | `js/vizOptions.js`로 추출(`statsCfg.js` 선례 그대로) |
 | **F4** | `animation:false`가 복붙 17곳 | ❌ 잔존 — `baseGrid()` 스프레드 시 공짜지만 `setOption(_, true)`가 통째 교체라 미사용 옵션은 손수 재선언(mapMode 9·statsMode 3·vizMode 3·mlMode 2). **새 차트가 빠뜨려도 아무도 못 잡는다** | T3 | 옵션 생성을 한 경로로 모으거나 E2E 가드 |
 | **F5** | 중복 3종 | ❌ 잔존 — 탭바 3벌(`viz`/`pivot`/`dash`, ~150줄)·`editHandlers` 2벌(`dataMode:105`≡`cleanMode:57`)·`const T = (k)=>I18N.t(lang,k)` 40+회 | T3 | `<SheetTabs>` 1개, 공용 `editHandlers`, `useT()` 훅 |
-| **F6** | `formulaEval` 화이트리스트에 `Math.random` | ❌ 잔존 — `:34`. 다른 18개 엔진이 전부 결정성을 지키는데 여기만 구멍 → 저장된 프로젝트가 다르게 재현됨. **보안 아님, 순수성 누수** | T3 | `MATH_FNS`에서 `random` 제거 |
+| ~~**F6**~~ | ~~`formulaEval` 화이트리스트에 `Math.random`~~ | ✅ **해소 (2026-07-17)** — `MATH_FNS`에서 제거. 수식 컬럼은 cleaning **step**으로 저장돼 매 로드·undo·redo·스텝 스크럽마다 `applySteps`가 재생하므로, `Math.random()`이면 같은 저장 프로젝트·같은 `#p=` 공유 링크가 열 때마다 다른 값을 보인다. 이제 파스 에러(`Math.random is not allowed`)로 사전 거부. `tests/formulaEval.test.js` +1(거부 + 이웃 Math 함수 무회귀) | — | — |
 
 ### 트리거별 체크리스트
 
 - **공유·링크·배포 결정 시**: A2(dev 빌드) → A4(HTTPS) → A6(저장 한계 고지) → C3(다이얼로그). *A1(수식 코드실행)은 ✅ 해소 — 공유링크 보안 선행 완료.*
 - **통계 결과를 남에게 보여줄 때**: E2(조용한 컬럼 절단) → E3(왜도 불일치). *E1(공선성)은 ✅ 해소.*
-- **Map에서 Clean 결과를 쓸 때**: F1 (지금은 정제 전 원본이 표시됨).
+- **Map에서 Clean 결과를 쓸 때**: ✅ F1 해소 — 이제 Clean이 지도에 반영된다.
 - **XLSX 대용량 사용 시작 시**: D1 → B4 → C1.
 - **팀·다중 기기 사용 시작 시**: B1 → A6. *B2(언로드 플러시)는 ✅ 해소.*
 - **오프라인 보장 필요 시**: A3′(DuckDB 벤더링).

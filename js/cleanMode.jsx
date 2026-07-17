@@ -108,9 +108,16 @@
         </div>
 
         <div className="issuebar">
+          {/* No action button here, deliberately (PLAN §12 F2). This used to render a "제거 / 채우기"
+              button wired to `fn: () => { }` — it looked and clicked exactly like its working
+              neighbours and did nothing. Missing values genuinely can't collapse into one global
+              action the way the others do: `drop_duplicates` takes no column and `remove_outliers`
+              targets one, but missing cells span several columns and each needs a strategy
+              (drop / fill mean / median / mode). That choice already exists per-column in the Add
+              operation panel on the right, so nothing is lost by not offering a button that can't
+              honour its own label. */}
           <Issue ok={!issues.totalMissing} icon="info" label={T("cleanMissingCells")}
-            val={issues.totalMissing} cols={missCols.length}
-            action={missCols.length ? { txt: T("cleanDropFill"), fn: () => { } } : null} />
+            val={issues.totalMissing} cols={missCols.length} />
           <Issue ok={!issues.dups} icon="duplicate" label={T("cleanDupRows")} val={issues.dups}
             action={issues.dups ? { txt: T("cleanDropDupes"), fn: () => actions.addStep({ op: "drop_duplicates", col: null }) } : null} />
           <Issue ok={!issues.outliers} icon="filter" label={T("cleanOutliers")} val={issues.outliers} sub={issues.outCol}

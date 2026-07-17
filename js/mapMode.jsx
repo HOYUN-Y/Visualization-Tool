@@ -4,6 +4,25 @@
   const Icon = window.Icon, NODE = window.NODE, Charts = window.Charts;
   const EChart = Charts.EChart;
 
+  // Read a built-in map dataset through the cleaning pipeline (PLAN §12 F1).
+  //
+  // WHY THIS HELPER EXISTS. Map used to read `NODE.datasets.find(...).rows` — the RAW dataset — at six
+  // sites, making it the only mode that broke the repo's top rule ("always read via
+  // Store.derive.getActiveData", README §개발 규칙 2 / HANDOFF §5). The effect was silent: Clean steps
+  // applied to district_stats / korea_provinces / korea_municipalities / world_gdp never reached the
+  // map, so the grid showed cleaned values while the map drew the originals, with nothing on screen
+  // saying so. Map's "my data" tab always did this correctly (it uses getActiveData) — only the
+  // built-in seed layers didn't.
+  //
+  // The absence guard is load-bearing, not decoration: these seeds can legitimately be gone (deleted,
+  // or a custom-only project), and getActiveData() THROWS on a missing id — applySteps() dereferences
+  // `dataset.rows` with no null check. So probe NODE.datasets for existence first, exactly as the old
+  // `ds ? ds.rows : []` did, then derive.
+  function seedRows(id) {
+    const ds = NODE.datasets.find((d) => d.id === id);
+    return ds ? derive.getActiveData(id).rows : [];
+  }
+
   const GEO_URL      = "https://raw.githubusercontent.com/southkorea/seoul-maps/master/kostat/2013/json/seoul_municipalities_geo_simple.json";
   // Highcharts map-collection (npm CDN) — province level only; municipality uses bubble overlay
   const KOREA_PROV_URL = "https://cdn.jsdelivr.net/npm/@highcharts/map-collection@2.0.1/countries/kr/kr-all.geo.json";
@@ -39,8 +58,7 @@
     const [metric, setMetric] = React.useState("avg_price_per_m2");
     const [view, setView] = React.useState("choropleth");
     const [geo, setGeo] = React.useState(_geoState);
-    const ds = NODE.datasets.find((d) => d.id === "district_stats");
-    const rows = ds ? ds.rows : [];   // seed dataset may be absent (deleted / custom-only project)
+    const rows = seedRows("district_stats");
     const m = METRICS.find((x) => x.k === metric);
 
     React.useEffect(() => {
@@ -120,8 +138,7 @@
     const lang = useStore((s) => s.tweaks.lang) || "ko"; const T = (k) => window.I18N.t(lang, k);
     const sel = useStore((s) => s.dash.cross);
     const [metric] = [useStore((s) => s.ui.mapMetric) || "avg_price_per_m2"];
-    const ds = NODE.datasets.find((d) => d.id === "district_stats");
-    const dsRows = ds ? ds.rows : [];
+    const dsRows = seedRows("district_stats");
     const rank = [...dsRows].map((r) => ({ d: r.district, v: r.avg_price_per_m2, p: r.avg_price_manwon, n: r.txn_count }))
       .sort((a, b) => b.v - a.v);
     const max = rank.length ? Math.max(...rank.map((r) => r.v), 1) : 1;
@@ -317,10 +334,8 @@
       if (!keys.includes(metric)) setMetric(keys[0]);
     }, [level]);
 
-    const provDs = NODE.datasets.find((d) => d.id === "korea_provinces");
-    const munDs  = NODE.datasets.find((d) => d.id === "korea_municipalities");
-    const provRows = provDs ? provDs.rows : [];
-    let munRows  = munDs ? munDs.rows : [];
+    const provRows = seedRows("korea_provinces");
+    let munRows  = seedRows("korea_municipalities");
     if (selProv) munRows = munRows.filter((r) => r.province === selProv);
 
     const rows = level === "province" ? provRows : munRows;
@@ -536,10 +551,10 @@
   function KoreaPanel() {
     const [level, setLevel] = React.useState("province");
     const [selProv, setSelProv] = React.useState(null);
-    const provDs = NODE.datasets.find((d) => d.id === "korea_provinces");
-    const munDs  = NODE.datasets.find((d) => d.id === "korea_municipalities");
-    const provRows = provDs ? [...provDs.rows].sort((a,b)=>b.pop_man-a.pop_man) : [];
-    const munRows  = munDs ? [...munDs.rows] : [];
+    // Copy before sorting: seedRows() returns getActiveData()'s memoized, SHARED rows array —
+    // an in-place sort here would corrupt the cache for every other consumer (HANDOFF §5 ⚠).
+    const provRows = [...seedRows("korea_provinces")].sort((a,b)=>b.pop_man-a.pop_man);
+    const munRows  = [...seedRows("korea_municipalities")];
     const filteredMun = selProv ? munRows.filter((r)=>r.province===selProv) : munRows;
     const sortedMun = [...filteredMun].sort((a,b)=>b.pop_man-a.pop_man).slice(0,30);
     const maxPop = level==="province"
@@ -598,8 +613,7 @@
     const theme = useStore((s) => s.theme);
     const [metric, setMetric] = React.useState("gdp_bn");
     const [geoW, setGeoW] = React.useState(_worldGeoState);
-    const ds = NODE.datasets.find((d) => d.id === "world_gdp");
-    const rows = ds ? ds.rows : [];
+    const rows = seedRows("world_gdp");
     const m = WORLD_METRICS.find((x) => x.k === metric);
 
     React.useEffect(() => {
@@ -672,8 +686,7 @@
 
   function WorldPanel() {
     const lang = useStore((s) => s.tweaks.lang) || "ko"; const T = (k) => window.I18N.t(lang, k);
-    const ds = NODE.datasets.find((d) => d.id === "world_gdp");
-    const rows = ds ? [...ds.rows].sort((a, b) => b.gdp_bn - a.gdp_bn) : [];
+    const rows = [...seedRows("world_gdp")].sort((a, b) => b.gdp_bn - a.gdp_bn); // copy — shared cache
     const maxGDP = rows.length ? Math.max(...rows.map((r) => r.gdp_bn), 1) : 1;
     const regions = [...new Set(rows.map((r) => r.region))];
     return (

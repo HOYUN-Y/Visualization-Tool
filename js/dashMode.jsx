@@ -73,7 +73,6 @@
         const dimKey = cols[0] && cols[0].key;
         if (!dimKey) return;
         const val = p.name;
-        const cur = useStore.length; // no-op
         const st = window.Store.getState().dash.cross;
         if (st && st.key === dimKey && String(st.value) === String(val) && st.source === w.id) actions.setCross(null);
         else actions.setCross({ key: dimKey, value: val, source: w.id });

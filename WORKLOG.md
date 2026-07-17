@@ -19,8 +19,8 @@
 | Branch | **`main`** |
 | Base commit | `1231f15` — merge: 시군구 좌표 오배치 수정(C9) + 네이티브 다이얼로그 교체(C3) |
 | Last checkpoint commit | `1231f15` |
-| Working tree | 문서 일원화(CHANGELOG→WORKLOG) + HANDOFF 드리프트 수정 + E1 공선성 수정 |
-| Last verified | **2026-07-17 — Node 343/343 · E2E 56/56 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v289 |
+| Working tree | 배치 1 완료(F1·F2·F6). **다음: 배치 2(정직성 — E2·E5·E3·E4·E6) → 배치 3(구조 — F3·F4·F5)** |
+| Last verified | **2026-07-17 — Node 344/344 · E2E 58/58 · `verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v290 |
 
 > ⚠️ **문서 드리프트 사고 (2026-07-17)** — 이 항목을 지우지 말 것. 원인과 재발 방지책임.
 > 07-10 밤 이 저장소의 로컬 클론이 `76d5333`에 멈춘 채 방치됐고, 이후 07-11~17 작업은 **다른 기기(git author `BULL3T`, 동일 계정 `hoyun0131@me.com`)에서 진행**돼 origin/main에 180커밋이 쌓였다. 낡은 클론의 세션이 그 사실을 모른 채 낡은 `WORKLOG`를 신뢰해 **이미 완료된 M1 병합과 M2(XLSX Import) 재구현을 시도**했다(실제로는 `vendor/sheetjs-0.20.3/`으로 완료된 지 6일). 병합 직전 `git log main..origin/main`으로 발견해 중단.
@@ -92,6 +92,51 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 - **브랜치 스택:** `feat/xlsx-import → feat/data-combine → feat/pivot-builder → feat/dashboard-builder`. main 미병합으로 연쇄.
 - 목표 종착점: Core v2(M3~M5) + Batch E(Phase 2 순수-JS 분석) + Batch F(규모제한, 경고). Phase 3 제외.
 - 검증 도구: `node --test tests/*.test.js`, `tsc --noEmit --allowJs --checkJs false --jsx react … js/*.jsx` (TS1xxx 구문오류만 확인), `git diff --check`.
+
+## 세션 기록 — 2026-07-17 (배치 1 — F1·F2·F6 기계적 수정)
+
+실사 백로그를 3배치로 나누고(사용자 승인: **1 → 2 → 3 순서**) 배치 1 착수. 기준은 "① 조용한 오답 먼저 ② 그중 결정 불필요한 것부터 ③ 테스트 가능성을 여는 것 우선 ④ 조건부(규모·배포)는 트리거까지 대기".
+
+### F1 — Map이 Clean 파이프라인을 우회하던 문제 (해소)
+
+6곳을 `seedRows(id)` 헬퍼로 통일. **"기계적 6줄 치환"이라는 초기 판단은 틀렸고**, 두 가지가 걸렸다:
+
+1. **부재 가드는 장식이 아니라 필수.** `getActiveData`는 없는 id에 **throw**한다(`applySteps`가 `dataset.rows`를 널 체크 없이 역참조 — 브라우저에서 직접 확인: `Cannot read properties of undefined (reading 'rows')`). 기존 코드의 `ds ? ds.rows : []` 주석("seed dataset may be absent")이 실재하는 시나리오였다. 그대로 치환했으면 **버그를 크래시로 바꿨을 것**. → 헬퍼가 `NODE.datasets`로 존재만 먼저 확인하고 derive.
+2. **정렬 전 복사 유지.** `seedRows`가 반환하는 건 `getActiveData`의 **메모이즈된 공유 배열**이라 제자리 정렬 시 다른 소비자 전체의 캐시가 오염된다(HANDOFF §5 ⚠). 기존 `[...ds.rows].sort()`를 그대로 보존. 파일 전수 스캔으로 `.sort(`/`.push(` 등 제자리 변형 0건 확인.
+
+### F2 — Clean 이슈바 죽은 버튼 (해소, 버튼 제거)
+
+`fn: () => { }`인데 `Issue`(`:145`)가 정상 렌더·클릭 가능한 버튼을 그렸다. **조사해보니 게으름이 아니라 설계 공백**: 이웃들은 단일 동작으로 환원되지만(`drop_duplicates` 무인자 / `remove_outliers` 단일 컬럼) 결측은 **여러 컬럼 × 전략 4종**(제거/평균·중앙값·최빈값)이라 버튼 하나로 라벨("제거 / 채우기")을 이행할 수 없다. 컬럼별 선택지는 이미 우측 Add operation 패널에 있으므로 **기능 손실 없이 제거**가 정직하다(사용자 결정). 고아가 된 i18n 키 `cleanDropFill`을 한/영 동시 제거(i18n 테스트가 키 대칭을 강제).
+
+### F6 — `Math.random` 화이트리스트 제거 (해소)
+
+보안이 아니라 **결정성** 문제. 수식 컬럼은 cleaning **step**으로 저장돼 매 로드·undo·redo·스텝 스크럽마다 `applySteps`가 재생하므로, `Math.random()`이면 같은 저장 프로젝트와 같은 `#p=` 공유 링크가 **열 때마다 다른 값**을 보이고 그 컬럼 기반 분석은 재현 불가가 된다. 이제 파스 단계에서 `Math.random is not allowed`로 사전 거부.
+
+### 그 외
+
+`dashMode.jsx:76` `const cur = useStore.length; // no-op` 제거 — 콜백 안의 훅 호출처럼 보여 오독을 유발했다.
+
+### 검증 — E2E 초안 2개를 폐기했다 (기록으로 남김)
+
+**F1 잠금 E2E를 두 번 잘못 썼고, 양방향 검증이 아니었으면 그대로 나갔다.**
+
+- **초안 1**(폐기): `page.evaluate`로 `getActiveData` vs `NODE.datasets`를 비교 → **store를 검사한 것이지 Map을 검사한 게 아니다.** 버그가 있으나 없으나 통과한다.
+- **초안 2**(폐기): Map 모드만 열고 검사 → **기본 탭이 `mydata`**(`mapMode.jsx:953`)라 seed 조회를 하는 `MapCenter`/`MapPanel`이 **마운트조차 안 된다.** 가드를 제거해도 통과했다.
+- **최종**: Seoul 탭을 실제로 열고 **구별 리더보드(`.maprank`)** 를 읽는다 — `seedRows` 데이터를 DOM에 직접 렌더하는 곳이라 ECharts 캔버스와 달리 정직하게 관측 가능하다.
+- 부재 가드 테스트도 `.app` 가시성으로는 부족했다 — `app.jsx`가 모드를 `<ErrorBoundary key={mode}>`로 감싸므로 **크래시해도 `.app`은 살아있고 폴백이 안에 렌더**된다. 폴백 문구의 부재를 검증하도록 교체.
+
+각 테스트가 **자기 실패 모드만** 잡는 것을 실증:
+
+| | 테스트①(Clean→Map) | 테스트②(부재 가드) |
+|---|---|---|
+| 수정본 | ✅ | ✅ |
+| F1 버그 복원 | **❌ 잡음** | ✅ |
+| 가드 제거 | ✅ | **❌ 잡음** |
+
+- `tests/e2e/mapCleanPipeline.spec.mjs` 신규 2 · `tests/formulaEval.test.js` +1(F6 거부 + 이웃 Math 함수 무회귀)
+- 전체: **Node 344/344** · **E2E 58/58** · `verify:dist` 9개 모드 전수 통과·콘솔 에러 0 · asset v290
+
+---
 
 ## 세션 기록 — 2026-07-17 (코드 실사 + 문서 일원화 + E1 회귀 공선성 수정)
 
