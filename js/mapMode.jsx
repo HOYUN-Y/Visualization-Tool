@@ -196,9 +196,9 @@
     "화성시":[37.200,126.831],"부천시":[37.504,126.766],"남양주시":[37.636,127.216],"안산시":[37.321,126.831],
     "안양시":[37.394,126.957],"평택시":[37.000,126.997],"시흥시":[37.380,126.803],"파주시":[37.760,126.780],
     "김포시":[37.615,126.716],"의정부시":[37.738,127.034],
-    "연수구":[37.410,126.678],"부평구":[37.508,126.722],"남동구":[37.447,126.731],"서구":[37.546,126.668],
+    "연수구":[37.410,126.678],"부평구":[37.508,126.722],"남동구":[37.447,126.731],
     "미추홀구":[37.467,126.651],
-    "해운대구":[35.163,129.162],"부산진구":[35.164,129.053],"북구":[35.197,128.991],"사상구":[35.149,128.992],
+    "해운대구":[35.163,129.162],"부산진구":[35.164,129.053],"사상구":[35.149,128.992],
     "금정구":[35.243,129.092],
     "달서구":[35.829,128.532],"수성구":[35.858,128.630],
     "창원시":[35.228,128.681],"김해시":[35.234,128.882],"진주시":[35.180,128.107],"양산시":[35.334,129.038],
@@ -210,9 +210,29 @@
     "전주시":[35.821,127.148],"익산시":[35.948,126.954],"군산시":[35.967,126.736],
     "원주시":[37.342,127.920],"춘천시":[37.882,127.729],"강릉시":[37.751,128.876],"동해시":[37.524,129.114],
     "유성구":[36.362,127.357],
-    "광산구":[35.139,126.793],"북구":[35.174,126.912],
+    "광산구":[35.139,126.793],
     "제주시":[33.500,126.531],"서귀포시":[33.254,126.560],
   };
+
+  // Names that exist in more than one 시도 MUST be keyed by province — a flat name→coords map silently
+  // resolves them to whichever entry came last in the object literal. That is exactly what happened:
+  // "북구" was listed twice (부산 then 광주), so JS kept 광주 and every 북구 bubble — 부산·대구·광주 —
+  // stacked on Gwangju, ~200km from Busan, while the tooltip confidently read "북구 / 부산광역시".
+  // "서구" (인천·대전·광주) had the same collision. Found by esbuild's duplicate-object-key warning
+  // during the deploy build (PLAN §12 C9); in-browser Babel never warned.
+  //
+  // These names are deliberately ABSENT from MUN_LATLON above: an ambiguous name must not resolve at
+  // all unless we know its province. Silently plotting the wrong city is worse than plotting nothing.
+  const MUN_LATLON_BY_PROV = {
+    "부산광역시|북구":[35.197,128.991], "대구광역시|북구":[35.886,128.583], "광주광역시|북구":[35.174,126.912],
+    "인천광역시|서구":[37.546,126.668], "대전광역시|서구":[36.355,127.384], "광주광역시|서구":[35.152,126.890],
+  };
+
+  // Resolve a municipality centroid. Province-qualified first, then the unambiguous flat map.
+  // Returns null when the place cannot be located — callers must skip it, never guess.
+  function munLatLon(name, province) {
+    return MUN_LATLON_BY_PROV[province + "|" + name] || MUN_LATLON[name] || null;
+  }
 
   // Convert WGS84 lat/lon → UTM Zone 52N → Highcharts projected coords
   // (Highcharts map-collection GeoJSON uses UTM52N projected space, NOT WGS84)
@@ -336,8 +356,21 @@
       }]
     } : null;
 
-    // Municipality bubble overlay on province map background
-    const munSizes = munRows.map((r) => r.pop_man);
+    // Municipality bubble overlay on province map background.
+    // Resolve coordinates up front and drop anything we can't place (C9). The old code fell back to
+    // [37.5, 127.0] — the middle of Seoul — so an unlocatable municipality was drawn as a confident
+    // bubble in the wrong city. Skipping is the honest behaviour; the count is logged, not hidden.
+    // Everything downstream (sizes, tooltip dataIndex, label threshold) must read the SAME array, or
+    // the tooltip would describe a different row than the bubble under the cursor.
+    const munPlaced = munRows
+      .map((r) => ({ row: r, ll: munLatLon(r.name, r.province) }))
+      .filter((x) => x.ll);
+    const unplaced = munRows.length - munPlaced.length;
+    if (unplaced > 0 && window.LOG && window.LOG.warn) {
+      window.LOG.warn("map", unplaced + "개 시군구를 지도에 표시하지 못했습니다 (좌표 없음)");
+    }
+
+    const munSizes = munPlaced.map((x) => x.row.pop_man);
     const sMin = munSizes.length ? Math.min(...munSizes) : 0;
     const sMax = munSizes.length ? Math.max(...munSizes) : 1;
     const sz = (v) => 8 + ((v - sMin) / (sMax - sMin + 1)) * 28;
@@ -346,7 +379,7 @@
       animation: false,
       tooltip: { ...Charts.baseGrid(c).tooltip, trigger: "item",
         formatter: (p) => {
-          const row = munRows[p.dataIndex];
+          const row = munPlaced[p.dataIndex] && munPlaced[p.dataIndex].row;
           if (!row) return p.name;
           return `<b>${row.name}</b><br/><span style="color:var(--tx-faint)">${row.province}</span><br/>인구: <b>${NODE.fmtNum(row.pop_man,0)}만명</b><br/>인구밀도: <b>${NODE.fmtNum(row.pop_density,0)}명/km²</b><br/>면적: <b>${NODE.fmtNum(row.area_km2,0)} km²</b>`;
         }
@@ -358,13 +391,12 @@
       series: [{
         type: "scatter", coordinateSystem: "geo",
         symbolSize: (val) => sz(val[2]),
-        data: munRows.map((r) => {
-          const ll = MUN_LATLON[r.name] || [37.5, 127.0]; // [lat, lon]
-          // Highcharts GeoJSON uses UTM52N projected coords; convert WGS84→HC
+        data: munPlaced.map(({ row, ll }) => {
+          // Highcharts GeoJSON uses UTM52N projected coords; convert WGS84→HC. ll is [lat, lon].
           const hc = wgs84ToHCKorea(ll[1], ll[0]);
-          return { name: r.name, value: [hc[0], hc[1], r[metric]] };
+          return { name: row.name, value: [hc[0], hc[1], row[metric]] };
         }),
-        label: { show: munRows.length < 20, formatter: "{b}", position: "right", color: c.text, fontSize: 9 },
+        label: { show: munPlaced.length < 20, formatter: "{b}", position: "right", color: c.text, fontSize: 9 },
         itemStyle: { opacity: 0.85, borderColor: c.bg, borderWidth: 1 },
         encode: { value: 2 },
       }]
