@@ -56,12 +56,21 @@ const r = await page.evaluate(() => ({
   jsxRefs: document.querySelectorAll('script[src*=".jsx"]').length,
 }));
 
-// Exercise a mode switch — the P0 crash class the E2E suite exists to catch.
-await page.evaluate(() => window.Store.actions.setMode("visualize"));
-await page.waitForTimeout(700);
-const vizOk = await page.evaluate(() => window.Store.getState().mode === "visualize" && !!document.querySelector(".app"));
+// Walk EVERY mode. The grid.jsx TDZ bug (2026-07-17) only surfaced in the build — dev's in-browser
+// Babel downlevels const→var, which hoists and masks it — and it crashed Data mode outright. Any mode
+// could hide the same class of bug, so visiting one mode proves nothing about the other eight.
+const MODES = ["data", "clean", "sql", "visualize", "dashboard", "map", "stats", "ml", "pivot"];
+const modeFailures = [];
+for (const m of MODES) {
+  const mark = errors.length;
+  await page.evaluate((x) => window.Store.actions.setMode(x), m);
+  await page.waitForTimeout(1200);
+  const ok = await page.evaluate((x) => window.Store.getState().mode === x && !!document.querySelector(".app"), m);
+  if (!ok || errors.length > mark) modeFailures.push(m);
+}
+const vizOk = modeFailures.length === 0;
 
-console.log(JSON.stringify({ ...r, vizOk, errors: errors.slice(0, 8) }, null, 2));
+console.log(JSON.stringify({ ...r, modesChecked: MODES.length, modeFailures, errors: errors.slice(0, 8) }, null, 2));
 await browser.close();
 stop();
 
@@ -73,7 +82,7 @@ if (r.reactDev) fatal.push("React development build still referenced");
 if (r.modules.length) fatal.push("missing globals: " + r.modules.join(","));
 if (!r.appRendered) fatal.push("app did not render");
 if (!r.projectId) fatal.push("no project loaded (IndexedDB path broken)");
-if (!vizOk) fatal.push("mode switch failed");
+if (!vizOk) fatal.push("mode(s) broken in dist: " + modeFailures.join(", "));
 if (errors.length) fatal.push("console/page errors: " + errors.length);
 if (fatal.length) { console.error("\n❌ FAIL:\n - " + fatal.join("\n - ")); process.exit(1); }
-console.log("\n✅ dist 부팅·모드전환·IndexedDB 정상 · Babel 제거 확인 · 콘솔 에러 0");
+console.log(`\n✅ dist 부팅 · ${MODES.length}개 모드 전부 정상 · IndexedDB 정상 · Babel 제거 확인 · 콘솔 에러 0`);

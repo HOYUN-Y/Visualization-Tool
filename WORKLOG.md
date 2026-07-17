@@ -109,7 +109,12 @@ Core v2는 `v2.0.0`으로 종료됐고 **강제되는 다음 행동은 없다.**
 1. 🚨 **`grid.jsx` TDZ — dist에서 Data 모드 즉시 크래시 (수정함)**. 키보드 네비 `useEffect`가 `pageRows`(const) **선언 위**에 있어 의존성 배열이 렌더 중 TDZ를 읽음. **dev는 브라우저 Babel이 const→var로 낮춰 호이스팅 덕에 우연히 동작**하던 것. esbuild는 const 유지 → `Cannot access 'pageRows' before initialization`. effect를 선언 아래로 이동 + 재발 방지 주석. **이 앱이 Babel의 다운레벨링에 의존하고 있었다는 뜻** — 유사 패턴이 더 있을 수 있으므로 `npm run verify:dist`를 배포 전 필수로 유지할 것.
 2. ⚠️ **`mapMode.jsx` 중복 키 `북구` (미수정 — §12 C9로 등재)**. esbuild `duplicate-object-key` 경고. `MUN_LATLON`이 시군구명만으로 좌표를 찾는데 `북구`가 부산·광주 두 번 → 뒤가 이김. 데이터셋에 `북구` 3개(부산/대구/광주)·`서구` 3개가 있어 **여러 도시 버블이 한 좌표에 겹쳐 찍힘**(부산 북구가 광주에, 약 200km 오차). 데이터에 `province` 필드가 있는데 미사용. 수정은 이번 배치 범위 밖 — 사용자 판단 대기.
 
-**검증**: **Node 329/329** · **E2E 43/43**(기존 25 + 신규 18) · `verify:dist` 통과(콘솔 에러 0) · asset v285.
+**추가 (2026-07-17, 커밋 2)**:
+- **§13 로그인·회원관리 A 확정** — "접근 제한만, 앱 코드 0줄". 데이터는 브라우저 로컬 유지(서버 보관 책임 없음). §13.3(전용페이지 vs 관리자계정)은 **보류**(C 이상 승격 시에만). **배포처는 여전히 미정** → §13.3′에 Cloudflare Access / AWS / Nginx별 실행 방법만 준비. ⚠️ Basic Auth는 http에서 평문 전송이므로 "우선 http" 구간에는 접근 제한을 적용하지 않거나 공개하지 않는다.
+- **`verify:dist`를 9개 모드 전수 순회로 확장** — 기존엔 data·visualize만 봤다. grid.jsx TDZ는 **어느 모드에나** 있을 수 있는 클래스이므로 한 모드 통과는 나머지 8개를 보증하지 않는다. **ML 포함 9/9 정상 확인**(사용자 ML 검증 요청 대응).
+- **`dashMode.jsx` ResizeObserver null 가드 (수정함)** — 확장된 검사가 잡음. 대시보드 이탈 시 컨테이너 리사이즈 → 큐된 RO 콜백이 언마운트 후 발화 → `ref.current.clientWidth`가 null. **WORKLOG에 "ml 진입 시 clientWidth 에러 1건, 비차단"으로 오래 방치되던 바로 그 건.** 크래시는 아니지만 프로덕션 콘솔에 uncaught TypeError가 남는다. 콜백 내부 가드 + 캡처한 엘리먼트 관찰로 해소. 동일 패턴은 charts.jsx뿐이며 이미 가드 있음.
+
+**검증**: **Node 329/329** · **E2E 43/43**(기존 25 + 신규 18) · **`verify:dist` 9개 모드 전수 통과(콘솔 에러 0)** · asset v286.
 **미해소 T1**: A3′(DuckDB 로컬 벤더링 — 여전히 런타임 jsDelivr), A5(oklch 브라우저 하한), C3(alert/confirm 17곳), B1 잠금.
 
 ## 세션 기록 — 2026-07-17 (문서 드리프트 복구 + FOLLOWUP 분해 + 브랜치 정리)
