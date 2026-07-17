@@ -133,36 +133,6 @@
       return () => document.removeEventListener("keydown", h);
     }, [editable, selRows, cellEdit, headEdit, edit]);
 
-    // Excel-style keyboard nav on the active (selected) cell: arrows move selection,
-    // F2/Enter open the editor keeping the value, a printable key starts editing with that char.
-    // No-op while already editing a cell/header or focused in any input.
-    React.useEffect(() => {
-      if (!editable || !cellEditable || !activeCell || cellEdit || headEdit) return;
-      const h = (e) => {
-        const tag = document.activeElement && document.activeElement.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA") return;
-        if (e.altKey || e.metaKey || e.ctrlKey) return;
-        const ri = pageRows.findIndex((r) => r.__rid === activeCell.rid);
-        const ci = visCols.findIndex((c) => c.key === activeCell.key);
-        if (ri < 0 || ci < 0) return;
-        const move = (nr, nc) => {
-          if (nr < 0 || nr >= pageRows.length || nc < 0 || nc >= visCols.length) return;
-          e.preventDefault(); setActiveCell({ rid: pageRows[nr].__rid, key: visCols[nc].key });
-        };
-        if (e.key === "ArrowDown") return move(ri + 1, ci);
-        if (e.key === "ArrowUp") return move(ri - 1, ci);
-        if (e.key === "ArrowLeft") return move(ri, ci - 1);
-        if (e.key === "ArrowRight") return move(ri, ci + 1);
-        if (e.key === "Escape") { setActiveCell(null); return; }
-        if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); startCell(activeCell.rid, activeCell.key, pageRows[ri][visCols[ci].key]); return; }
-        // a single printable character begins editing, replacing the cell content (Excel behavior).
-        // Native (document) keydown → use e.isComposing, NOT e.nativeEvent (which is undefined here).
-        if (e.key.length === 1 && !e.isComposing) { e.preventDefault(); setCellEdit({ rid: activeCell.rid, key: activeCell.key }); setCellVal(e.key); }
-      };
-      document.addEventListener("keydown", h);
-      return () => document.removeEventListener("keydown", h);
-    }, [editable, cellEditable, activeCell, cellEdit, headEdit, pageRows, visCols]);
-
     // color maps for category cols
     const cmaps = React.useMemo(() => {
       const m = {};
@@ -216,6 +186,41 @@
     const pageRows = sorted.slice(pg * pageSize, pg * pageSize + pageSize);
 
     React.useEffect(() => { setPage(0); }, [search, filters]);
+
+    // Excel-style keyboard nav on the active (selected) cell: arrows move selection,
+    // F2/Enter open the editor keeping the value, a printable key starts editing with that char.
+    // No-op while already editing a cell/header or focused in any input.
+    //
+    // MUST stay below `pageRows` (const, above): the dep array is evaluated during render, so declaring
+    // this effect earlier reads pageRows in its temporal dead zone → "Cannot access 'pageRows' before
+    // initialization". It only appeared to work in dev because in-browser Babel downlevels const→var,
+    // which hoists; the esbuild deploy build keeps const and crashed Data mode outright.
+    React.useEffect(() => {
+      if (!editable || !cellEditable || !activeCell || cellEdit || headEdit) return;
+      const h = (e) => {
+        const tag = document.activeElement && document.activeElement.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        if (e.altKey || e.metaKey || e.ctrlKey) return;
+        const ri = pageRows.findIndex((r) => r.__rid === activeCell.rid);
+        const ci = visCols.findIndex((c) => c.key === activeCell.key);
+        if (ri < 0 || ci < 0) return;
+        const move = (nr, nc) => {
+          if (nr < 0 || nr >= pageRows.length || nc < 0 || nc >= visCols.length) return;
+          e.preventDefault(); setActiveCell({ rid: pageRows[nr].__rid, key: visCols[nc].key });
+        };
+        if (e.key === "ArrowDown") return move(ri + 1, ci);
+        if (e.key === "ArrowUp") return move(ri - 1, ci);
+        if (e.key === "ArrowLeft") return move(ri, ci - 1);
+        if (e.key === "ArrowRight") return move(ri, ci + 1);
+        if (e.key === "Escape") { setActiveCell(null); return; }
+        if (e.key === "Enter" || e.key === "F2") { e.preventDefault(); startCell(activeCell.rid, activeCell.key, pageRows[ri][visCols[ci].key]); return; }
+        // a single printable character begins editing, replacing the cell content (Excel behavior).
+        // Native (document) keydown → use e.isComposing, NOT e.nativeEvent (which is undefined here).
+        if (e.key.length === 1 && !e.isComposing) { e.preventDefault(); setCellEdit({ rid: activeCell.rid, key: activeCell.key }); setCellVal(e.key); }
+      };
+      document.addEventListener("keydown", h);
+      return () => document.removeEventListener("keydown", h);
+    }, [editable, cellEditable, activeCell, cellEdit, headEdit, pageRows, visCols]);
 
     // move edit focus to another cell (commits current). drow/dcol are deltas within pageRows/visCols.
     // Tab wraps horizontally onto the adjacent row. Out-of-bounds targets just commit without moving.

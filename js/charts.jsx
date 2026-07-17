@@ -113,10 +113,25 @@
     } catch (e) { window.LOG && window.LOG.error && window.LOG.error("export", "PNG failed: " + e.message); return false; }
   }
 
+  // Why the clipboard is (un)available, so callers can explain the failure instead of just going quiet.
+  // The async Clipboard API is secure-context-only: it exists on https:// and localhost, but NOT on a
+  // plain http:// deployment — where `navigator.clipboard` is simply undefined. Detected at runtime so
+  // the same build behaves correctly on http today and https later.
+  //   "ready"       — clipboard usable
+  //   "insecure"    — page is http:// (not localhost); the API requires HTTPS
+  //   "unsupported" — secure context but the browser lacks Clipboard/ClipboardItem
+  function clipboardSupport() {
+    const hasApi = !!(navigator.clipboard && typeof window.ClipboardItem !== "undefined");
+    if (hasApi) return { ok: true, reason: "ready" };
+    if (!window.isSecureContext) return { ok: false, reason: "insecure" };
+    return { ok: false, reason: "unsupported" };
+  }
+
   // Copy the chart to the clipboard as a PNG image (paste straight into PowerPoint/Slides).
+  // Resolves false on any failure; callers should use clipboardSupport() to explain why.
   function copyPNG(background, inst) {
     inst = inst || Charts.lastInst;
-    if (!inst || !navigator.clipboard || typeof window.ClipboardItem === "undefined") return Promise.resolve(false);
+    if (!inst || !clipboardSupport().ok) return Promise.resolve(false);
     try {
       const opt = inst.getOption ? inst.getOption() : null;
       const bg = background !== undefined ? background : ((opt && opt.backgroundColor) || resolveVar("--bg-1"));
@@ -171,5 +186,5 @@
     return true;
   }
 
-  window.Charts = { resolveVar, palette, themeColors, baseGrid, EChart, downloadPNG, downloadSVG, copyPNG, downloadCSV, lastInst: null };
+  window.Charts = { resolveVar, palette, themeColors, baseGrid, EChart, downloadPNG, downloadSVG, copyPNG, clipboardSupport, downloadCSV, lastInst: null };
 })();
