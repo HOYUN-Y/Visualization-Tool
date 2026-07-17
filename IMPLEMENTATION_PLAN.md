@@ -473,7 +473,7 @@ no-build `tests/runner.html`과 고정 fixture를 사용한다.
 | ID | 항목 | 확인된 현재 상태 (2026-07-17) | 티어 | 완화책 |
 |---|---|---|---|---|
 | **C1** | 전역 리렌더 store | ❌ 잔존 — `store.jsx:158` `useStore(sel)`가 **selector 결과 비교 없이** 모든 `setState`에 전 구독 컴포넌트 `force()` | T2~T3 | selector 결과 얕은 비교 후 skip(10줄 내). 장기: 그리드 가상화 |
-| **C3** | `alert()`/`confirm()` 네이티브 다이얼로그 | ❌ 잔존 — **17곳**(ML 모드는 P13에서 제거 완료, 그 외 rename 충돌·dummy encode 등) | T2~T3 | 인앱 토스트/다이얼로그로 점진 교체 |
+| ~~**C3**~~ | ~~`alert()`/`confirm()` 네이티브 다이얼로그~~ | ✅ **해소 (2026-07-17)** — `js/ui.jsx`(`window.UI`) 신규: 토스트 + promise 기반 `alert`/`confirm`/`prompt`. 네이티브 호출 **20곳 전부 교체**(alert 14·confirm 2·prompt 4). 계약은 네이티브와 동일(`confirm`→bool, `prompt`→string\|null)이라 호출부 로직 불변. Escape 취소·Enter 제출·자동 포커스. E2E `uiDialogs` 7 — **실제 rename/delete 플로우에서 네이티브 다이얼로그 미발화를 명시 검증** | — | — |
 | **C6** | 접근성 부재 | ❌ 잔존 — aria 속성 **1개**, 포커스 트랩·키보드 내비 없음 | T3 | 개인 도구론 범위 밖 명시. 신규 모달부터 포커스 트랩 관례 |
 | **C7** | 라이트 테마 검증 공백 | 미변경 — 최근 기능이 다크에서만 검증 | T3 | E2E에 라이트 테마 스크린샷 1패스 |
 | **C8** | 소형 화면 레이아웃 | 미변경 — 1280px 미만 미검증 | T3 | 최소 지원 폭 정의 + 이하에서 패널 접기 |

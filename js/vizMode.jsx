@@ -906,7 +906,7 @@
       const bgVal = bg === "current" ? undefined : (bg === "white" ? "#ffffff" : "transparent");
       const inst = chartInstRef.current;   // C4: export this chart, not the global last one
       const ok = kind === "svg" ? window.Charts.downloadSVG(name, bgVal, inst) : window.Charts.downloadPNG(name, bgVal, inst);
-      if (!ok) alert("차트를 먼저 그려주세요. / Draw a chart first.");
+      if (!ok) window.UI.toast("차트를 먼저 그려주세요 / Draw a chart first", { type: "warn" });
       else window.LOG && window.LOG.info("export", kind.toUpperCase() + " exported · " + bg);
       setExpOpen(false);
     };
@@ -921,16 +921,16 @@
           ? "클립보드 복사는 HTTPS에서만 지원됩니다 (현재 http:// 접속).\n대신 PNG로 내려받았습니다 — 파워포인트에 끌어다 넣으세요."
           : "이 브라우저는 클립보드 이미지 복사를 지원하지 않습니다.\n대신 PNG로 내려받았습니다 — 파워포인트에 끌어다 넣으세요.";
         const saved = window.Charts.downloadPNG("insight-" + (viz.type || "chart"), undefined, inst);
-        alert(saved ? why : "차트를 먼저 그려주세요. / Draw a chart first.");
+        window.UI.toast(saved ? why : "차트를 먼저 그려주세요 / Draw a chart first", { type: saved ? "info" : "warn" });
         window.LOG && window.LOG.info("export", "clipboard unavailable (" + sup.reason + ") → PNG fallback");
         setExpOpen(false);
         return;
       }
       window.Charts.copyPNG(undefined, inst).then((ok) => {
-        if (ok) { alert("클립보드에 복사됨 · 파워포인트에서 Ctrl+V로 붙여넣기"); return; }
+        if (ok) { window.UI.toast("클립보드에 복사됨 · 파워포인트에서 Ctrl+V", { type: "success" }); return; }
         // Secure context but the write still failed (permission denied, transient) — don't strand the user.
         const saved = window.Charts.downloadPNG("insight-" + (viz.type || "chart"), undefined, inst);
-        alert(saved ? "클립보드 복사에 실패해 PNG로 내려받았습니다." : "차트를 먼저 그려주세요. / Draw a chart first.");
+        window.UI.toast(saved ? "클립보드 복사에 실패해 PNG로 내려받았습니다" : "차트를 먼저 그려주세요 / Draw a chart first", { type: "warn" });
       });
       setExpOpen(false);
     };
@@ -939,16 +939,16 @@
       const opt = inst ? inst.getOption() : (window.Charts.lastInst ? window.Charts.lastInst.getOption() : null);
       const r = window.PptxExport ? window.PptxExport.exportChart(viz, opt, "insight-" + (viz.type || "chart"), (viz.format && viz.format.title && viz.format.title.text) || "") : { ok: false, reason: "no-lib" };
       if (!r.ok) {
-        if (r.reason === "no-lib") alert("PowerPoint 내보내기 라이브러리(PptxGenJS)가 아직 설치되지 않았습니다.\nvendor/pptxgenjs/pptxgen.bundle.js 를 추가하세요 (vendor/pptxgenjs/README.md 참고).");
-        else if (r.reason === "unsupported") alert("이 차트 종류(캔들스틱·분산형·박스플롯 등)는 PPT 네이티브 차트(데이터 편집)로 대응되는 형식이 없습니다.\n막대·라인·영역·파이(스택·보조축·콤보 포함)만 가능 — 나머지는 이미지/SVG로 내보내세요.");
-        else if (r.reason === "no-chart") alert("차트를 먼저 그려주세요.");
-        else alert("PPTX 내보내기 실패: " + r.reason);
+        if (r.reason === "no-lib") window.UI.alert("PowerPoint 내보내기 라이브러리(PptxGenJS)가 아직 설치되지 않았습니다.\nvendor/pptxgenjs/pptxgen.bundle.js 를 추가하세요 (vendor/pptxgenjs/README.md 참고).", { title: "라이브러리 없음" });
+        else if (r.reason === "unsupported") window.UI.alert("이 차트 종류(캔들스틱·분산형·박스플롯 등)는 PPT 네이티브 차트로 대응되는 형식이 없습니다.\n막대·라인·영역·파이(스택·보조축·콤보 포함)만 가능 — 나머지는 이미지/SVG로 내보내세요.", { title: "PPT 네이티브 미지원" });
+        else if (r.reason === "no-chart") window.UI.toast("차트를 먼저 그려주세요", { type: "warn" });
+        else window.UI.toast("PPTX 내보내기 실패: " + r.reason, { type: "error" });
       } else window.LOG && window.LOG.info("export", "PPTX exported");
       setExpOpen(false);
     };
     const piStyle = { width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 8, padding: "7px 14px" };
     const saveToDash = () => {
-      if (!measures.length) { alert("측정값을 먼저 올려주세요. / Add a measure first."); return; }
+      if (!measures.length) { window.UI.toast("측정값을 먼저 올려주세요 / Add a measure first", { type: "warn" }); return; }
       const st = window.Store.getState();
       const sheet = (st.dash.sheets || []).find((x) => x.id === st.dash.active) || (st.dash.sheets || [])[0];
       const widgets = ((sheet && sheet.widgets) || []).slice();
@@ -956,7 +956,7 @@
         spec: { chartType: viz.type, cols: viz.cols.map((c) => c.key), measures: measures.map((m) => [m.key, m.agg || "sum"]), color: viz.color ? viz.color.key : undefined } });
       actions.setDashWidgets(widgets);
       window.LOG && window.LOG.info("viz", "Saved chart to dashboard");
-      alert("활성 대시보드에 추가되었습니다. / Added to the active dashboard.");
+      window.UI.toast("활성 대시보드에 추가되었습니다 / Added to the dashboard", { type: "success" });
     };
 
     const chartH = (viz.format && viz.format.height) || null;

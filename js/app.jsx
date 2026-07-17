@@ -103,6 +103,8 @@
         {window.TweaksPanel && <window.TweaksPanel />}
         {window.AIDrawer && <window.AIDrawer />}
         {window.CombineModal && <window.CombineModal />}
+        {/* C3: hosts in-app toasts/dialogs (window.UI). Mounted last so it layers above every modal. */}
+        {window.UI && <window.UI.Host />}
       </div>
     );
   }
@@ -122,7 +124,10 @@
       window.LOG && window.LOG.info("share", "imported project from share link");
     } catch (e) {
       console.error("share link import failed", e);
-      alert("공유 링크를 열지 못했습니다: " + (e.message || e));
+      // C3: toast instead of alert. This runs at boot, possibly before <UI.Host/> mounts — that's fine:
+      // UI state is module-level and Host seeds itself from it on mount, so the toast still appears.
+      // console.error stays as the durable record in case the app never gets far enough to render.
+      window.UI.toast("공유 링크를 열지 못했습니다: " + (e.message || e), { type: "error" });
     }
   }
   maybeImportShareLink();

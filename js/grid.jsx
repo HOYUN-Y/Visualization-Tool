@@ -97,7 +97,9 @@
       const t = headVal.trim();
       // Reject renaming onto another existing column key — that would silently overwrite its data.
       if (t && columns.some((c) => c.key === t && c.key !== headEdit)) {
-        alert(`"${t}" 컬럼이 이미 있습니다. 다른 이름을 쓰세요.`);
+        // C3: a toast, not a blocking alert — the editor stays open and focused so the user can just
+        // retype. The native alert stole focus and forced a click before they could.
+        window.UI.toast(`"${t}" 컬럼이 이미 있습니다 · 다른 이름을 쓰세요`, { type: "warn" });
         return; // keep the editor open so the user can fix it
       }
       if (t && t !== headEdit) edit.onRename(headEdit, t);

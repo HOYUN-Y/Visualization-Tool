@@ -105,6 +105,65 @@ input, select { font-family: inherit; color: inherit; }
 .project-actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 10px; border-top: 1px solid var(--line); }
 .project-actions.backup { background: var(--bg-1); }
 .btn.danger { color: var(--neg); }
+/* C3: in-app toasts + dialogs replacing native alert/confirm/prompt.
+   Native dialogs block the event loop (breaking embeds and automation) and can't carry the brand.
+   z-index sits above .import-overlay (8000) so a confirm raised from inside a modal is reachable. */
+.toast-stack {
+  position: fixed; right: 16px; bottom: 16px; z-index: 9000;
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+  pointer-events: none;                 /* the gaps shouldn't eat clicks on the app beneath */
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 8px 10px 12px;
+  border-radius: var(--r-md); cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); border-left: 3px solid var(--tx-faint);
+  box-shadow: var(--shadow-pop);
+  font-size: var(--fs-12); color: var(--tx-mid); line-height: 1.5;
+  animation: toast-in .22s cubic-bezier(.4, 0, .2, 1);
+}
+.toast > svg { flex-shrink: 0; margin-top: 2px; }
+.toast > span { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; }
+.toast.info    { border-left-color: var(--accent); } .toast.info > svg    { color: var(--accent); }
+.toast.success { border-left-color: var(--pos); }    .toast.success > svg { color: var(--pos); }
+.toast.warn    { border-left-color: var(--warn); }   .toast.warn > svg    { color: var(--warn); }
+.toast.error   { border-left-color: var(--neg); }    .toast.error > svg   { color: var(--neg); }
+.toast-x {
+  flex-shrink: 0; background: none; border: 0; cursor: pointer;
+  color: var(--tx-faint); padding: 2px; border-radius: 3px; line-height: 0;
+}
+.toast-x:hover { color: var(--tx-hi); background: var(--bg-3, var(--bg-1)); }
+@keyframes toast-in { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+
+.ui-overlay {
+  position: fixed; inset: 0; z-index: 9500;
+  background: var(--overlay);
+  display: flex; align-items: center; justify-content: center; padding: 18px;
+}
+.ui-dialog {
+  width: min(440px, calc(100vw - 36px));
+  background: var(--bg-1); border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-pop); overflow: hidden;
+  animation: ui-dialog-in .18s cubic-bezier(.4, 0, .2, 1);
+}
+.ui-dialog-body { padding: 20px 20px 16px; display: flex; flex-direction: column; gap: 8px; }
+.ui-dialog-body strong { font-size: 14px; color: var(--tx-hi); }
+.ui-dialog-body strong.danger { color: var(--neg); }
+.ui-dialog-body p { margin: 0; font-size: var(--fs-12); color: var(--tx-mid); line-height: 1.6; white-space: pre-wrap; }
+.ui-dialog-input {
+  margin-top: 6px; width: 100%; padding: 7px 9px;
+  background: var(--bg-0); border: 1px solid var(--line-strong); border-radius: var(--r-md);
+  color: var(--tx-hi); font-size: var(--fs-12); font-family: inherit;
+}
+.ui-dialog-input:focus { outline: none; border-color: var(--accent); }
+.ui-dialog-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 12px 16px; border-top: 1px solid var(--line); background: var(--bg-0);
+}
+@keyframes ui-dialog-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
+
 /* A6: storage durability notice. Rendered from the topbar but pinned to the viewport so it can't
    disturb the topbar layout. One-time, dismissible, and only when eviction is actually possible. */
 .storage-notice {
